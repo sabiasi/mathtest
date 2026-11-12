@@ -1,5 +1,6 @@
 "use client";
 
+import { DateField } from "@/components/DateField";
 import { Field, SegmentedControl, inputClasses } from "@/components/ui/form";
 import { useT } from "@/i18n/language";
 import type { LabelStyle, Test } from "@/lib/storage/types";
@@ -54,14 +55,13 @@ export function TestHeaderForm({
           />
         </Field>
 
-        <Field label={t("header.date")}>
-          <input
-            type="date"
-            className={inputClasses}
-            value={test.date}
-            onChange={(e) => onChange({ date: e.target.value })}
-          />
-        </Field>
+        {/* A <div>, not a <label>: a label would send every click to the first dropdown. */}
+        <div>
+          <p id="date-label" className="mb-1.5 text-sm font-medium text-slate-700">
+            {t("header.date")}
+          </p>
+          <DateField value={test.date} onChange={(date) => onChange({ date })} labelId="date-label" />
+        </div>
 
         <Field label={t("header.timeLimit")}>
           <input

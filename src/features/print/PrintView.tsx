@@ -4,6 +4,7 @@ import { ArrowLeft, Download, LoaderCircle, Printer, SearchX, Shuffle } from "lu
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { buttonClasses } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/form";
 import { useLanguage, useT } from "@/i18n/language";
@@ -43,6 +44,7 @@ export function PrintView() {
 
 function PrintDocument({ test, version, variantParam }: { test: Test; version: PrintVersion; variantParam: string }) {
   const t = useT();
+  const confirm = useConfirm();
   const language = useLanguage();
   const router = useRouter();
   const [pdfBusy, setPdfBusy] = useState(false);
@@ -92,8 +94,13 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
   function setVariants(changes: Partial<VariantSettings>) {
     saveTest({ ...test, variants: { ...test.variants, ...changes } });
   }
-  function reshuffle() {
-    if (window.confirm(t("variants.reshuffleConfirm"))) setVariants({ seed: newSeed() });
+  async function reshuffle() {
+    const ok = await confirm({
+      title: t("variants.reshuffle"),
+      message: t("variants.reshuffleConfirm"),
+      confirmLabel: t("dialog.continue"),
+    });
+    if (ok) setVariants({ seed: newSeed() });
   }
 
   async function handlePdf() {

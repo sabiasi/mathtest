@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Noto_Sans, Noto_Sans_Georgian } from "next/font/google";
 import { AppHeader } from "@/components/AppHeader";
+import { ConfirmProvider } from "@/components/ConfirmDialog";
 import { HtmlLang } from "@/i18n/HtmlLang";
 // MathLive's math fonts and the styles for read-only formulas.
 import "mathlive/fonts.css";
@@ -45,8 +46,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col bg-slate-50 font-sans text-slate-900 antialiased">
         <HtmlLang />
-        <AppHeader />
-        <main className="flex-1">{children}</main>
+        <ConfirmProvider>
+          <AppHeader />
+          <main className="flex-1">{children}</main>
+        </ConfirmProvider>
       </body>
     </html>
   );

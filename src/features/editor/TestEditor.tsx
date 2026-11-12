@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { buttonClasses } from "@/components/ui/button";
 import { MathEditingProvider, useMathLiveReady } from "@/features/math/MathEditingContext";
 import { MathToolbar } from "@/features/math/MathToolbar";
@@ -36,6 +37,7 @@ const ADD_BUTTONS: { type: QuestionType; Icon: typeof ListChecks }[] = [
  */
 export function TestEditor({ initialTest }: { initialTest: Test }) {
   const t = useT();
+  const confirm = useConfirm();
   const [test, setTest] = useState(initialTest);
   const [dirty, setDirty] = useState(false); // true = has unsaved changes
   const [focusId, setFocusId] = useState<string | null>(null);
@@ -69,10 +71,18 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
     setFocusId(copy.id);
   }
 
-  function remove(question: Question, number: number) {
+  async function remove(question: Question, number: number) {
     // Only ask when there is something to lose.
-    const hasContent = !isRichTextEmpty(question.text);
-    if (hasContent && !window.confirm(t("questions.deleteConfirm", { number }))) return;
+    const hasContent = !isRichTextEmpty(question.text) || question.images.length > 0;
+    if (hasContent) {
+      const ok = await confirm({
+        title: t("questions.delete"),
+        message: t("questions.deleteConfirm", { number }),
+        confirmLabel: t("dialog.delete"),
+        danger: true,
+      });
+      if (!ok) return;
+    }
     updateQuestions((qs) => qs.filter((q) => q.id !== question.id));
   }
 

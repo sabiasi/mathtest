@@ -2,6 +2,7 @@
 
 import { Copy, FileText, Pencil, Printer, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { useLanguage, useT } from "@/i18n/language";
 import { formatDateTime } from "@/lib/format";
 import { formatPoints, totalPoints } from "@/lib/questions";
@@ -11,6 +12,7 @@ import type { Test } from "@/lib/storage/types";
 /** One test in the "My tests" list. Clicking the card opens the editor. */
 export function TestCard({ test }: { test: Test }) {
   const t = useT();
+  const confirm = useConfirm();
   const language = useLanguage();
   const title = test.title || t("test.untitled");
   const editUrl = `/editor/${test.id}`;
@@ -20,10 +22,14 @@ export function TestCard({ test }: { test: Test }) {
     duplicateTest(test.id, test.title ? t("test.copyTitle", { title: test.title }) : "");
   }
 
-  function handleDelete() {
-    if (window.confirm(t("home.deleteConfirm", { title }))) {
-      deleteTest(test.id);
-    }
+  async function handleDelete() {
+    const ok = await confirm({
+      title: t("home.delete"),
+      message: t("home.deleteConfirm", { title }),
+      confirmLabel: t("dialog.delete"),
+      danger: true,
+    });
+    if (ok) deleteTest(test.id);
   }
 
   const action =

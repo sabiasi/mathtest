@@ -20,6 +20,13 @@ export const LANGUAGE_NAMES: Record<Language, string> = {
 
 const ka = {
   "language.label": "ენა",
+  "dialog.cancel": "გაუქმება",
+  "dialog.delete": "წაშლა",
+  "dialog.continue": "გაგრძელება",
+  "date.day": "დღე",
+  "date.month": "თვე",
+  "date.year": "წელი",
+  "date.today": "დღეს",
 
   "test.untitled": "უსათაურო ტესტი",
   "test.defaultSubject": "მათემატიკა",
@@ -40,7 +47,7 @@ const ka = {
   "home.duplicate": "ასლი",
   "home.duplicateLabel": "ტესტის ასლის შექმნა",
   "home.delete": "ტესტის წაშლა",
-  "home.deleteConfirm": "წავშალოთ ტესტი „{title}“? ამის გაუქმება შეუძლებელი იქნება.",
+  "home.deleteConfirm": "ტესტი „{title}“ სამუდამოდ წაიშლება. ამის გაუქმება შეუძლებელი იქნება.",
   "home.storageNote":
     "ტესტები ინახება მხოლოდ ამ კომპიუტერის ამ ბრაუზერში და სხვა მოწყობილობაზე არ გამოჩნდება.",
 
@@ -82,7 +89,7 @@ const ka = {
   "questions.drag": "გადაადგილება (გადაათრიეთ ან გამოიყენეთ Space და ისრები)",
   "questions.duplicate": "ასლის გაკეთება",
   "questions.delete": "კითხვის წაშლა",
-  "questions.deleteConfirm": "წავშალოთ კითხვა {number}?",
+  "questions.deleteConfirm": "კითხვა {number} წაიშლება ტექსტთან, პასუხებთან და სურათებთან ერთად.",
 
   "type.multiple-choice": "არჩევითი პასუხით",
   "type.true-false": "სწორია / მცდარია",
@@ -197,6 +204,13 @@ export type MessageKey = keyof typeof ka;
 
 const en: Record<MessageKey, string> = {
   "language.label": "Language",
+  "dialog.cancel": "Cancel",
+  "dialog.delete": "Delete",
+  "dialog.continue": "Continue",
+  "date.day": "Day",
+  "date.month": "Month",
+  "date.year": "Year",
+  "date.today": "Today",
 
   "test.untitled": "Untitled test",
   "test.defaultSubject": "Mathematics",
@@ -216,7 +230,7 @@ const en: Record<MessageKey, string> = {
   "home.duplicate": "Duplicate",
   "home.duplicateLabel": "Make a copy of this test",
   "home.delete": "Delete test",
-  "home.deleteConfirm": "Delete the test “{title}”? This can't be undone.",
+  "home.deleteConfirm": "The test “{title}” will be deleted for good. This can't be undone.",
   "home.storageNote":
     "Tests are saved only in this browser on this computer and won't appear on other devices.",
 
@@ -258,7 +272,7 @@ const en: Record<MessageKey, string> = {
   "questions.drag": "Move (drag, or use Space and the arrow keys)",
   "questions.duplicate": "Duplicate",
   "questions.delete": "Delete question",
-  "questions.deleteConfirm": "Delete question {number}?",
+  "questions.deleteConfirm": "Question {number} will be deleted with its text, answers and pictures.",
 
   "type.multiple-choice": "Multiple choice",
   "type.true-false": "True / false",

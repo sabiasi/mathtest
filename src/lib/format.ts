@@ -17,6 +17,16 @@ const GEORGIAN_MONTHS = [
   "დეკემბერი",
 ];
 
+const ENGLISH_MONTHS = [
+  "January", "February", "March", "April", "May", "June",
+  "July", "August", "September", "October", "November", "December",
+];
+
+/** The 12 month names in the given language. */
+export function monthNames(language: Language): string[] {
+  return language === "ka" ? GEORGIAN_MONTHS : ENGLISH_MONTHS;
+}
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 /**
