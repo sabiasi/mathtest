@@ -189,7 +189,10 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                       <span className="rounded-lg bg-indigo-100 p-1.5 text-indigo-700">
                         <Icon className="size-5" aria-hidden="true" />
                       </span>
-                      {t(`type.${type}`)}
+                      <span>
+                        <span className="block">{t(`type.${type}`)}</span>
+                        <span className="block text-sm font-normal text-slate-500">{t(`typeHint.${type}`)}</span>
+                      </span>
                     </button>
                   ))}
                 </div>

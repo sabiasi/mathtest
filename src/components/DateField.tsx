@@ -68,7 +68,7 @@ export function DateField({
           </option>
         ))}
       </select>
-      <select aria-label={t("date.month")} className={`${select} min-w-0 flex-1`} value={parts.month ?? ""} onChange={(e) => update({ month: number(e.target.value) })}>
+      <select aria-label={t("date.month")} className={`${select} min-w-[9.5rem] flex-1`} value={parts.month ?? ""} onChange={(e) => update({ month: number(e.target.value) })}>
         <option value="">{t("date.month")}</option>
         {monthNames(language).map((name, i) => (
           <option key={name} value={i + 1}>

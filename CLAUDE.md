@@ -54,6 +54,10 @@ make it fast and easy.
 - [x] **Images & grids**: several pictures per question (upload, paste, drop;
   resize; above/right), stored in IndexedDB; an answer grid (graph paper or
   coordinate plane, 5 mm squares, SVG) on any question; print + PDF support.
+- [x] **First-time-teacher review**: sample test ("მაგალითი", added once on
+  first visit + button), welcome guide, Georgian confirm dialogs, day/month/
+  year date picker, toolbar only while editing a question, print-page
+  warnings, readability and tablet fixes.
 - [ ] **Next**: remaining question types: fill-in-the-blank and matching.
 - [ ] Later: duplicate tests, backup import/export, templates, then accounts
   and cloud storage.
@@ -103,6 +107,8 @@ src/
                         usePrintLayout (measure → paginate), downloadPdf
   app/api/pdf/route.ts  PDF generation; lib/server/chrome.ts finds/launches Chrome
   lib/paginate.ts       Pure page packing (never splits a question)
+  lib/checks.ts         findProblems(test): empty questions, missing answers (print-page warnings)
+  lib/sample.ts         createSampleTest(language): the "მაგალითი" test
   lib/images/           imageStore (IndexedDB, resize, data URLs for PDF, clean-up), imageMath (pure)
   components/           … GridArea (SVG grid in mm), QuestionImageView (picture with fixed aspect ratio)
   lib/variants.ts       buildVariants(test) → [A (original), B…]; seededRandom + shuffle
@@ -163,6 +169,14 @@ src/
 - Async edits to a question (image upload) use `onPatch(fn)` so they apply to
   the newest version and don't overwrite text typed meanwhile.
 - Browser tests: wait for a condition (`waitForFunction`), not a fixed time.
+- Never use window.confirm: use `useConfirm()` (components/ConfirmDialog.tsx).
+- Never use <input type="date">: use components/DateField.tsx (dd / month / yyyy).
+- The math toolbar only renders while a rich-text box is active
+  (MathEditingContext clears it on focus elsewhere). Browser tests wait for
+  `[data-editor-ready="true"]`, not for the toolbar.
+- The sample test is created once per browser (flag `mathtest:sample-added`);
+  browser tests that start from an empty browser set that flag first.
+- Touch screens get bigger targets via Tailwind's `pointer-coarse:` variant.
 - Variants must stay repeatable: never use Math.random() for them; change the
   seed only via "Shuffle again" (it warns that printed papers won't match).
 - The PDF route waits with `waitForFunction(..., { polling: 250 })`; puppeteer's

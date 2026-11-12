@@ -64,6 +64,11 @@ const ka = {
   "home.duplicateLabel": "ტესტის ასლის შექმნა",
   "home.delete": "ტესტის წაშლა",
   "home.deleteConfirm": "ტესტი „{title}“ სამუდამოდ წაიშლება. ამის გაუქმება შეუძლებელი იქნება.",
+  "home.openSample": "მაგალითის გახსნა",
+  "home.welcomeTitle": "მოგესალმებით! ასე მუშაობს MathTest:",
+  "home.step1": "შექმენით ახალი ტესტი — ან გახსენით „მაგალითი“ და ნახეთ, როგორ არის აწყობილი.",
+  "home.step2": "დაამატეთ კითხვები. ფორმულის ჩასაწერად დააჭირეთ „Σ ფორმულა“ ღილაკს ან Alt+=.",
+  "home.step3": "დააჭირეთ „ბეჭდვა / PDF“: ამობეჭდეთ, ჩამოტვირთეთ PDF, მიიღეთ პასუხები და ვარიანტები.",
   "home.storageNote":
     "ტესტები ინახება მხოლოდ ამ კომპიუტერის ამ ბრაუზერში და სხვა მოწყობილობაზე არ გამოჩნდება.",
 
@@ -100,7 +105,7 @@ const ka = {
   "questions.type": "კითხვის ტიპი",
   "questions.points": "ქულა",
   "questions.text": "კითხვის ტექსტი",
-  "questions.textPlaceholder": "ჩაწერეთ კითხვა ან დავალება…",
+  "questions.textPlaceholder": "ჩაწერეთ კითხვა ან დავალება… (ფორმულისთვის: „Σ ფორმულა“ ზემოთ)",
   "questions.statementPlaceholder": "ჩაწერეთ დებულება, რომელიც სწორია ან მცდარი…",
   "questions.drag": "გადაადგილება (გადაათრიეთ ან გამოიყენეთ Space და ისრები)",
   "questions.duplicate": "ასლის გაკეთება",
@@ -111,6 +116,10 @@ const ka = {
   "type.true-false": "სწორია / მცდარია",
   "type.short-answer": "მოკლე პასუხი",
   "type.open-answer": "ღია კითხვა (ამოხსნით)",
+  "typeHint.multiple-choice": "მოსწავლე ირჩევს ერთ სწორ პასუხს",
+  "typeHint.true-false": "მოსწავლე წყვეტს, სწორია თუ არა დებულება",
+  "typeHint.short-answer": "მოკლე პასუხი ხაზზე (მაგ., რიცხვი)",
+  "typeHint.open-answer": "სრული ამოხსნა — ხაზებზე ან ბადეზე",
 
   "mc.optionPlaceholder": "პასუხი {label}",
   "mc.markCorrect": "მონიშნეთ {label} როგორც სწორი პასუხი",
@@ -261,6 +270,11 @@ const en: Record<MessageKey, string> = {
   "home.duplicateLabel": "Make a copy of this test",
   "home.delete": "Delete test",
   "home.deleteConfirm": "The test “{title}” will be deleted for good. This can't be undone.",
+  "home.openSample": "Open the sample test",
+  "home.welcomeTitle": "Welcome! This is how MathTest works:",
+  "home.step1": "Create a new test — or open the “Sample” to see how one is built.",
+  "home.step2": "Add questions. To write a formula, press the “Σ Formula” button or Alt+=.",
+  "home.step3": "Press “Print / PDF”: print, download a PDF, get answer keys and variants.",
   "home.storageNote":
     "Tests are saved only in this browser on this computer and won't appear on other devices.",
 
@@ -297,7 +311,7 @@ const en: Record<MessageKey, string> = {
   "questions.type": "Question type",
   "questions.points": "Points",
   "questions.text": "Question text",
-  "questions.textPlaceholder": "Type the question or task…",
+  "questions.textPlaceholder": "Type the question or task… (for a formula: “Σ Formula” above)",
   "questions.statementPlaceholder": "Type a statement that is either true or false…",
   "questions.drag": "Move (drag, or use Space and the arrow keys)",
   "questions.duplicate": "Duplicate",
@@ -308,6 +322,10 @@ const en: Record<MessageKey, string> = {
   "type.true-false": "True / false",
   "type.short-answer": "Short answer",
   "type.open-answer": "Open answer (with working)",
+  "typeHint.multiple-choice": "The student picks one correct answer",
+  "typeHint.true-false": "The student decides if a statement is true",
+  "typeHint.short-answer": "A short answer on a line (e.g. a number)",
+  "typeHint.open-answer": "Full working — on lines or a grid",
 
   "mc.optionPlaceholder": "Answer {label}",
   "mc.markCorrect": "Mark {label} as the correct answer",
