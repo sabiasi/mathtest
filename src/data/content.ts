@@ -4,7 +4,8 @@
  * The content (roadmap, lessons, quizzes, glossary) lives in plain JSON and
  * Markdown files, NOT in the app code. That separation means you can fix a
  * typo or add a whole new topic without touching any React component.
- * The file src/data/content.test.ts checks the files for mistakes. Run
+ * Lessons and quizzes are loaded in lessons.ts. The file
+ * src/data/content.test.ts checks all of them for mistakes. Run
  * `npm test` after editing content.
  */
 import glossaryJson from '../content/glossary.json'
@@ -63,36 +64,8 @@ export interface GlossaryEntry {
   definition: string
 }
 
-// ---------- Loading the files ----------
-
-/*
-  import.meta.glob is a Vite feature: it finds every file matching a pattern
-  at build time. So adding lessons/my-topic.md is enough for the app to see it,
-  with no import line to write.
-    query '?raw'  → give us the file's text, not a module
-    eager: true   → load them all right away (they're small)
-*/
-const lessonFiles = import.meta.glob<string>('../content/lessons/*.md', {
-  query: '?raw',
-  import: 'default',
-  eager: true,
-})
-const quizFiles = import.meta.glob<Quiz>('../content/quizzes/*.json', {
-  import: 'default',
-  eager: true,
-})
-
-/** "../content/lessons/variables.md" → "variables" */
-function fileId(path: string): string {
-  return path.split('/').pop()!.replace(/\.(md|json)$/, '')
-}
-
-function byFileId<T>(files: Record<string, T>): Record<string, T> {
-  return Object.fromEntries(Object.entries(files).map(([path, value]) => [fileId(path), value]))
-}
-
-const lessonsById = byFileId(lessonFiles)
-const quizzesById = byFileId(quizFiles)
+// ---------- Loading the roadmap and glossary ----------
+// (Lessons and quizzes are loaded separately, in lessons.ts. See why there.)
 
 // `as` tells TypeScript "trust me, the JSON has this shape". The content test
 // double-checks that promise so a typo in the JSON can't sneak through.
@@ -117,23 +90,9 @@ export function getStageOf(topicId: string): Stage | undefined {
   return stageByTopicId.get(topicId)
 }
 
-export function getLesson(topicId: string): string | undefined {
-  return lessonsById[topicId]
-}
-
-export function getQuiz(topicId: string): Quiz | undefined {
-  return quizzesById[topicId]
-}
-
 /** The topics just before and after this one in roadmap order (for "Next →" links). */
 export function getNeighbors(topicId: string): { previous?: Topic; next?: Topic } {
   const index = allTopics.findIndex((topic) => topic.id === topicId)
   if (index === -1) return {}
   return { previous: allTopics[index - 1], next: allTopics[index + 1] }
-}
-
-/** Exposed for the content test, which checks every file is used. */
-export const contentFileIds = {
-  lessons: Object.keys(lessonsById),
-  quizzes: Object.keys(quizzesById),
 }

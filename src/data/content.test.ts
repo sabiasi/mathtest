@@ -1,13 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import {
-  allTopics,
-  contentFileIds,
-  getLesson,
-  getQuiz,
-  glossary,
-  stages,
-  type ResourceKind,
-} from './content'
+import { allTopics, glossary, stages, type ResourceKind } from './content'
+import { contentFileIds, getLesson, getQuiz } from './lessons'
 
 /**
  * These tests check the CONTENT files (src/content/), not the app code.
