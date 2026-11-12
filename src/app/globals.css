@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* Noto Sans Georgian is loaded in layout.tsx and exposed as --font-georgian. */
-  --font-sans: var(--font-georgian), ui-sans-serif, system-ui, sans-serif;
+  /* Fonts come from layout.tsx: Georgian first, then Noto Sans for anything
+     the Georgian font lacks (№, Cyrillic…), then the system's fonts. */
+  --font-sans: var(--font-georgian-only), var(--font-fallback), ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -85,4 +86,206 @@ math-field::part(virtual-keyboard-toggle) {
 .toolbar-math {
   font-size: 0.95rem;
   line-height: 1;
+}
+
+/* ------------------------------------------------------------------ */
+/* Printed exam: A4 sheets (sizes must match usePrintLayout.tsx)      */
+/* ------------------------------------------------------------------ */
+
+@page {
+  size: A4;
+  margin: 0; /* our .sheet already has the margins built in */
+}
+
+.print-sheets {
+  padding: 24px 0 48px;
+}
+.sheet {
+  position: relative;
+  box-sizing: border-box;
+  width: 210mm;
+  height: 297mm;
+  margin: 0 auto 24px;
+  padding: 14mm 16mm 18mm;
+  overflow: hidden;
+  background: #fff;
+  color: #000;
+  box-shadow: 0 1px 3px rgb(15 23 42 / 0.12), 0 10px 30px rgb(15 23 42 / 0.08);
+}
+.sheet-font-normal {
+  font-size: 11pt;
+  line-height: 1.45;
+}
+.sheet-font-large {
+  font-size: 13.5pt;
+  line-height: 1.45;
+}
+.sheet-columns {
+  display: grid;
+  align-items: start;
+}
+.sheet-columns > div + div {
+  border-left: 0.3mm solid #d4d4d4;
+  padding-left: 4mm;
+  margin-left: -4mm;
+}
+.sheet-footer {
+  position: absolute;
+  left: 16mm;
+  right: 16mm;
+  display: flex;
+  justify-content: space-between;
+  border-top: 0.2mm solid #bbb;
+  padding-top: 1.5mm;
+  font-size: 8pt;
+  color: #555;
+}
+
+/* Header */
+.print-header {
+  text-align: center;
+}
+.print-key-banner {
+  margin-bottom: 3mm;
+  padding: 1.5mm 3mm;
+  border: 0.4mm solid #000;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.print-school {
+  font-size: 0.9em;
+  color: #333;
+}
+.print-title {
+  margin-top: 1mm;
+  font-size: 1.45em;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.print-meta {
+  margin-top: 1mm;
+  font-size: 0.9em;
+  color: #333;
+}
+.print-fields {
+  display: flex;
+  gap: 6mm;
+  align-items: baseline;
+  margin-top: 4mm;
+  padding: 2.5mm 0;
+  border-top: 0.4mm solid #000;
+  border-bottom: 0.4mm solid #000;
+  text-align: left;
+  white-space: nowrap;
+}
+.print-instructions {
+  margin-top: 3mm;
+  font-size: 0.92em;
+  font-style: italic;
+  text-align: left;
+  white-space: pre-wrap;
+}
+
+/* Questions */
+.print-number {
+  min-width: 5mm;
+  font-weight: 700;
+}
+.print-points {
+  flex-shrink: 0;
+  font-size: 0.85em;
+  color: #444;
+  white-space: nowrap;
+}
+.print-body {
+  margin-top: 1.5mm;
+  padding-left: 7mm;
+}
+.print-options {
+  display: grid;
+  column-gap: 6mm;
+  row-gap: 1.2mm;
+}
+.print-option {
+  display: flex;
+  gap: 1.5mm;
+  align-items: baseline;
+}
+.print-option-label {
+  font-weight: 600;
+}
+.print-option.is-correct {
+  font-weight: 700;
+}
+.print-option.is-correct .print-option-label {
+  padding: 0 1.2mm;
+  border-radius: 999px;
+  background: #000;
+  color: #fff;
+}
+.print-choice {
+  display: inline-flex;
+  gap: 1.5mm;
+  align-items: center;
+}
+.print-circle {
+  display: inline-block;
+  width: 3.2mm;
+  height: 3.2mm;
+  border: 0.35mm solid #000;
+  border-radius: 999px;
+}
+.print-choice.is-correct {
+  font-weight: 700;
+}
+.print-choice.is-correct .print-circle {
+  background: #000;
+}
+.print-answer-line {
+  position: relative;
+  flex: 1;
+  max-width: 90mm;
+  min-height: 1.6em;
+  border-bottom: 0.3mm solid #000;
+}
+.print-key-answer {
+  position: absolute;
+  bottom: 0.5mm;
+  left: 2mm;
+  font-weight: 700;
+}
+.print-line {
+  height: 8mm;
+  border-bottom: 0.25mm solid #9a9a9a;
+}
+.sheet-font-large .print-line {
+  height: 9.5mm;
+}
+
+/* What happens when printing (also used by the PDF) */
+@media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+  .print-sheets {
+    zoom: 1 !important;
+    padding: 0;
+  }
+  .sheet {
+    margin: 0;
+    box-shadow: none;
+    break-after: page;
+  }
+  .sheet:last-child {
+    break-after: auto;
+  }
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* Next.js's development badge must never end up on paper. */
+  nextjs-portal {
+    display: none !important;
+  }
 }

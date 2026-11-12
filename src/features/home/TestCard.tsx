@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, FileText, Pencil, Trash2 } from "lucide-react";
+import { Copy, FileText, Pencil, Printer, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useLanguage, useT } from "@/i18n/language";
 import { formatDateTime } from "@/lib/format";
@@ -65,10 +65,13 @@ export function TestCard({ test }: { test: Test }) {
           <Copy className="size-4" aria-hidden="true" />
           {t("home.duplicate")}
         </button>
+        <Link href={`/print/${test.id}`} className={`${action} ml-auto`} aria-label={t("home.print")} title={t("home.print")}>
+          <Printer className="size-4" aria-hidden="true" />
+        </Link>
         <button
           type="button"
           onClick={handleDelete}
-          className={`${action} ml-auto hover:bg-red-50 hover:text-red-600`}
+          className={`${action} hover:bg-red-50 hover:text-red-600`}
           aria-label={t("home.delete")}
           title={t("home.delete")}
         >

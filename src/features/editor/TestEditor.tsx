@@ -6,12 +6,13 @@ import {
   ListChecks,
   LoaderCircle,
   NotebookPen,
+  Printer,
   TextCursorInput,
   ToggleRight,
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useState } from "react";
-import { SegmentedControl } from "@/components/ui/form";
+import { buttonClasses } from "@/components/ui/button";
 import { MathEditingProvider, useMathLiveReady } from "@/features/math/MathEditingContext";
 import { MathToolbar } from "@/features/math/MathToolbar";
 import { useT } from "@/i18n/language";
@@ -20,7 +21,6 @@ import { isRichTextEmpty } from "@/lib/richText";
 import type { Question, QuestionType, Test } from "@/lib/storage/types";
 import { QuestionList } from "./questions/QuestionList";
 import { TestHeaderForm } from "./TestHeaderForm";
-import { TestPreview } from "./TestPreview";
 import { useAutosave } from "./useAutosave";
 
 const ADD_BUTTONS: { type: QuestionType; Icon: typeof ListChecks }[] = [
@@ -39,7 +39,6 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
   const [test, setTest] = useState(initialTest);
   const [dirty, setDirty] = useState(false); // true = has unsaved changes
   const [focusId, setFocusId] = useState<string | null>(null);
-  const [mode, setMode] = useState<"edit" | "preview">("edit");
   const mathReady = useMathLiveReady();
 
   const markSaved = useCallback(() => setDirty(false), []);
@@ -93,16 +92,11 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
               {/* On phones only the arrow shows; screen readers still hear the text. */}
               <span className="max-sm:sr-only">{t("editor.back")}</span>
             </Link>
-            <div className="flex flex-1 justify-center">
-              <SegmentedControl
-                label={t("editor.modePreview")}
-                value={mode}
-                onChange={setMode}
-                options={[
-                  { value: "edit", label: t("editor.modeEdit") },
-                  { value: "preview", label: t("editor.modePreview") },
-                ]}
-              />
+            <div className="flex flex-1 justify-end">
+              <Link href={`/print/${test.id}`} className={buttonClasses("secondary", "py-1.5! text-sm!")}>
+                <Printer className="size-4" aria-hidden="true" />
+                <span className="max-sm:sr-only">{t("editor.printPreview")}</span>
+              </Link>
             </div>
             <span className="flex items-center gap-1.5 text-sm text-slate-500" aria-live="polite">
               {dirty ? (
@@ -121,14 +115,10 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
               {t("editor.total", { points: total })}
             </span>
           </div>
-          {mode === "edit" && mathReady && <MathToolbar />}
+          {mathReady && <MathToolbar />}
         </div>
 
-        {mode === "preview" ? (
-          <div className="mx-auto max-w-3xl px-4 pt-8 sm:px-6">
-            <TestPreview test={test} />
-          </div>
-        ) : !mathReady ? (
+        {!mathReady ? (
           <p className="py-16 text-center text-slate-500">{t("editor.loading")}</p>
         ) : (
           <div className="mx-auto max-w-3xl space-y-8 px-4 pt-8 sm:px-6">
