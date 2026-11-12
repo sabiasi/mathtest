@@ -1,0 +1,38 @@
+{
+  "questions": [
+    {
+      "question": "Which shortcut opens the Command Palette, a search box for every VS Code feature?",
+      "options": ["⌘ + P", "⌘ + Shift + P", "F12", "Ctrl + C"],
+      "answer": 1,
+      "explanation": "⌘ + Shift + P opens the Command Palette. ⌘ + P (without Shift) quickly opens files by name."
+    },
+    {
+      "question": "What does F2 do on a variable name?",
+      "options": ["Deletes it", "Renames it everywhere it's used", "Runs the file", "Shows its type"],
+      "answer": 1,
+      "explanation": "F2 is a safe 'rename symbol': it updates every place that name is used, unlike find-and-replace, which can hit unrelated text."
+    },
+    {
+      "question": "Why should you open a whole folder in VS Code instead of a single file?",
+      "options": [
+        "Single files can't be edited",
+        "VS Code can then understand the whole project: search, imports, Git and the terminal",
+        "It uses less memory",
+        "It's required by Python"
+      ],
+      "answer": 1,
+      "explanation": "Features like project-wide search, go-to-definition across files and Git integration need to know the project folder."
+    },
+    {
+      "question": "What does a formatter do?",
+      "options": [
+        "Finds bugs in your logic",
+        "Automatically tidies spacing and layout to a consistent style",
+        "Deletes unused files",
+        "Translates code to another language"
+      ],
+      "answer": 1,
+      "explanation": "Formatters like Ruff or Black apply a style (like PEP 8) automatically, so you never think about spacing."
+    }
+  ]
+}

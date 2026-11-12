@@ -1,0 +1,26 @@
+{
+  "questions": [
+    {
+      "question": "In a relational database table, what is a row?",
+      "options": [
+        "One field, like \"email\"",
+        "One record, like one user",
+        "The whole database",
+        "A type of query"
+      ],
+      "answer": 1,
+      "explanation": "Rows are records; columns are fields."
+    },
+    {
+      "question": "What is a primary key?",
+      "options": [
+        "The database's password",
+        "A unique id for each row",
+        "The first column alphabetically",
+        "A backup"
+      ],
+      "answer": 1,
+      "explanation": "Primary keys uniquely identify rows, and other tables link to rows through them."
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "questions": [
+    {
+      "question": "What is an algorithm?",
+      "options": [
+        "A programming language",
+        "A precise, step-by-step recipe for solving a problem",
+        "A type of computer",
+        "A Python library"
+      ],
+      "answer": 1,
+      "explanation": "Algorithms exist outside code too: directions and recipes are algorithms."
+    },
+    {
+      "question": "Your `largest(numbers)` function works on [3, 9, 2]. What edge case should you also test?",
+      "options": [
+        "[3, 9, 2] again",
+        "An empty list []",
+        "A very nice list",
+        "None needed"
+      ],
+      "answer": 1,
+      "explanation": "Edge cases (empty input, one item, duplicates, negatives) are where most bugs hide."
+    }
+  ]
+}

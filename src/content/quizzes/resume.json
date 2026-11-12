@@ -1,0 +1,26 @@
+{
+  "questions": [
+    {
+      "question": "Which resume bullet is strongest?",
+      "options": [
+        "\"Worked on a website\"",
+        "\"Built a study-tracking app with React and TypeScript, with automated tests\"",
+        "\"Good at computers\"",
+        "\"Knows 15 languages\""
+      ],
+      "answer": 1,
+      "explanation": "Action verb + what you built + tools + a concrete detail or result."
+    },
+    {
+      "question": "Should you list a technology you only watched one video about?",
+      "options": [
+        "Yes, more is better",
+        "No, only list what you can confidently discuss in an interview",
+        "Only if it is popular",
+        "Yes, with 5 stars"
+      ],
+      "answer": 1,
+      "explanation": "Interviewers ask about what's on your resume. Honesty builds trust."
+    }
+  ]
+}

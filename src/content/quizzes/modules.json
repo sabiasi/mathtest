@@ -1,0 +1,38 @@
+{
+  "questions": [
+    {
+      "question": "After `import math`, how do you call the square root function?",
+      "options": ["sqrt(16)", "math.sqrt(16)", "math(sqrt, 16)", "import.sqrt(16)"],
+      "answer": 1,
+      "explanation": "With 'import math', you use the module name with a dot: math.sqrt. With 'from math import sqrt' you could write just sqrt(16)."
+    },
+    {
+      "question": "When does code under `if __name__ == \"__main__\":` run?",
+      "options": [
+        "Always",
+        "Only when that file is run directly, not when it's imported",
+        "Only when it's imported",
+        "Never"
+      ],
+      "answer": 1,
+      "explanation": "Run directly, the file's __name__ is \"__main__\". Imported, __name__ is the module's name, so the block is skipped."
+    },
+    {
+      "question": "You named your file `random.py`, and `random.randint(1, 6)` now fails with AttributeError. Why?",
+      "options": [
+        "randint was removed from Python",
+        "Your file is 'shadowing' the real random module: Python imported your file instead",
+        "You need to pip install random",
+        "Files can't import modules"
+      ],
+      "answer": 1,
+      "explanation": "Python looks in your script's folder first, so it found your random.py. Rename your file (and delete any __pycache__ folder)."
+    },
+    {
+      "question": "Where do packages you install with `pip` come from?",
+      "options": ["The standard library", "PyPI, the Python Package Index", "Your Desktop", "The App Store"],
+      "answer": 1,
+      "explanation": "PyPI hosts hundreds of thousands of community packages. The standard library is built in and needs no installing."
+    }
+  ]
+}

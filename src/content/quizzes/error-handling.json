@@ -1,0 +1,33 @@
+{
+  "questions": [
+    {
+      "question": "Where should you start reading a Python traceback?",
+      "options": ["The first line", "The last line", "The middle", "It doesn't matter"],
+      "answer": 1,
+      "explanation": "The last line says what went wrong (error type + message). The lines above show where and how you got there."
+    },
+    {
+      "question": "Which error does `int(\"hello\")` raise?",
+      "options": ["TypeError", "NameError", "ValueError", "SyntaxError"],
+      "answer": 2,
+      "explanation": "The type is fine (a string is allowed), but the value can't be converted to a number, so it's a ValueError."
+    },
+    {
+      "question": "Why is a bare `except:` (without an error type) a bad idea?",
+      "options": [
+        "It's slower",
+        "It hides every error, including real bugs and typos you needed to see",
+        "It's a SyntaxError",
+        "It only catches ValueError"
+      ],
+      "answer": 1,
+      "explanation": "Catch only the errors you expect (like except ValueError:). Silenced bugs become mysterious problems later."
+    },
+    {
+      "question": "In try / except / else, when does the `else` block run?",
+      "options": ["Always", "Only if an error happened", "Only if NO error happened in try", "Never"],
+      "answer": 2,
+      "explanation": "else runs when try finished without errors. finally is the one that runs no matter what."
+    }
+  ]
+}

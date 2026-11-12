@@ -1,0 +1,38 @@
+{
+  "questions": [
+    {
+      "question": "What problem do virtual environments solve?",
+      "options": [
+        "They make Python run faster",
+        "They give each project its own packages, so projects needing different versions don't clash",
+        "They back up your code",
+        "They let Python run in the browser"
+      ],
+      "answer": 1,
+      "explanation": "Without them, every project shares one set of packages. Upgrading for project A could break project B."
+    },
+    {
+      "question": "Which command activates a virtual environment in `.venv` on a Mac?",
+      "options": ["python3 -m venv .venv", "source .venv/bin/activate", "pip activate", "cd .venv"],
+      "answer": 1,
+      "explanation": "python3 -m venv .venv CREATES it; source .venv/bin/activate turns it on. Your prompt then shows (.venv)."
+    },
+    {
+      "question": "What should you commit to Git?",
+      "options": [
+        "The whole .venv folder",
+        "requirements.txt, but not .venv",
+        "Neither",
+        "Both"
+      ],
+      "answer": 1,
+      "explanation": ".venv is big and specific to your computer. requirements.txt is tiny, and pip install -r requirements.txt rebuilds the environment anywhere."
+    },
+    {
+      "question": "In DevPath's JavaScript world, what plays the role of `requirements.txt`?",
+      "options": ["node_modules/", "package.json", "index.html", ".gitignore"],
+      "answer": 1,
+      "explanation": "package.json lists the libraries; npm install recreates node_modules/ from it, just like pip install -r recreates .venv."
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "questions": [
+    {
+      "question": "What is the JavaScript version of `print(\"hi\")`?",
+      "options": [
+        "echo(\"hi\")",
+        "console.log(\"hi\")",
+        "print(\"hi\")",
+        "System.out(\"hi\")"
+      ],
+      "answer": 1,
+      "explanation": "console.log prints to the browser console (or the terminal, in Node.js)."
+    },
+    {
+      "question": "Why use `===` instead of `==` in JavaScript?",
+      "options": [
+        "=== is faster to type",
+        "== does surprising automatic type conversions, like \"5\" == 5 being true",
+        "They are identical",
+        "== is not allowed"
+      ],
+      "answer": 1,
+      "explanation": "=== compares both value and type with no conversions, so it does what you expect."
+    }
+  ]
+}

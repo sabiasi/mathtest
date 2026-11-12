@@ -1,0 +1,33 @@
+{
+  "questions": [
+    {
+      "question": "Which command shows which folder you're currently in?",
+      "options": ["ls", "cd", "pwd", "mkdir"],
+      "answer": 2,
+      "explanation": "pwd = 'print working directory'. ls lists contents, cd changes folder, and mkdir makes a folder."
+    },
+    {
+      "question": "What does `cd ..` do?",
+      "options": ["Deletes the current folder", "Moves up to the parent folder", "Lists hidden files", "Goes to your home folder"],
+      "answer": 1,
+      "explanation": ".. means 'the folder above this one'. To go home, use cd ~ (or just cd)."
+    },
+    {
+      "question": "A program is stuck running forever in your terminal. How do you stop it?",
+      "options": ["Press Ctrl + C", "Type exit", "Press Tab", "Press the up arrow"],
+      "answer": 0,
+      "explanation": "Ctrl + C sends an 'interrupt' signal that stops the running program. You'll use it to stop dev servers too."
+    },
+    {
+      "question": "What's the shell?",
+      "options": [
+        "The terminal window's border",
+        "The program that reads and runs the commands you type (zsh on a Mac)",
+        "A type of file",
+        "A Python library"
+      ],
+      "answer": 1,
+      "explanation": "The terminal is the window; the shell (zsh) runs inside it, reads your commands and runs them."
+    }
+  ]
+}

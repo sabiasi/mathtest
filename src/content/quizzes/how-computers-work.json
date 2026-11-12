@@ -1,0 +1,38 @@
+{
+  "questions": [
+    {
+      "question": "Which part of the computer actually follows a program's instructions?",
+      "options": ["RAM", "The CPU", "The SSD (storage)", "The screen"],
+      "answer": 1,
+      "explanation": "The CPU is the 'chef': it fetches, decodes and executes instructions. RAM and storage only hold data."
+    },
+    {
+      "question": "What happens to the contents of RAM when the computer turns off?",
+      "options": ["They're saved automatically", "They're moved to the CPU", "They're lost", "They're sent to the internet"],
+      "answer": 2,
+      "explanation": "RAM is fast, short-term memory that needs power. That's why you save files to storage (the SSD), which keeps data without power."
+    },
+    {
+      "question": "When you run `python3 hello.py`, what does the Python interpreter do?",
+      "options": [
+        "It translates your Python code into steps the CPU can perform",
+        "It sends your code to Python's website to run",
+        "It turns your code into a picture",
+        "It deletes the file after running it"
+      ],
+      "answer": 0,
+      "explanation": "The CPU only understands machine code. The interpreter reads your Python and carries it out step by step on the CPU."
+    },
+    {
+      "question": "What's the job of the operating system (like macOS)?",
+      "options": [
+        "Only to show the desktop wallpaper",
+        "To manage the hardware and all the other running programs",
+        "To write programs for you",
+        "To make the internet faster"
+      ],
+      "answer": 1,
+      "explanation": "The OS decides which program uses the CPU, keeps programs' memory separate, and handles files, the screen and the network for them."
+    }
+  ]
+}

@@ -1,0 +1,40 @@
+{
+  "questions": [
+    {
+      "question": "Which numbers does `range(1, 5)` produce?",
+      "options": ["1, 2, 3, 4, 5", "1, 2, 3, 4", "0, 1, 2, 3, 4", "2, 3, 4, 5"],
+      "answer": 1,
+      "explanation": "range stops BEFORE the end number. range(1, 5) gives 1, 2, 3, 4. Forgetting this causes off-by-one errors."
+    },
+    {
+      "question": "What does this print?",
+      "code": "total = 0\nfor n in [3, 4, 5]:\n    total += n\nprint(total)",
+      "options": ["5", "12", "345", "0"],
+      "answer": 1,
+      "explanation": "This is the accumulator pattern: total goes 0 → 3 → 7 → 12."
+    },
+    {
+      "question": "What does `break` do inside a loop?",
+      "options": [
+        "Skips to the next round",
+        "Exits the loop completely",
+        "Restarts the loop from the beginning",
+        "Crashes the program"
+      ],
+      "answer": 1,
+      "explanation": "break leaves the loop immediately. continue is the one that skips to the next round."
+    },
+    {
+      "question": "What's wrong with this code?",
+      "code": "count = 0\nwhile count < 3:\n    print(count)",
+      "options": [
+        "Nothing, it prints 0 1 2",
+        "It's an infinite loop: count never changes",
+        "while loops can't use <",
+        "It prints nothing"
+      ],
+      "answer": 1,
+      "explanation": "count stays 0 forever, so count < 3 is always True. Add count += 1 inside the loop. (Ctrl + C stops a runaway program.)"
+    }
+  ]
+}

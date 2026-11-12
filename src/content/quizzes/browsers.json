@@ -1,0 +1,26 @@
+{
+  "questions": [
+    {
+      "question": "What is the DOM?",
+      "options": [
+        "A programming language",
+        "The browser's tree of every element on the page, built from the HTML",
+        "A type of server",
+        "A CSS file"
+      ],
+      "answer": 1,
+      "explanation": "The browser reads HTML into the DOM tree. JavaScript changes the DOM, and the page updates."
+    },
+    {
+      "question": "A page is blank. Which developer tools tab do you check first?",
+      "options": [
+        "Console",
+        "Elements",
+        "Network",
+        "None, restart the computer"
+      ],
+      "answer": 0,
+      "explanation": "The Console shows JavaScript errors in red. They usually explain why nothing appeared."
+    }
+  ]
+}

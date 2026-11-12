@@ -1,0 +1,26 @@
+{
+  "questions": [
+    {
+      "question": "Which browser function sends an HTTP request from JavaScript?",
+      "options": [
+        "request()",
+        "fetch()",
+        "http()",
+        "get()"
+      ],
+      "answer": 1,
+      "explanation": "fetch(url) sends a request and returns a Promise of the response."
+    },
+    {
+      "question": "Your frontend calls your API and the console shows a CORS error. What does it mean?",
+      "options": [
+        "Your code has a typo",
+        "The backend must explicitly allow requests from your frontend's address",
+        "The internet is down",
+        "JSON is invalid"
+      ],
+      "answer": 1,
+      "explanation": "Browsers block cross-address requests unless the server allows them, for example with CORSMiddleware in FastAPI."
+    }
+  ]
+}

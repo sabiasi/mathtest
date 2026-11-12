@@ -1,0 +1,26 @@
+{
+  "questions": [
+    {
+      "question": "Which portfolio is stronger for a beginner?",
+      "options": [
+        "15 unfinished tutorial copies",
+        "3 finished, deployed projects with clear READMEs",
+        "An empty GitHub profile",
+        "Only a list of skills"
+      ],
+      "answer": 1,
+      "explanation": "Quality beats quantity. Live links and good READMEs show you can finish things."
+    },
+    {
+      "question": "What makes a project README portfolio-ready?",
+      "options": [
+        "Just the project name",
+        "What it does, a screenshot, how to run it, and what you learned",
+        "Your phone number",
+        "The full source code pasted in"
+      ],
+      "answer": 1,
+      "explanation": "Recruiters skim. Make it easy to see what you built and why it matters."
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "questions": [
+    {
+      "question": "You open an existing file with mode \"w\". What happens to its old contents?",
+      "options": ["They're kept, new text is added at the end", "They're erased", "Python raises an error", "They're moved to a backup"],
+      "answer": 1,
+      "explanation": "\"w\" (write) empties the file first. Use \"a\" (append) to add to the end instead."
+    },
+    {
+      "question": "Why use `with open(...) as f:`?",
+      "options": [
+        "It makes reading faster",
+        "It closes the file automatically, even if an error happens",
+        "It's required to read files",
+        "It encrypts the file"
+      ],
+      "answer": 1,
+      "explanation": "Files must be closed or data may not be saved. 'with' closes the file when the block ends, whatever happens."
+    },
+    {
+      "question": "What does `Path(__file__).parent / \"data.txt\"` give you?",
+      "options": [
+        "data.txt in the terminal's current folder",
+        "data.txt in the same folder as the running script",
+        "data.txt on the Desktop",
+        "A division error"
+      ],
+      "answer": 1,
+      "explanation": "__file__ is the script's own path, so .parent is its folder. This works no matter where you run the script from."
+    },
+    {
+      "question": "Which function saves a Python dict to a JSON file?",
+      "options": ["json.dump(data, f)", "json.load(f)", "f.write(data)", "json.read(data)"],
+      "answer": 0,
+      "explanation": "json.dump writes data to a file; json.load reads it back. f.write(data) would fail, because write() needs a string."
+    }
+  ]
+}

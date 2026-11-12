@@ -1,0 +1,26 @@
+{
+  "questions": [
+    {
+      "question": "In a coding interview, what should you do FIRST?",
+      "options": [
+        "Start typing code immediately",
+        "Restate the problem and ask clarifying questions",
+        "Say you have seen it before",
+        "Stay silent and think"
+      ],
+      "answer": 1,
+      "explanation": "Clarifying shows how you think and stops you from solving the wrong problem."
+    },
+    {
+      "question": "What does STAR stand for in behavioral answers?",
+      "options": [
+        "Start, Try, Answer, Repeat",
+        "Situation, Task, Action, Result",
+        "Skills, Talent, Ability, Reach",
+        "Story, Time, Answer, Reason"
+      ],
+      "answer": 1,
+      "explanation": "Describe the Situation and Task, what YOU did (Action), and the Result, plus what you learned."
+    }
+  ]
+}

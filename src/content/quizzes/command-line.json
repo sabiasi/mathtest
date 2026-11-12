@@ -1,0 +1,43 @@
+{
+  "questions": [
+    {
+      "question": "What does the pipe `|` do in `history | grep python`?",
+      "options": [
+        "Runs both commands at the same time, separately",
+        "Sends the output of history into grep as its input",
+        "Saves history to a file called grep",
+        "Deletes python from history"
+      ],
+      "answer": 1,
+      "explanation": "The pipe connects commands: the left command's output becomes the right command's input."
+    },
+    {
+      "question": "What's the difference between `>` and `>>`?",
+      "options": [
+        "> replaces the file's contents; >> appends to the end",
+        ">> replaces; > appends",
+        "No difference",
+        "> is for folders, >> for files"
+      ],
+      "answer": 0,
+      "explanation": "echo hi > file.txt overwrites the file. echo hi >> file.txt adds a line to it."
+    },
+    {
+      "question": "You installed a program, but the terminal says `command not found`. What's a likely reason?",
+      "options": [
+        "The program is broken",
+        "Its folder isn't in your PATH, or the terminal was opened before installing",
+        "You need to restart the internet",
+        "Commands can't have that name"
+      ],
+      "answer": 1,
+      "explanation": "The shell searches the folders listed in PATH. A terminal reads its settings when it starts, so open a new one after installing."
+    },
+    {
+      "question": "Which command shows which file actually runs when you type `python3`?",
+      "options": ["pwd python3", "which python3", "ls python3", "find python3"],
+      "answer": 1,
+      "explanation": "'which' searches your PATH and prints the first match, which is the program that would really run."
+    }
+  ]
+}

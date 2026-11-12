@@ -1,0 +1,38 @@
+{
+  "questions": [
+    {
+      "question": "What does HTTP status code 404 mean?",
+      "options": ["OK", "Not found", "Server error", "Too many requests"],
+      "answer": 1,
+      "explanation": "4xx codes mean something was wrong with the request. 404 specifically means nothing exists at that URL."
+    },
+    {
+      "question": "After `response = requests.get(url, timeout=10)`, how do you turn a JSON response into a Python dict?",
+      "options": ["response.text", "response.json()", "dict(response)", "json(response)"],
+      "answer": 1,
+      "explanation": "response.json() parses the JSON text for you. response.text gives the raw text."
+    },
+    {
+      "question": "Where should you keep an API key?",
+      "options": [
+        "Directly in your Python file",
+        "In a commit message",
+        "In an environment variable or a .env file listed in .gitignore",
+        "In your README"
+      ],
+      "answer": 2,
+      "explanation": "Keys in code end up in Git and often on GitHub, where bots find them within minutes. Keep secrets outside the code."
+    },
+    {
+      "question": "What's the main idea of an API?",
+      "options": [
+        "A database of all websites",
+        "A defined way for one program to ask another for data or actions",
+        "A programming language",
+        "A type of computer"
+      ],
+      "answer": 1,
+      "explanation": "Like a restaurant menu: it lists what you can ask for and how. The other system handles the rest."
+    }
+  ]
+}

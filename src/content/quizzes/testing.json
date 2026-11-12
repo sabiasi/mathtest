@@ -1,0 +1,26 @@
+{
+  "questions": [
+    {
+      "question": "What does `assert average([]) == 0` do in a test?",
+      "options": [
+        "Prints 0",
+        "Fails the test if average([]) is not 0",
+        "Sets average to 0",
+        "Nothing"
+      ],
+      "answer": 1,
+      "explanation": "assert states something that must be true. If it is not, the test fails and shows the actual value."
+    },
+    {
+      "question": "Why should you see a test fail at least once?",
+      "options": [
+        "Failing is fun",
+        "To prove the test can actually catch the problem it checks for",
+        "Tests must fail to count",
+        "It makes them faster"
+      ],
+      "answer": 1,
+      "explanation": "A test that can never fail protects nothing. Break the code on purpose once to check."
+    }
+  ]
+}

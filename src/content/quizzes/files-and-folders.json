@@ -1,0 +1,43 @@
+{
+  "questions": [
+    {
+      "question": "Which of these is an absolute path?",
+      "options": ["src/main.tsx", "../notes.txt", "/Users/ada/Desktop/notes.txt", "./hello.py"],
+      "answer": 2,
+      "explanation": "Absolute paths start at the root '/'. The others are relative: they depend on which folder you're in."
+    },
+    {
+      "question": "You run `python3 scripts/read.py` from your home folder, and read.py opens \"data.txt\". Where does Python look for data.txt?",
+      "options": [
+        "In the scripts folder, next to read.py",
+        "In your home folder (the working directory)",
+        "Everywhere on the computer",
+        "On the Desktop"
+      ],
+      "answer": 1,
+      "explanation": "Relative paths start from the working directory: where the terminal was when you ran the command, not where the script is."
+    },
+    {
+      "question": "What's special about a file named `.gitignore`?",
+      "options": [
+        "It's hidden by default because its name starts with a dot",
+        "It can't be opened",
+        "It's a Python file",
+        "It's automatically deleted"
+      ],
+      "answer": 0,
+      "explanation": "Names starting with '.' are hidden. Use ls -a in the terminal, or ⌘ + Shift + . in Finder, to see them."
+    },
+    {
+      "question": "What does renaming `notes.txt` to `notes.py` do?",
+      "options": [
+        "Converts the text into Python code",
+        "Only changes the name. The content is the same, but programs treat it as a Python file",
+        "Deletes the file",
+        "Runs the file"
+      ],
+      "answer": 1,
+      "explanation": "An extension is just part of the name. It tells programs what kind of file to expect, but it doesn't convert anything."
+    }
+  ]
+}

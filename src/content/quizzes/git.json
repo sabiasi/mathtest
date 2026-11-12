@@ -1,0 +1,43 @@
+{
+  "questions": [
+    {
+      "question": "What does `git add` do?",
+      "options": [
+        "Saves a commit",
+        "Moves changes into the staging area for the next commit",
+        "Uploads code to GitHub",
+        "Creates a new repository"
+      ],
+      "answer": 1,
+      "explanation": "Changes go: working folder → git add → staging area → git commit → history. git add chooses what goes into the next snapshot."
+    },
+    {
+      "question": "Which is the best commit message?",
+      "options": ["stuff", "fixed it", "Fix crash when the journal is empty", "asdfgh"],
+      "answer": 2,
+      "explanation": "A good message starts with a verb and says what changed. Future you will be grateful."
+    },
+    {
+      "question": "Why use a branch?",
+      "options": [
+        "To delete old code",
+        "To work on a change without affecting the main version, then merge it in when it's ready",
+        "Branches make Git faster",
+        "To upload to GitHub"
+      ],
+      "answer": 1,
+      "explanation": "A branch is a separate line of work. If the experiment fails, main is untouched. If it works, you merge it."
+    },
+    {
+      "question": "What belongs in `.gitignore`?",
+      "options": [
+        "Your most important code",
+        "The README",
+        "Downloaded libraries (node_modules, .venv), build output and secret files like .env",
+        "Your commit messages"
+      ],
+      "answer": 2,
+      "explanation": "Ignore anything that can be recreated (libraries, builds) or must stay private (secrets)."
+    }
+  ]
+}

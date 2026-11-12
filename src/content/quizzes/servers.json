@@ -1,0 +1,26 @@
+{
+  "questions": [
+    {
+      "question": "In the client–server model, which one is your web browser?",
+      "options": [
+        "The server",
+        "The client",
+        "Both",
+        "Neither"
+      ],
+      "answer": 1,
+      "explanation": "The browser sends requests (client); the server answers them."
+    },
+    {
+      "question": "In `localhost:5173`, what is 5173?",
+      "options": [
+        "An IP address",
+        "A port number that picks which program to talk to",
+        "The year",
+        "A password"
+      ],
+      "answer": 1,
+      "explanation": "One computer can run many servers. The port number picks one. Vite uses 5173 by default."
+    }
+  ]
+}

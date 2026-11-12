@@ -1,0 +1,26 @@
+{
+  "questions": [
+    {
+      "question": "Which of these is valid JSON?",
+      "options": [
+        "{name: 'Ada'}",
+        "{\"name\": \"Ada\"}",
+        "{'name': 'Ada'}",
+        "{\"name\": \"Ada\",}"
+      ],
+      "answer": 1,
+      "explanation": "JSON keys and strings need double quotes, and no trailing comma is allowed."
+    },
+    {
+      "question": "Which Python function turns JSON TEXT into a dict?",
+      "options": [
+        "json.dumps",
+        "json.loads",
+        "json.dict",
+        "str()"
+      ],
+      "answer": 1,
+      "explanation": "loads = load from a String. dumps does the opposite (dict → text)."
+    }
+  ]
+}
