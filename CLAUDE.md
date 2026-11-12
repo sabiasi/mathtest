@@ -33,11 +33,17 @@ make it fast and easy.
 
 - [x] **Phase 0**: project setup, CLAUDE.md, Georgian layout, "My tests" home
   (empty state + create button), empty editor page, localStorage repository.
-- [ ] **Phase 1**: test details form (title, subject, grade, date,
-  instructions) with autosave; add/delete/reorder questions; points + total.
+- [x] **Phase 1**: test header form (school, title, subject, grade, date,
+  time, instructions, A/B/C/D or ა/ბ/გ/დ labels) with debounced autosave;
+  add/duplicate/delete/drag-and-drop questions; question types multiple
+  choice, true/false, short answer, open answer; points + total; home cards
+  with edit/duplicate/delete.
+  - Practice tasks left for the owner in `src/lib/questions.ts`:
+    `totalPoints` and `optionLabel` (3 tests fail until done, on purpose).
+    Don't implement them unless asked; give hints instead.
 - [ ] **Phase 2**: math input with MathLive `<math-field>` and a Georgian-labelled
   visual toolbar; math rendering in the editor.
-- [ ] **Phase 3**: all six question types.
+- [ ] **Phase 3**: remaining question types: fill-in-the-blank and matching.
 - [ ] **Phase 4**: A4 print layout, PDF export, answer key version.
 - [ ] Later: duplicate tests, backup import/export, templates, then accounts
   and cloud storage.
@@ -54,6 +60,7 @@ make it fast and easy.
 | Math rendering | KaTeX or MathLive static rendering. Decide in Phase 2 (lean: store math as LaTeX strings, render with whichever prints most reliably). |
 | Storage | Browser localStorage, no login yet. Accounts come later. |
 | PDF | To decide in Phase 4. First idea: print stylesheet (`@page { size: A4 }`) + browser "Save as PDF", which keeps fonts and math identical to the screen. |
+| Drag and drop | @dnd-kit (core + sortable), handle-only, keyboard accessible |
 | Tests | Vitest + jsdom (`npm test`) |
 
 Next.js 16 notes (see AGENTS.md: read `node_modules/next/dist/docs/` before
@@ -75,7 +82,10 @@ src/
   features/<name>/      Page-level UI for one feature
   components/           Shared UI (header, logo, language switch, ui/button)
   i18n/                 dictionaries.ts (ka + en text), language.ts (useT, useLanguage)
-  lib/storage/          types.ts, testsRepository.ts, useTests.ts
+  features/editor/      EditorView → TestEditor (state + autosave), TestHeaderForm,
+                        questions/ (QuestionList with dnd-kit, QuestionCard, one editor per type)
+  lib/questions.ts      Pure helpers: create/duplicate/change type, totals, labels
+  lib/storage/          types.ts, migrate.ts (normalizeTest), testsRepository.ts, useTests.ts
   lib/format.ts         Date formatting (Georgian by hand)
 ```
 
@@ -83,8 +93,8 @@ src/
   English with the same keys). Never hard-code UI text in components.
 - **Only `src/lib/storage/testsRepository.ts` touches localStorage for tests.**
   Components use `useTests()` / `useTest(id)` and the repository functions.
-  Storage key is versioned (`mathtest:tests:v1`); change the version and add a
-  migration if the saved data shape changes.
+  Every saved test passes through `normalizeTest` (migrate.ts) on read: when
+  adding a field, give it a default there so older saved tests keep working.
 - Chrome has no Georgian `Intl` date data: use `src/lib/format.ts`, never
   `toLocaleDateString("ka-GE")`.
 - Pages that read localStorage are client components; the server renders a

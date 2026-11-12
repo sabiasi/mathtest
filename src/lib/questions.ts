@@ -72,9 +72,25 @@ export function duplicateQuestion(question: Question): Question {
 /**
  * The total number of points in a test.
  * Example: questions worth 2, 3 and 1.5 points → 6.5
+ *
+ * ✏️  PRACTICE TASK 1 — write this function yourself.
+ * Right now it always returns 0, so the editor shows "სულ: 0 ქულა".
+ *
+ * Hints:
+ * - Each question has a `points` number: question.points
+ * - In Python you might write:
+ *       total = 0
+ *       for question in questions:
+ *           total += question.points
+ *       return total
+ * - TypeScript looks almost the same:
+ *       let total = 0;
+ *       for (const question of questions) { ... }
+ * - Check your work: `npm test` → the "totalPoints" tests turn green.
  */
 export function totalPoints(questions: Question[]): number {
-  return questions.reduce((sum, question) => sum + question.points, 0);
+  // TODO(you): add up the points of every question.
+  return 0;
 }
 
 const LABELS: Record<LabelStyle, string> = {
@@ -85,9 +101,21 @@ const LABELS: Record<LabelStyle, string> = {
 /**
  * The label for an option at position `index` (0 = first).
  * optionLabel(0, "latin") → "A", optionLabel(2, "georgian") → "გ"
+ *
+ * ✏️  PRACTICE TASK 2 — write this function yourself.
+ * Right now every answer is labelled "?".
+ *
+ * Hints:
+ * - LABELS (just above) holds the letters: LABELS["latin"] is "ABCDEF".
+ * - LABELS[style] picks the right string for the chosen style.
+ * - Strings can be indexed like in Python: "ABC"[1] → "B".
+ * - Bonus: if the index is too big, "ABCDEF"[10] gives `undefined`.
+ *   Return "?" in that case (look up the `??` operator).
+ * - Check your work: `npm test` → the "optionLabel" tests turn green.
  */
 export function optionLabel(index: number, style: LabelStyle): string {
-  return LABELS[style][index] ?? "?";
+  // TODO(you): return the letter at position `index` for this style.
+  return "?";
 }
 
 /** Shows points nicely: 2 → "2", 1.5 → "1.5". */
