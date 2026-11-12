@@ -21,6 +21,7 @@ describe("normalizeTest", () => {
       timeLimitMinutes: null,
       labelStyle: "georgian",
       questions: [],
+      printOptions: { fontSize: "normal", showPoints: true, columns: 1 },
     });
   });
 

@@ -8,7 +8,7 @@
  */
 import { DEFAULT_LINES, MAX_LINES, MAX_OPTIONS } from "@/lib/questions";
 import { normalizeRichText } from "@/lib/richText";
-import type { ChoiceOption, LabelStyle, Question, Test } from "./types";
+import { DEFAULT_PRINT_OPTIONS, type ChoiceOption, type LabelStyle, type PrintOptions, type Question, type Test } from "./types";
 
 type Loose = Record<string, unknown>;
 
@@ -56,6 +56,15 @@ function normalizeQuestion(raw: unknown): Question | null {
   }
 }
 
+function normalizePrintOptions(raw: unknown): PrintOptions {
+  const o = isObject(raw) ? raw : {};
+  return {
+    fontSize: o.fontSize === "large" ? "large" : DEFAULT_PRINT_OPTIONS.fontSize,
+    showPoints: typeof o.showPoints === "boolean" ? o.showPoints : DEFAULT_PRINT_OPTIONS.showPoints,
+    columns: o.columns === 2 ? 2 : DEFAULT_PRINT_OPTIONS.columns,
+  };
+}
+
 /** Returns a complete, valid Test, or null if `raw` isn't a test at all. */
 export function normalizeTest(raw: unknown): Test | null {
   if (!isObject(raw) || typeof raw.id !== "string") return null;
@@ -79,6 +88,7 @@ export function normalizeTest(raw: unknown): Test | null {
     instructions: str(raw.instructions),
     labelStyle,
     questions,
+    printOptions: normalizePrintOptions(raw.printOptions),
     createdAt: str(raw.createdAt, now),
     updatedAt: str(raw.updatedAt, now),
   };

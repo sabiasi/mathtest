@@ -9,7 +9,7 @@
 import { newId } from "@/lib/ids";
 import { duplicateQuestion } from "@/lib/questions";
 import { normalizeTest } from "./migrate";
-import type { Test } from "./types";
+import { DEFAULT_PRINT_OPTIONS, type Test } from "./types";
 
 /** The localStorage key. The "v1" lets us change the data format later safely. */
 export const STORAGE_KEY = "mathtest:tests:v1";
@@ -75,6 +75,7 @@ export function createTest(defaults: Partial<Omit<Test, "id">> = {}): Test {
     instructions: "",
     labelStyle: "georgian",
     questions: [],
+    printOptions: { ...DEFAULT_PRINT_OPTIONS },
     ...defaults,
     id: newId(),
     createdAt: now,

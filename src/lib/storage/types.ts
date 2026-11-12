@@ -63,6 +63,15 @@ export type Question =
 
 export type QuestionType = Question["type"];
 
+/** How the test is printed. Saved with the test so it's remembered. */
+export interface PrintOptions {
+  fontSize: "normal" | "large";
+  showPoints: boolean;
+  columns: 1 | 2;
+}
+
+export const DEFAULT_PRINT_OPTIONS: PrintOptions = { fontSize: "normal", showPoints: true, columns: 1 };
+
 /** One test / quiz / exam. */
 export interface Test {
   id: string;
@@ -77,6 +86,7 @@ export interface Test {
   instructions: string;
   labelStyle: LabelStyle;
   questions: Question[];
+  printOptions: PrintOptions;
   /** ISO timestamps, e.g. "2026-11-12T15:30:00.000Z". */
   createdAt: string;
   updatedAt: string;
