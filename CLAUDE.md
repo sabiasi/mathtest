@@ -52,6 +52,9 @@ make it fast and easy.
   seeded, repeatable shuffle), per-question "lock options", variant badge on
   every paper, per-variant answer keys, "all variants" view/PDF with an
   answer table first, optional blank pages for double-sided printing.
+- [x] **Images & grids**: several pictures per question (upload, paste, drop;
+  resize; above/right), stored in IndexedDB; an answer grid (graph paper or
+  coordinate plane, 5 mm squares, SVG) on any question; print + PDF support.
 - [ ] **Next**: remaining question types: fill-in-the-blank and matching.
 - [ ] Later: duplicate tests, backup import/export, templates, then accounts
   and cloud storage.
@@ -67,7 +70,7 @@ make it fast and easy.
 | Rich text | TipTap v3 (ProseMirror) with a custom inline `math` node (`src/features/math/MathNode.ts`) |
 | Math input | MathLive `<math-field>` inside that node; our own toolbar (MathLive's keyboard and menu are hidden) |
 | Math rendering | MathLive `convertLatexToMarkup` (same engine as input). Fonts/styles: `mathlive/fonts.css` + `mathlive/static.css` imported in `layout.tsx`, bundled and self-hosted; `MathfieldElement.fontsDirectory = null` |
-| Storage | Browser localStorage, no login yet. Accounts come later. |
+| Storage | Tests in browser localStorage; pictures in IndexedDB (`lib/images/imageStore.ts`), referenced by id. No login yet. Accounts come later. |
 | Print | Our own pagination (`src/lib/paginate.ts` + `usePrintLayout`) into fixed 210×297mm `.sheet`s; `@page { size: A4; margin: 0 }` |
 | PDF | `POST /api/pdf` → puppeteer-core opens the same `/print` page (test injected into its localStorage) → `page.pdf()`. Chrome found by `findChrome()` / `CHROME_PATH`; hosting will need e.g. @sparticuz/chromium. No Chrome → 501 → client falls back to `window.print()` |
 | Fonts | Noto Sans Georgian + Noto Sans (backup for №, Cyrillic…), both via next/font; math fonts from MathLive CSS. PDFs must embed only these. |
@@ -101,6 +104,8 @@ src/
                         usePrintLayout (measure → paginate), downloadPdf
   app/api/pdf/route.ts  PDF generation; lib/server/chrome.ts finds/launches Chrome
   lib/paginate.ts       Pure page packing (never splits a question)
+  lib/images/           imageStore (IndexedDB, resize, data URLs for PDF, clean-up), imageMath (pure)
+  components/           … GridArea (SVG grid in mm), QuestionImageView (picture with fixed aspect ratio)
   lib/variants.ts       buildVariants(test) → [A (original), B…]; seededRandom + shuffle
   lib/richText.ts       RichText = [{type:"text"} | {type:"math", latex}] + conversions to/from TipTap docs
   lib/questions.ts      Pure helpers: create/duplicate/change type, totals, labels
@@ -151,6 +156,14 @@ src/
 - Print measurement: `[data-print-ready="true"]` is set only when the pages
   match the current data and fonts; the PDF route waits for it.
 - Check which real font Chrome used: CDP `CSS.getPlatformFontsForNode`.
+- Pictures keep their natural width/height in the test, and are shown with
+  CSS `aspect-ratio`, so print layout can be measured before they load.
+- The PDF route gets pictures as data URLs and injects them as
+  `window.__MATHTEST_IMAGES__`; `getImageUrl` checks that first.
+- Paste: if the clipboard has text too (e.g. from Word), paste text, not a picture.
+- Async edits to a question (image upload) use `onPatch(fn)` so they apply to
+  the newest version and don't overwrite text typed meanwhile.
+- Browser tests: wait for a condition (`waitForFunction`), not a fixed time.
 - Variants must stay repeatable: never use Math.random() for them; change the
   seed only via "Shuffle again" (it warns that printed papers won't match).
 - The PDF route waits with `waitForFunction(..., { polling: 250 })`; puppeteer's
