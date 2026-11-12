@@ -41,11 +41,13 @@ describe("normalizeTest", () => {
         type: "multiple-choice",
         text: [{ type: "text", text: "?" }],
         points: 2,
+        images: [],
+        grid: null,
         options: [{ id: "a", text: [{ type: "text", text: "1" }] }],
         correctOptionId: null,
         lockOptions: false,
       },
-      { id: "q3", type: "open-answer", text: [], points: 1, lines: 30 },
+      { id: "q3", type: "open-answer", text: [], points: 1, images: [], grid: null, lines: 30 },
     ]);
   });
 
@@ -85,5 +87,28 @@ describe("normalizeTest (variants)", () => {
   it("keeps the count between 1 and 6", () => {
     expect(normalizeTest({ id: "t", variants: { count: 99 } })?.variants.count).toBe(6);
     expect(normalizeTest({ id: "t", variants: { count: 0 } })?.variants.count).toBe(1);
+  });
+});
+
+describe("normalizeTest (images and grids)", () => {
+  it("repairs image placements and grids, and drops broken images", () => {
+    const test = normalizeTest({
+      id: "t",
+      questions: [
+        {
+          id: "q1",
+          type: "open-answer",
+          images: [
+            { id: "p1", imageId: "img1", width: 800, height: 600, widthPercent: 500, position: "sideways" },
+            { id: "p2" }, // no imageId → dropped
+          ],
+          grid: { kind: "coordinates", cols: 999, rows: 1 },
+        },
+      ],
+    });
+    expect(test?.questions[0].images).toEqual([
+      { id: "p1", imageId: "img1", width: 800, height: 600, widthPercent: 100, position: "above" },
+    ]);
+    expect(test?.questions[0].grid).toEqual({ kind: "coordinates", cols: 34, rows: 2 });
   });
 });

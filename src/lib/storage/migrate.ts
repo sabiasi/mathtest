@@ -6,9 +6,11 @@
  * read from storage passes through `normalizeTest`, which fills in safe
  * defaults. Unknown or broken questions are dropped rather than crashing.
  */
-import { DEFAULT_LINES, MAX_LINES, MAX_OPTIONS } from "@/lib/questions";
+import { DEFAULT_LINES, GRID_LIMITS, MAX_LINES, MAX_OPTIONS } from "@/lib/questions";
 import { normalizeRichText } from "@/lib/richText";
 import {
+  type AnswerGrid,
+  type QuestionImage,
   DEFAULT_PRINT_OPTIONS,
   DEFAULT_VARIANTS,
   type ChoiceOption,
@@ -35,10 +37,42 @@ function normalizeOptions(value: unknown): ChoiceOption[] {
     .map((o) => ({ id: o.id as string, text: normalizeRichText(o.text) }));
 }
 
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+function normalizeImages(value: unknown): QuestionImage[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(isObject)
+    .filter((i) => typeof i.id === "string" && typeof i.imageId === "string")
+    .map((i) => ({
+      id: i.id as string,
+      imageId: i.imageId as string,
+      width: Math.max(1, num(i.width, 400)),
+      height: Math.max(1, num(i.height, 300)),
+      widthPercent: clamp(Math.round(num(i.widthPercent, 50)), 10, 100),
+      position: i.position === "right" ? "right" : "above",
+    }));
+}
+
+function normalizeGrid(value: unknown): AnswerGrid | null {
+  if (!isObject(value)) return null;
+  return {
+    kind: value.kind === "coordinates" ? "coordinates" : "squares",
+    cols: clamp(Math.round(num(value.cols, 20)), GRID_LIMITS.minCols, GRID_LIMITS.maxCols),
+    rows: clamp(Math.round(num(value.rows, 12)), GRID_LIMITS.minRows, GRID_LIMITS.maxRows),
+  };
+}
+
 function normalizeQuestion(raw: unknown): Question | null {
   if (!isObject(raw) || typeof raw.id !== "string") return null;
   // Phase 1 saved text as a plain string; normalizeRichText upgrades it.
-  const base = { id: raw.id, text: normalizeRichText(raw.text), points: Math.max(0, num(raw.points, 1)) };
+  const base = {
+    id: raw.id,
+    text: normalizeRichText(raw.text),
+    points: Math.max(0, num(raw.points, 1)),
+    images: normalizeImages(raw.images),
+    grid: normalizeGrid(raw.grid),
+  };
 
   switch (raw.type) {
     case "multiple-choice": {

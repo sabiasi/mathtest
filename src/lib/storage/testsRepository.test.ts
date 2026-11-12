@@ -66,7 +66,9 @@ describe("testsRepository", () => {
     const original = saveTest({
       ...createTest(),
       title: "გეომეტრია",
-      questions: [{ id: "q1", type: "true-false", text: [{ type: "text", text: "π > 3" }], points: 1, correct: true }],
+      questions: [
+        { id: "q1", type: "true-false", text: [{ type: "text", text: "π > 3" }], points: 1, correct: true, images: [], grid: null },
+      ],
     });
     const copy = duplicateTest(original.id, "გეომეტრია (ასლი)");
 

@@ -11,6 +11,32 @@ import type { RichText } from "@/lib/richText";
 /** How multiple-choice options are labelled: A, B, C… or ა, ბ, გ… */
 export type LabelStyle = "latin" | "georgian";
 
+/**
+ * An image placed in a question. The picture itself lives in the browser's
+ * IndexedDB (see lib/images/imageStore.ts); here we only keep its id and how
+ * it is shown.
+ */
+export interface QuestionImage {
+  /** This placement's own id (the same picture can appear in two questions). */
+  id: string;
+  /** The stored picture. */
+  imageId: string;
+  /** Natural size in pixels — used for the aspect ratio before the picture loads. */
+  width: number;
+  height: number;
+  /** Width as a percentage of the question's width (10–100). */
+  widthPercent: number;
+  /** Above the question text, or to the right of it. */
+  position: "above" | "right";
+}
+
+/** Graph paper or a coordinate plane printed as an answer area. 5 mm squares. */
+export interface AnswerGrid {
+  kind: "squares" | "coordinates";
+  cols: number;
+  rows: number;
+}
+
 /** Fields every question has, whatever its type. */
 interface QuestionBase {
   id: string;
@@ -18,6 +44,9 @@ interface QuestionBase {
   points: number;
   /** The question: text mixed with formulas. */
   text: RichText;
+  images: QuestionImage[];
+  /** An optional grid answer area under the question. */
+  grid: AnswerGrid | null;
 }
 
 export interface ChoiceOption {

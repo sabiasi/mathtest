@@ -4,7 +4,7 @@
  * Pure functions are the easiest code to test and to reason about.
  */
 import { newId } from "@/lib/ids";
-import { isRichTextEmpty, type RichText } from "@/lib/richText";
+import { isRichTextEmpty } from "@/lib/richText";
 import type {
   ChoiceOption,
   LabelStyle,
@@ -17,6 +17,10 @@ export const MIN_OPTIONS = 2;
 export const MAX_OPTIONS = 6;
 export const MAX_LINES = 30;
 export const DEFAULT_LINES = 5;
+
+/** Grid limits: 35 squares of 5 mm fill the 178 mm printable width. */
+export const GRID_LIMITS = { minCols: 4, maxCols: 34, minRows: 2, maxRows: 40 };
+export const DEFAULT_GRID = { cols: 20, rows: 12 };
 
 export const QUESTION_TYPES: QuestionType[] = [
   "multiple-choice",
@@ -35,9 +39,15 @@ function emptyOptions(count: number): ChoiceOption[] {
  */
 export function createQuestion(
   type: QuestionType,
-  keep: { id?: string; text?: RichText; points?: number } = {},
+  keep: Partial<Pick<Question, "id" | "text" | "points" | "images" | "grid">> = {},
 ): Question {
-  const base = { id: keep.id ?? newId(), text: keep.text ?? [], points: keep.points ?? 1 };
+  const base = {
+    id: keep.id ?? newId(),
+    text: keep.text ?? [],
+    points: keep.points ?? 1,
+    images: keep.images ?? [],
+    grid: keep.grid ?? null,
+  };
   switch (type) {
     case "multiple-choice":
       return { ...base, type, options: emptyOptions(4), correctOptionId: null, lockOptions: false };
@@ -50,7 +60,7 @@ export function createQuestion(
   }
 }
 
-/** Switches a question to another type, keeping its id, text and points. */
+/** Switches a question to another type, keeping its id, text, points, images and grid. */
 export function changeQuestionType(question: Question, type: QuestionType): Question {
   if (question.type === type) return question;
   return createQuestion(type, question);
@@ -58,17 +68,20 @@ export function changeQuestionType(question: Question, type: QuestionType): Ques
 
 /** A copy with fresh ids (also for the options), so the copy is independent. */
 export function duplicateQuestion(question: Question): Question {
+  // The copy points to the same stored pictures, with its own placement ids.
+  const images = question.images.map((image) => ({ ...image, id: newId() }));
   if (question.type === "multiple-choice") {
     const options = question.options.map((option) => ({ ...option, id: newId() }));
     const correctIndex = question.options.findIndex((o) => o.id === question.correctOptionId);
     return {
       ...question,
       id: newId(),
+      images,
       options,
       correctOptionId: correctIndex >= 0 ? options[correctIndex].id : null,
     };
   }
-  return { ...question, id: newId() };
+  return { ...question, id: newId(), images };
 }
 
 /**
