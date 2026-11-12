@@ -7,6 +7,8 @@
  * won't notice.
  */
 import { newId } from "@/lib/ids";
+import { duplicateQuestion } from "@/lib/questions";
+import { normalizeTest } from "./migrate";
 import type { Test } from "./types";
 
 /** The localStorage key. The "v1" lets us change the data format later safely. */
@@ -27,7 +29,8 @@ function parse(raw: string | null): Test[] {
   try {
     const data: unknown = JSON.parse(raw);
     if (!Array.isArray(data)) throw new Error("Saved tests are not a list");
-    return data as Test[];
+    // Upgrade tests saved by older versions to the current shape.
+    return data.map(normalizeTest).filter((test): test is Test => test !== null);
   } catch (error) {
     console.error("MathTest: could not read saved tests", error);
     if (localStorage.getItem(BACKUP_KEY) === null) {
@@ -56,22 +59,46 @@ export function getTest(id: string): Test | undefined {
   return listTests().find((test) => test.id === id);
 }
 
-/** Creates an empty test, saves it, and returns it. */
-export function createTest(): Test {
+/**
+ * Creates a new test, saves it, and returns it. `defaults` lets the page
+ * pre-fill fields, e.g. { subject: "მათემატიკა" }.
+ */
+export function createTest(defaults: Partial<Omit<Test, "id">> = {}): Test {
   const now = new Date().toISOString();
   const test: Test = {
-    id: newId(),
+    schoolName: "",
     title: "",
     subject: "",
     grade: "",
     date: "",
+    timeLimitMinutes: null,
     instructions: "",
+    labelStyle: "georgian",
     questions: [],
+    ...defaults,
+    id: newId(),
     createdAt: now,
     updatedAt: now,
   };
   writeAll([test, ...listTests()]);
   return test;
+}
+
+/** Saves a copy of a test (with a new title) and returns the copy. */
+export function duplicateTest(id: string, title: string): Test | undefined {
+  const original = getTest(id);
+  if (!original) return undefined;
+  const now = new Date().toISOString();
+  const copy: Test = {
+    ...original,
+    id: newId(),
+    title,
+    questions: original.questions.map(duplicateQuestion),
+    createdAt: now,
+    updatedAt: now,
+  };
+  writeAll([copy, ...listTests()]);
+  return copy;
 }
 
 /** Saves changes to an existing test (or adds it) and returns the saved version. */

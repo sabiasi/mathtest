@@ -4,6 +4,7 @@ import {
   STORAGE_KEY,
   createTest,
   deleteTest,
+  duplicateTest,
   getTest,
   listTests,
   saveTest,
@@ -54,6 +55,26 @@ describe("testsRepository", () => {
     const remove = createTest();
     deleteTest(remove.id);
     expect(listTests().map((t) => t.id)).toEqual([keep.id]);
+  });
+
+  it("pre-fills a new test with the given defaults", () => {
+    const test = createTest({ subject: "მათემატიკა" });
+    expect(getTest(test.id)?.subject).toBe("მათემატიკა");
+  });
+
+  it("duplicates a test with a new id, title and independent questions", () => {
+    const original = saveTest({
+      ...createTest(),
+      title: "გეომეტრია",
+      questions: [{ id: "q1", type: "true-false", text: "π > 3", points: 1, correct: true }],
+    });
+    const copy = duplicateTest(original.id, "გეომეტრია (ასლი)");
+
+    expect(copy?.id).not.toBe(original.id);
+    expect(copy?.title).toBe("გეომეტრია (ასლი)");
+    expect(copy?.questions[0].id).not.toBe("q1");
+    expect(copy?.questions[0].text).toBe("π > 3");
+    expect(listTests()).toHaveLength(2);
   });
 
   it("returns the same list object while nothing changes", () => {
