@@ -38,15 +38,17 @@ make it fast and easy.
   add/duplicate/delete/drag-and-drop questions; question types multiple
   choice, true/false, short answer, open answer; points + total; home cards
   with edit/duplicate/delete.
-  - Practice tasks left for the owner in `src/lib/questions.ts`:
-    `totalPoints` and `optionLabel` (3 tests fail until done, on purpose).
-    Don't implement them unless asked; give hints instead.
+  - Practice task left for the owner in `src/lib/questions.ts`: `totalPoints`
+    (1 test fails until done, on purpose; printed totals show 0 until then).
+    Don't implement it unless asked; give hints instead.
 - [x] **Phase 2**: rich text (text + inline formulas) in question text, options
   and short answers (TipTap + MathLive); "ფორმულა" button + Alt+= (like Word);
   sticky math toolbar with 7 tabs and Georgian tooltips; read-only preview
   with static math.
-- [ ] **Phase 3**: remaining question types: fill-in-the-blank and matching.
-- [ ] **Phase 4**: A4 print layout, PDF export, answer key version.
+- [x] **Phase 3 (print)**: `/print/[id]` with real A4 sheets, student version and
+  answer key, font size / points / columns options, Print (print CSS) and
+  Download PDF (headless Chrome via `/api/pdf`).
+- [ ] **Next**: remaining question types: fill-in-the-blank and matching.
 - [ ] Later: duplicate tests, backup import/export, templates, then accounts
   and cloud storage.
 
@@ -62,7 +64,9 @@ make it fast and easy.
 | Math input | MathLive `<math-field>` inside that node; our own toolbar (MathLive's keyboard and menu are hidden) |
 | Math rendering | MathLive `convertLatexToMarkup` (same engine as input). Fonts/styles: `mathlive/fonts.css` + `mathlive/static.css` imported in `layout.tsx`, bundled and self-hosted; `MathfieldElement.fontsDirectory = null` |
 | Storage | Browser localStorage, no login yet. Accounts come later. |
-| PDF | To decide in Phase 4. First idea: print stylesheet (`@page { size: A4 }`) + browser "Save as PDF", which keeps fonts and math identical to the screen. |
+| Print | Our own pagination (`src/lib/paginate.ts` + `usePrintLayout`) into fixed 210×297mm `.sheet`s; `@page { size: A4; margin: 0 }` |
+| PDF | `POST /api/pdf` → puppeteer-core opens the same `/print` page (test injected into its localStorage) → `page.pdf()`. Chrome found by `findChrome()` / `CHROME_PATH`; hosting will need e.g. @sparticuz/chromium. No Chrome → 501 → client falls back to `window.print()` |
+| Fonts | Noto Sans Georgian + Noto Sans (backup for №, Cyrillic…), both via next/font; math fonts from MathLive CSS. PDFs must embed only these. |
 | Drag and drop | @dnd-kit (core + sortable), handle-only, keyboard accessible |
 | Tests | Vitest + jsdom (`npm test`) |
 
@@ -89,6 +93,10 @@ src/
   i18n/                 dictionaries.ts (ka + en text), language.ts (useT, useLanguage)
   features/editor/      EditorView → TestEditor (state + autosave), TestHeaderForm,
                         questions/ (QuestionList with dnd-kit, QuestionCard, one editor per type)
+  features/print/       PrintView (controls + sheets), PrintBlocks (header, questions),
+                        usePrintLayout (measure → paginate), downloadPdf
+  app/api/pdf/route.ts  PDF generation; lib/server/chrome.ts finds/launches Chrome
+  lib/paginate.ts       Pure page packing (never splits a question)
   lib/richText.ts       RichText = [{type:"text"} | {type:"math", latex}] + conversions to/from TipTap docs
   lib/questions.ts      Pure helpers: create/duplicate/change type, totals, labels
   lib/storage/          types.ts, migrate.ts (normalizeTest), testsRepository.ts, useTests.ts
@@ -127,6 +135,17 @@ src/
 - After `npm install`, Turbopack's watcher can miss CSS edits; restart
   `npm run dev` if styles look stale.
 - On macOS, Home/End don't move the caret in browsers; tests use Cmd+←/→.
+- Turbopack keeps a disk cache in `.next/`; changes to `@theme` or next/font
+  options were missed even after restarting. If output looks stale:
+  stop the server, `rm -rf .next`, start again.
+- next/font adds an Arial-based "… Fallback" face that claims every character,
+  and Turbopack ignores `adjustFontFallback: false`. layout.tsx therefore
+  builds the font list itself (`--font-georgian-only`, then `--font-fallback`).
+- Unlayered CSS in globals.css beats Tailwind utilities (they live in
+  `@layer utilities`); use inline styles or `!` when a utility must win.
+- Print measurement: `[data-print-ready="true"]` is set only when the pages
+  match the current data and fonts; the PDF route waits for it.
+- Check which real font Chrome used: CDP `CSS.getPlatformFontsForNode`.
 
 ## Commands
 
