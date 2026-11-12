@@ -8,7 +8,16 @@
  */
 import { DEFAULT_LINES, MAX_LINES, MAX_OPTIONS } from "@/lib/questions";
 import { normalizeRichText } from "@/lib/richText";
-import { DEFAULT_PRINT_OPTIONS, type ChoiceOption, type LabelStyle, type PrintOptions, type Question, type Test } from "./types";
+import {
+  DEFAULT_PRINT_OPTIONS,
+  DEFAULT_VARIANTS,
+  type ChoiceOption,
+  type LabelStyle,
+  type PrintOptions,
+  type Question,
+  type Test,
+  type VariantSettings,
+} from "./types";
 
 type Loose = Record<string, unknown>;
 
@@ -37,7 +46,7 @@ function normalizeQuestion(raw: unknown): Question | null {
       const correct = options.some((o) => o.id === raw.correctOptionId)
         ? (raw.correctOptionId as string)
         : null;
-      return { ...base, type: "multiple-choice", options, correctOptionId: correct };
+      return { ...base, type: "multiple-choice", options, correctOptionId: correct, lockOptions: raw.lockOptions === true };
     }
     case "true-false":
       return {
@@ -65,6 +74,25 @@ function normalizePrintOptions(raw: unknown): PrintOptions {
   };
 }
 
+/** A stable number made from a text (the test id), used as the default shuffle seed. */
+export function seedFromString(text: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
+  return hash >>> 0;
+}
+
+function normalizeVariants(raw: unknown, id: string): VariantSettings {
+  const o = isObject(raw) ? raw : {};
+  const count = typeof o.count === "number" ? Math.round(o.count) : DEFAULT_VARIANTS.count;
+  return {
+    count: Math.min(6, Math.max(1, count)),
+    shuffleQuestions: typeof o.shuffleQuestions === "boolean" ? o.shuffleQuestions : DEFAULT_VARIANTS.shuffleQuestions,
+    shuffleOptions: typeof o.shuffleOptions === "boolean" ? o.shuffleOptions : DEFAULT_VARIANTS.shuffleOptions,
+    seed: typeof o.seed === "number" && Number.isFinite(o.seed) ? o.seed >>> 0 : seedFromString(id),
+    duplex: o.duplex === true,
+  };
+}
+
 /** Returns a complete, valid Test, or null if `raw` isn't a test at all. */
 export function normalizeTest(raw: unknown): Test | null {
   if (!isObject(raw) || typeof raw.id !== "string") return null;
@@ -89,6 +117,7 @@ export function normalizeTest(raw: unknown): Test | null {
     labelStyle,
     questions,
     printOptions: normalizePrintOptions(raw.printOptions),
+    variants: normalizeVariants(raw.variants, raw.id),
     createdAt: str(raw.createdAt, now),
     updatedAt: str(raw.updatedAt, now),
   };

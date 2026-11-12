@@ -4,10 +4,11 @@
  * Pure functions are the easiest code to test and to reason about.
  */
 import { newId } from "@/lib/ids";
-import type { RichText } from "@/lib/richText";
+import { isRichTextEmpty, type RichText } from "@/lib/richText";
 import type {
   ChoiceOption,
   LabelStyle,
+  MultipleChoiceQuestion,
   Question,
   QuestionType,
 } from "@/lib/storage/types";
@@ -39,7 +40,7 @@ export function createQuestion(
   const base = { id: keep.id ?? newId(), text: keep.text ?? [], points: keep.points ?? 1 };
   switch (type) {
     case "multiple-choice":
-      return { ...base, type, options: emptyOptions(4), correctOptionId: null };
+      return { ...base, type, options: emptyOptions(4), correctOptionId: null, lockOptions: false };
     case "true-false":
       return { ...base, type, correct: null };
     case "short-answer":
@@ -105,6 +106,17 @@ const LABELS: Record<LabelStyle, string> = {
  */
 export function optionLabel(index: number, style: LabelStyle): string {
   return LABELS[style][index] ?? "?";
+}
+
+/** Options the teacher left empty are not printed (and don't use up a letter). */
+export function visibleOptions(question: MultipleChoiceQuestion): ChoiceOption[] {
+  return question.options.filter((option) => !isRichTextEmpty(option.text));
+}
+
+/** The printed letter of the correct option ("გ"), or null if none is marked. */
+export function correctOptionLabel(question: MultipleChoiceQuestion, style: LabelStyle): string | null {
+  const index = visibleOptions(question).findIndex((o) => o.id === question.correctOptionId);
+  return index >= 0 ? optionLabel(index, style) : null;
 }
 
 /** Shows points nicely: 2 → "2", 1.5 → "1.5". */

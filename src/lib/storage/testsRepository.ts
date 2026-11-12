@@ -8,8 +8,8 @@
  */
 import { newId } from "@/lib/ids";
 import { duplicateQuestion } from "@/lib/questions";
-import { normalizeTest } from "./migrate";
-import { DEFAULT_PRINT_OPTIONS, type Test } from "./types";
+import { normalizeTest, seedFromString } from "./migrate";
+import { DEFAULT_PRINT_OPTIONS, DEFAULT_VARIANTS, type Test } from "./types";
 
 /** The localStorage key. The "v1" lets us change the data format later safely. */
 export const STORAGE_KEY = "mathtest:tests:v1";
@@ -65,6 +65,7 @@ export function getTest(id: string): Test | undefined {
  */
 export function createTest(defaults: Partial<Omit<Test, "id">> = {}): Test {
   const now = new Date().toISOString();
+  const id = newId();
   const test: Test = {
     schoolName: "",
     title: "",
@@ -76,8 +77,9 @@ export function createTest(defaults: Partial<Omit<Test, "id">> = {}): Test {
     labelStyle: "georgian",
     questions: [],
     printOptions: { ...DEFAULT_PRINT_OPTIONS },
+    variants: { ...DEFAULT_VARIANTS, seed: seedFromString(id) },
     ...defaults,
-    id: newId(),
+    id,
     createdAt: now,
     updatedAt: now,
   };

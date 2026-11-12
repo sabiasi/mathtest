@@ -1,0 +1,108 @@
+import { describe, expect, it } from "vitest";
+import { createQuestion, correctOptionLabel } from "./questions";
+import type { MultipleChoiceQuestion, Question, Test } from "./storage/types";
+import { buildVariants, seededRandom, shuffle } from "./variants";
+
+const text = (t: string) => [{ type: "text" as const, text: t }];
+
+function mc(id: string, lock = false): MultipleChoiceQuestion {
+  const q = createQuestion("multiple-choice", { id, text: text(id) }) as MultipleChoiceQuestion;
+  const options = ["a", "b", "c", "d"].map((x) => ({ id: `${id}-${x}`, text: text(x) }));
+  return { ...q, options, correctOptionId: `${id}-c`, lockOptions: lock };
+}
+
+function makeTest(questions: Question[], variants: Partial<Test["variants"]> = {}): Test {
+  return {
+    id: "t", schoolName: "", title: "", subject: "", grade: "", date: "", timeLimitMinutes: null,
+    instructions: "", labelStyle: "latin", questions,
+    printOptions: { fontSize: "normal", showPoints: true, columns: 1 },
+    variants: { count: 4, shuffleQuestions: true, shuffleOptions: true, seed: 42, duplex: false, ...variants },
+    createdAt: "", updatedAt: "",
+  };
+}
+
+const questions = () => [mc("q1"), mc("q2"), createQuestion("true-false", { id: "q3" }), mc("q4"), mc("q5")];
+const ids = (t: Test) => t.questions.map((q) => q.id);
+const optionIds = (q: Question) => (q.type === "multiple-choice" ? q.options.map((o) => o.id) : []);
+
+describe("seededRandom / shuffle", () => {
+  it("gives the same sequence for the same seed", () => {
+    expect(shuffle([1, 2, 3, 4, 5, 6], seededRandom(7))).toEqual(shuffle([1, 2, 3, 4, 5, 6], seededRandom(7)));
+  });
+  it("keeps every item exactly once", () => {
+    expect(shuffle([1, 2, 3, 4, 5, 6], seededRandom(9)).sort()).toEqual([1, 2, 3, 4, 5, 6]);
+  });
+});
+
+describe("buildVariants", () => {
+  it("makes only the original when count is 1", () => {
+    const test = makeTest(questions(), { count: 1 });
+    expect(buildVariants(test)).toEqual([{ label: "A", test }]);
+  });
+
+  it("keeps variant A exactly as the teacher wrote it", () => {
+    const test = makeTest(questions());
+    expect(buildVariants(test)[0].test).toBe(test);
+  });
+
+  it("makes A, B, C, D that are all different", () => {
+    const variants = buildVariants(makeTest(questions()));
+    expect(variants.map((v) => v.label)).toEqual(["A", "B", "C", "D"]);
+    const arrangements = variants.map((v) => JSON.stringify(v.test.questions.map((q) => [q.id, optionIds(q)])));
+    expect(new Set(arrangements).size).toBe(4);
+  });
+
+  it("is repeatable: same seed → same variants; new seed → different", () => {
+    const a = buildVariants(makeTest(questions()));
+    const b = buildVariants(makeTest(questions()));
+    const c = buildVariants(makeTest(questions(), { seed: 43 }));
+    expect(a).toEqual(b);
+    expect(a.map((v) => ids(v.test))).not.toEqual(c.map((v) => ids(v.test)));
+  });
+
+  it("keeps every question and option exactly once, and the right answer right", () => {
+    for (const variant of buildVariants(makeTest(questions()))) {
+      expect([...ids(variant.test)].sort()).toEqual(["q1", "q2", "q3", "q4", "q5"]);
+      for (const q of variant.test.questions) {
+        if (q.type !== "multiple-choice") continue;
+        expect([...optionIds(q)].sort()).toEqual([`${q.id}-a`, `${q.id}-b`, `${q.id}-c`, `${q.id}-d`]);
+        // The correct option is still option "c" (by id), wherever it moved.
+        const correct = q.options.find((o) => o.id === q.correctOptionId);
+        expect(correct?.text).toEqual(text("c"));
+      }
+    }
+  });
+
+  it("moves the correct letter around in multiple choice", () => {
+    const letters = buildVariants(makeTest(questions())).map((v) =>
+      v.test.questions.filter((q) => q.type === "multiple-choice").map((q) => correctOptionLabel(q as MultipleChoiceQuestion, "latin")).join(""),
+    );
+    expect(letters[0]).toBe("CCCC"); // original: always option c
+    expect(new Set(letters).size).toBeGreaterThan(1);
+  });
+
+  it("only shuffles questions when options shuffling is off", () => {
+    for (const v of buildVariants(makeTest(questions(), { shuffleOptions: false }))) {
+      for (const q of v.test.questions) {
+        if (q.type === "multiple-choice") expect(optionIds(q)).toEqual([`${q.id}-a`, `${q.id}-b`, `${q.id}-c`, `${q.id}-d`]);
+      }
+    }
+  });
+
+  it("only shuffles options when question shuffling is off", () => {
+    for (const v of buildVariants(makeTest(questions(), { shuffleQuestions: false }))) {
+      expect(ids(v.test)).toEqual(["q1", "q2", "q3", "q4", "q5"]);
+    }
+  });
+
+  it("never reorders locked options", () => {
+    const test = makeTest([mc("q1", true), mc("q2"), mc("q3", true)]);
+    for (const v of buildVariants(test)) {
+      for (const q of v.test.questions) {
+        if (q.type === "multiple-choice" && q.lockOptions) {
+          expect(optionIds(q)).toEqual([`${q.id}-a`, `${q.id}-b`, `${q.id}-c`, `${q.id}-d`]);
+        }
+      }
+    }
+  });
+});

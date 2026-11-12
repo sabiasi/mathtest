@@ -43,6 +43,7 @@ describe("normalizeTest", () => {
         points: 2,
         options: [{ id: "a", text: [{ type: "text", text: "1" }] }],
         correctOptionId: null,
+        lockOptions: false,
       },
       { id: "q3", type: "open-answer", text: [], points: 1, lines: 30 },
     ]);
@@ -69,5 +70,20 @@ describe("normalizeTest (Phase 1 → Phase 2)", () => {
       correctOptionId: "a",
     });
     expect(test?.questions[1]).toMatchObject({ answer: [{ type: "text", text: "5" }] });
+  });
+});
+
+describe("normalizeTest (variants)", () => {
+  it("gives older tests variants switched off, with a stable seed", () => {
+    const a = normalizeTest({ id: "t1" });
+    const b = normalizeTest({ id: "t1" });
+    expect(a?.variants).toMatchObject({ count: 1, shuffleQuestions: true, shuffleOptions: true, duplex: false });
+    expect(a?.variants.seed).toBe(b?.variants.seed);
+    expect(normalizeTest({ id: "t2" })?.variants.seed).not.toBe(a?.variants.seed);
+  });
+
+  it("keeps the count between 1 and 6", () => {
+    expect(normalizeTest({ id: "t", variants: { count: 99 } })?.variants.count).toBe(6);
+    expect(normalizeTest({ id: "t", variants: { count: 0 } })?.variants.count).toBe(1);
   });
 });

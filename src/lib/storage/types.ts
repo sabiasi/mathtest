@@ -31,6 +31,8 @@ export interface MultipleChoiceQuestion extends QuestionBase {
   options: ChoiceOption[];
   /** The id of the correct option, or null if not marked yet. */
   correctOptionId: string | null;
+  /** Keep the options in this order in every variant (e.g. "all of the above" last). */
+  lockOptions: boolean;
 }
 
 export interface TrueFalseQuestion extends QuestionBase {
@@ -72,6 +74,28 @@ export interface PrintOptions {
 
 export const DEFAULT_PRINT_OPTIONS: PrintOptions = { fontSize: "normal", showPoints: true, columns: 1 };
 
+/**
+ * Variants A, B, C… of the same test with questions / options in a different
+ * order. `seed` makes the shuffle repeatable: the same seed always gives the
+ * same variants, so answer keys keep matching papers that were already printed.
+ */
+export interface VariantSettings {
+  /** 1 = no variants. Up to 6 (A–F). */
+  count: number;
+  shuffleQuestions: boolean;
+  shuffleOptions: boolean;
+  seed: number;
+  /** When printing all variants together: start each one on a new sheet of paper. */
+  duplex: boolean;
+}
+
+export const DEFAULT_VARIANTS: Omit<VariantSettings, "seed"> = {
+  count: 1,
+  shuffleQuestions: true,
+  shuffleOptions: true,
+  duplex: false,
+};
+
 /** One test / quiz / exam. */
 export interface Test {
   id: string;
@@ -87,6 +111,7 @@ export interface Test {
   labelStyle: LabelStyle;
   questions: Question[];
   printOptions: PrintOptions;
+  variants: VariantSettings;
   /** ISO timestamps, e.g. "2026-11-12T15:30:00.000Z". */
   createdAt: string;
   updatedAt: string;
