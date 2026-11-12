@@ -10,6 +10,7 @@
  * a function runs only when called — and we only call it in the browser.
  */
 import type { MathfieldElement } from "mathlive";
+import { dictionaries, type Language } from "@/i18n/dictionaries";
 
 let loading: Promise<void> | null = null;
 
@@ -35,5 +36,7 @@ export function configureMathfield(mf: MathfieldElement) {
   // "smart" behaviours that surprise people who don't know LaTeX:
   mf.smartMode = false; // don't switch to text mode on its own
   mf.smartFence = true; // typing "(" adds the matching ")"
-  mf.setAttribute("aria-label", "ფორმულა");
+  // Screen readers announce this; <html lang> tells us the current language.
+  const language: Language = document.documentElement.lang === "en" ? "en" : "ka";
+  mf.setAttribute("aria-label", dictionaries[language]["math.formulaLabel"]);
 }

@@ -19,7 +19,7 @@ export function OpenAnswerEditor({
   const setLines = (n: number) => onChange({ ...question, lines: Math.min(MAX_LINES, Math.max(0, n)) });
 
   const stepButton =
-    "flex size-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40";
+    "flex size-9 items-center justify-center rounded-lg border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 disabled:opacity-40 pointer-coarse:size-11";
 
   return (
     <div className="flex flex-wrap items-start gap-x-8 gap-y-4">
@@ -28,13 +28,13 @@ export function OpenAnswerEditor({
           {t("oa.lines")}
         </p>
         <div className="flex items-center gap-2" role="group" aria-labelledby={`${question.id}-lines`}>
-          <button type="button" className={stepButton} onClick={() => setLines(lines - 1)} disabled={lines <= 0} aria-label="−1">
+          <button type="button" className={stepButton} onClick={() => setLines(lines - 1)} disabled={lines <= 0} aria-label={t("common.decrease")}>
             <Minus className="size-4" aria-hidden="true" />
           </button>
           <span className="w-8 text-center text-lg font-semibold tabular-nums" aria-live="polite">
             {lines}
           </span>
-          <button type="button" className={stepButton} onClick={() => setLines(lines + 1)} disabled={lines >= MAX_LINES} aria-label="+1">
+          <button type="button" className={stepButton} onClick={() => setLines(lines + 1)} disabled={lines >= MAX_LINES} aria-label={t("common.increase")}>
             <Plus className="size-4" aria-hidden="true" />
           </button>
         </div>

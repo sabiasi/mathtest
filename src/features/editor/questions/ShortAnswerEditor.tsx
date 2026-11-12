@@ -16,7 +16,7 @@ export function ShortAnswerEditor({
     // A <div> rather than a <label>: clicking a label would steal focus from the formula boxes.
     <div className="max-w-md">
       <p className="mb-1.5 text-sm font-medium text-slate-700">
-        {t("sa.answer")} <span className="font-normal text-slate-400">({t("sa.answerHint")})</span>
+        {t("sa.answer")} <span className="font-normal text-slate-500">({t("sa.answerHint")})</span>
       </p>
       <RichTextInput
         singleLine

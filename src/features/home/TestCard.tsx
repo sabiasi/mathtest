@@ -33,7 +33,7 @@ export function TestCard({ test }: { test: Test }) {
   }
 
   const action =
-    "relative z-10 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900";
+    "relative z-10 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 pointer-coarse:py-2.5";
 
   return (
     <article className="relative flex h-full flex-col rounded-xl border border-slate-200 bg-white shadow-sm transition hover:border-indigo-300 hover:shadow-md">
@@ -57,7 +57,7 @@ export function TestCard({ test }: { test: Test }) {
           <span className="mx-1.5 text-slate-300">·</span>
           {t("home.totalPoints", { points: formatPoints(totalPoints(test.questions)) })}
         </p>
-        <p className="mt-auto pt-2 text-xs text-slate-500">
+        <p className="mt-auto pt-2 text-sm text-slate-500">
           {t("home.updatedAt", { date: formatDateTime(test.updatedAt, language) })}
         </p>
       </div>

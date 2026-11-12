@@ -35,6 +35,18 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
       target instanceof HTMLElement && target.tagName === "MATH-FIELD" ? (target as MathfieldElement) : null;
   }, []);
 
+  // Clicking or tabbing into anything that isn't a question/answer box (or the
+  // toolbar itself) means "not writing math now": the toolbar hides.
+  useEffect(() => {
+    const onFocusIn = (event: FocusEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest?.(".rich-text-input, [data-math-toolbar]")) return;
+      setActiveEditor(null);
+    };
+    document.addEventListener("focusin", onFocusIn);
+    return () => document.removeEventListener("focusin", onFocusIn);
+  }, []);
+
   const forget = useCallback((editor: Editor) => {
     setActiveEditor((current) => (current === editor ? null : current));
   }, []);

@@ -41,7 +41,7 @@ export function QuestionCard({
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: question.id });
 
-  const iconButton = "rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800";
+  const iconButton = "rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800 pointer-coarse:p-3";
 
   // ---- Pictures: upload, paste, drop ----
   const [mediaBusy, setMediaBusy] = useState(false);
@@ -121,7 +121,7 @@ export function QuestionCard({
           {...listeners}
           aria-label={t("questions.drag")}
           title={t("questions.drag")}
-          className="cursor-grab touch-none rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 active:cursor-grabbing"
+          className="cursor-grab touch-none rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 active:cursor-grabbing pointer-coarse:p-2.5"
         >
           <GripVertical className="size-5" aria-hidden="true" />
         </button>

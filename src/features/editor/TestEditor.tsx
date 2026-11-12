@@ -11,10 +11,10 @@ import {
   ToggleRight,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { buttonClasses } from "@/components/ui/button";
-import { MathEditingProvider, useMathLiveReady } from "@/features/math/MathEditingContext";
+import { MathEditingProvider, useMathEditing, useMathLiveReady } from "@/features/math/MathEditingContext";
 import { MathToolbar } from "@/features/math/MathToolbar";
 import { useT } from "@/i18n/language";
 import { createQuestion, duplicateQuestion, formatPoints, totalPoints } from "@/lib/questions";
@@ -42,6 +42,21 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
   const [dirty, setDirty] = useState(false); // true = has unsaved changes
   const [focusId, setFocusId] = useState<string | null>(null);
   const mathReady = useMathLiveReady();
+
+  // Tell the browser how tall the sticky bar is, so when it scrolls something
+  // into view (e.g. the box you clicked) it doesn't end up hidden underneath.
+  const stickyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const bar = stickyRef.current;
+    if (!bar) return;
+    const root = document.documentElement;
+    const observer = new ResizeObserver(() => (root.style.scrollPaddingTop = `${bar.offsetHeight + 16}px`));
+    observer.observe(bar);
+    return () => {
+      observer.disconnect();
+      root.style.scrollPaddingTop = "";
+    };
+  }, []);
 
   const markSaved = useCallback(() => setDirty(false), []);
   useAutosave(test, dirty, markSaved);
@@ -90,9 +105,9 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
 
   return (
     <MathEditingProvider>
-      <div className="pb-24">
+      <div className="pb-24" data-editor-ready={mathReady ? "true" : "false"}>
         {/* Sticky bar: stays at the top while scrolling. */}
-        <div className="sticky top-0 z-20 border-b border-slate-200 bg-white shadow-sm">
+        <div ref={stickyRef} className="sticky top-0 z-20 border-b border-slate-200 bg-white shadow-sm">
           <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
             <Link
               href="/"
@@ -125,7 +140,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
               {t("editor.total", { points: total })}
             </span>
           </div>
-          {mathReady && <MathToolbar />}
+          {mathReady && <ToolbarWhenEditing />}
         </div>
 
         {!mathReady ? (
@@ -185,4 +200,10 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
       </div>
     </MathEditingProvider>
   );
+}
+
+/** The math toolbar, shown only while a question or answer box is being edited. */
+function ToolbarWhenEditing() {
+  const { activeEditor } = useMathEditing();
+  return activeEditor ? <MathToolbar /> : null;
 }

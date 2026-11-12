@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Download, LoaderCircle, Printer, SearchX, Shuffle } from "lucide-react";
+import { ArrowLeft, Download, LoaderCircle, Printer, SearchX, Shuffle, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
@@ -8,6 +8,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { buttonClasses } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/form";
 import { useLanguage, useT } from "@/i18n/language";
+import { findProblems } from "@/lib/checks";
 import { saveTest } from "@/lib/storage/testsRepository";
 import type { PrintOptions, Test, VariantSettings } from "@/lib/storage/types";
 import { useTest } from "@/lib/storage/useTests";
@@ -237,7 +238,7 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
                   <Shuffle className="size-4" aria-hidden="true" />
                   {t("variants.reshuffle")}
                 </button>
-                <span className="text-slate-400">{t("variants.countHint")}</span>
+                <span className="text-slate-500">{t("variants.countHint")}</span>
               </>
             )}
           </div>
@@ -267,6 +268,8 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
           )}
         </div>
       </div>
+
+      <ProblemsBanner test={test} />
 
       {/* ---- The A4 sheets ---- */}
       <div className="print-sheets" style={{ zoom }}>
@@ -374,6 +377,32 @@ function PrintedVariant({
       {/* For double-sided printing: an empty back page so the next variant starts on a new sheet. */}
       {blankAfter && pages && pages.length % 2 === 1 && <section className="sheet" aria-hidden="true" />}
     </>
+  );
+}
+
+/** "Before printing, please check: …" — empty questions, missing answers. */
+function ProblemsBanner({ test }: { test: Test }) {
+  const t = useT();
+  const problems = findProblems(test);
+  if (problems.length === 0) return null;
+  return (
+    <div className="mx-auto mt-4 max-w-5xl px-4 sm:px-6 print:hidden">
+      <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
+        <p className="flex items-center gap-2 font-semibold">
+          <TriangleAlert className="size-5 shrink-0" aria-hidden="true" />
+          {t("checks.title")}
+        </p>
+        <ul className="mt-1.5 list-disc space-y-0.5 pl-9 text-[15px]">
+          {problems.slice(0, 8).map((p, i) => (
+            <li key={i}>{t(`checks.${p.kind}`, { number: p.number })}</li>
+          ))}
+          {problems.length > 8 && <li>…</li>}
+        </ul>
+        <Link href={`/editor/${test.id}`} className="mt-2 ml-9 inline-block font-semibold text-amber-900 underline underline-offset-2">
+          {t("checks.fix")}
+        </Link>
+      </div>
+    </div>
   );
 }
 

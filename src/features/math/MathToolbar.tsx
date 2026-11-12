@@ -2,7 +2,7 @@
 
 import { convertLatexToMarkup } from "mathlive";
 import { Sigma } from "lucide-react";
-import { useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import { useLanguage, useT } from "@/i18n/language";
 import { useMathEditing } from "./MathEditingContext";
 import { TOOLBAR_TABS } from "./toolbarData";
@@ -16,10 +16,15 @@ const isMac = () => typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(n
 export function MathToolbar() {
   const t = useT();
   const language = useLanguage();
-  const { activeEditor, insert } = useMathEditing();
+  const { insert } = useMathEditing();
   const [tabId, setTabId] = useState(TOOLBAR_TABS[0].id);
   const tab = TOOLBAR_TABS.find((x) => x.id === tabId) ?? TOOLBAR_TABS[0];
-  const disabled = activeEditor === null;
+
+  // When the toolbar appears it makes the top bar taller: make sure the box
+  // the teacher just clicked isn't hidden underneath it.
+  useEffect(() => {
+    requestAnimationFrame(() => (document.activeElement as HTMLElement | null)?.scrollIntoView?.({ block: "nearest" }));
+  }, []);
 
   // Turn each button's LaTeX into the HTML of a little formula (once per tab).
   const buttons = useMemo(
@@ -30,14 +35,13 @@ export function MathToolbar() {
   const shortcut = isMac() ? "⌥ =" : "Alt + =";
 
   return (
-    <div className="border-t border-slate-100" role="toolbar" aria-label={t("math.toolbarLabel")}>
+    <div className="overflow-x-clip border-t border-slate-100" role="toolbar" aria-label={t("math.toolbarLabel")} data-math-toolbar="">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">
         <div className="flex items-center gap-3 pt-2">
           <button
             type="button"
             onMouseDown={keepFocus}
             onClick={() => insert("")}
-            disabled={disabled}
             title={`${t("math.insertTooltip")} (${shortcut})`}
             className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-40"
           >
@@ -45,7 +49,6 @@ export function MathToolbar() {
             {t("math.insert")}
             <kbd className="rounded bg-indigo-500 px-1.5 py-0.5 font-sans text-xs font-medium">{shortcut}</kbd>
           </button>
-          {disabled && <p className="text-xs text-slate-500">{t("math.toolbarHint")}</p>}
         </div>
 
         {/* Tabs (scroll sideways on phones, wrap on bigger screens) */}
@@ -75,7 +78,6 @@ export function MathToolbar() {
               type="button"
               onMouseDown={keepFocus}
               onClick={() => insert(button.latex)}
-              disabled={disabled}
               aria-label={button[language]}
               className="group relative flex h-10 min-w-10 items-center justify-center rounded-lg border border-slate-200 bg-white px-2 text-slate-800 transition-colors hover:border-indigo-300 hover:bg-indigo-50 disabled:opacity-40"
             >
@@ -83,7 +85,8 @@ export function MathToolbar() {
               {/* Tooltip: appears on hover / keyboard focus */}
               <span
                 role="tooltip"
-                className="pointer-events-none absolute top-full left-1/2 z-40 mt-1.5 -translate-x-1/2 rounded-md bg-slate-900 px-2 py-1 text-xs font-medium whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity delay-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+                // Only exists while hovered/focused, so it never makes the page wider (tablets).
+                className="pointer-events-none absolute top-full left-1/2 z-40 mt-1.5 hidden -translate-x-1/2 rounded-md bg-slate-900 px-2 py-1 text-sm font-medium whitespace-nowrap text-white shadow-lg group-hover:block group-focus-visible:block"
               >
                 {button[language]}
               </span>

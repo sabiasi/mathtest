@@ -75,7 +75,7 @@ export function MultipleChoiceEditor({
                 onClick={() => removeOption(option.id)}
                 aria-label={t("mc.removeOption", { label })}
                 title={t("mc.removeOption", { label })}
-                className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:invisible"
+                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:invisible pointer-coarse:p-3"
               >
                 <X className="size-4" aria-hidden="true" />
               </button>
@@ -101,7 +101,7 @@ export function MultipleChoiceEditor({
             className="size-4 accent-indigo-600"
           />
           {t("variants.lockOptions")}
-          <span className="text-slate-400">({t("variants.lockHint")})</span>
+          <span className="text-slate-500">({t("variants.lockHint")})</span>
         </label>
         {options.length < MAX_OPTIONS && (
           <button

@@ -16,6 +16,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { useT } from "@/i18n/language";
 import type { LabelStyle, Question } from "@/lib/storage/types";
 import { QuestionCard } from "./QuestionCard";
 
@@ -46,6 +47,8 @@ export function QuestionList({
   onDuplicate: (question: Question) => void;
   onDelete: (question: Question, number: number) => void;
 }) {
+  const t = useT();
+  const numberOf = (id: string | number) => questions.findIndex((q) => q.id === id) + 1;
   const sensors = useSensors(
     // A drag starts only after moving 5px, so normal clicks still work.
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -65,6 +68,18 @@ export function QuestionList({
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       onDragEnd={handleDragEnd}
+      // What screen readers say while moving a question (dnd-kit's default is English).
+      accessibility={{
+        screenReaderInstructions: { draggable: t("drag.instructions") },
+        announcements: {
+          onDragStart: ({ active }) => t("drag.start", { number: numberOf(active.id) }),
+          onDragOver: ({ active, over }) =>
+            over ? t("drag.over", { number: numberOf(active.id), position: numberOf(over.id) }) : undefined,
+          onDragEnd: ({ active, over }) =>
+            over ? t("drag.end", { number: numberOf(active.id), position: numberOf(over.id) }) : t("drag.cancel"),
+          onDragCancel: () => t("drag.cancel"),
+        },
+      }}
     >
       <SortableContext items={questions.map((q) => q.id)} strategy={verticalListSortingStrategy}>
         <ol className="space-y-4">

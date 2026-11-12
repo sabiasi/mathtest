@@ -1,0 +1,41 @@
+import { describe, expect, it } from "vitest";
+import { findProblems } from "./checks";
+import { createQuestion } from "./questions";
+import type { MultipleChoiceQuestion, Question, Test } from "./storage/types";
+
+const text = (t: string) => [{ type: "text" as const, text: t }];
+const testOf = (questions: Question[]) => ({ questions }) as unknown as Test;
+
+describe("findProblems", () => {
+  it("reports a test without questions", () => {
+    expect(findProblems(testOf([]))).toEqual([{ kind: "noQuestions", number: 0, keyOnly: false }]);
+  });
+
+  it("finds empty questions and missing answers, with question numbers", () => {
+    const good = { ...createQuestion("true-false"), text: text("π > 3"), correct: true } as Question;
+    const empty = createQuestion("open-answer");
+    const tf = { ...createQuestion("true-false"), text: text("?") };
+    const short = { ...createQuestion("short-answer"), text: text("2+2=?") };
+    expect(findProblems(testOf([good, empty, tf, short]))).toEqual([
+      { kind: "empty", number: 2, keyOnly: false },
+      { kind: "noCorrect", number: 3, keyOnly: true },
+      { kind: "noAnswer", number: 4, keyOnly: true },
+    ]);
+  });
+
+  it("checks multiple choice: at least 2 answers, and the correct one marked", () => {
+    const mc = createQuestion("multiple-choice", { text: text("?") }) as MultipleChoiceQuestion;
+    const few = { ...mc, options: [{ id: "a", text: text("1") }, { id: "b", text: [] }] };
+    const unmarked = { ...mc, options: [{ id: "a", text: text("1") }, { id: "b", text: text("2") }] };
+    const ok = { ...unmarked, correctOptionId: "b" };
+    expect(findProblems(testOf([few, unmarked, ok]))).toEqual([
+      { kind: "fewOptions", number: 1, keyOnly: false },
+      { kind: "noCorrect", number: 2, keyOnly: true },
+    ]);
+  });
+
+  it("a question with only a picture is not empty", () => {
+    const pic = { ...createQuestion("open-answer"), images: [{ id: "p", imageId: "i", width: 1, height: 1, widthPercent: 50, position: "above" as const }] };
+    expect(findProblems(testOf([pic]))).toEqual([]);
+  });
+});
