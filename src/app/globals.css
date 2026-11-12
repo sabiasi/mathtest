@@ -11,6 +11,78 @@
 
 /* A clear keyboard-focus ring everywhere (helps people who use Tab). */
 :focus-visible {
-  outline: 2px solid var(--color-indigo-500);
+  outline: 2px solid #6366f1;
   outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Rich-text boxes (TipTap) with inline formulas (MathLive)           */
+/* ------------------------------------------------------------------ */
+
+.rich-text-input {
+  @apply w-full cursor-text rounded-lg border border-slate-300 bg-white px-3 py-2 text-[15px] leading-7 text-slate-900 transition-colors hover:border-slate-400;
+}
+.rich-text-input:focus-within {
+  @apply border-indigo-500 ring-2 ring-indigo-500/20;
+}
+.rich-text-input .rich-text-editor {
+  min-height: 1.75rem;
+  outline: none;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.rich-text-input:not(.is-single-line) .rich-text-editor {
+  min-height: 3.5rem;
+}
+/* Grey hint text in an empty box. */
+.rich-text-input p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: #94a3b8;
+}
+
+/* A formula inside the text. */
+.math-node {
+  display: inline-block;
+  margin: 0 0.1em;
+  vertical-align: middle;
+}
+.math-node math-field {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 0.3em;
+  border: 1px solid transparent;
+  border-radius: 0.375rem;
+  background: #eef2ff;
+  font-size: 1.1em;
+  outline: none;
+}
+.math-node math-field:hover {
+  border-color: #c7d2fe;
+}
+.math-node math-field:focus-within {
+  border-color: #818cf8;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgb(99 102 241 / 0.15);
+}
+/* Highlighted after one Backspace: the next Backspace deletes it. */
+.math-node.is-selected math-field {
+  background: #c7d2fe;
+  border-color: #6366f1;
+}
+/* Hide MathLive's own menu and keyboard buttons — we have our own toolbar. */
+math-field::part(menu-toggle),
+math-field::part(virtual-keyboard-toggle) {
+  display: none;
+}
+
+/* Static (read-only) formulas and toolbar button icons. */
+.math-static {
+  font-size: 1.1em;
+}
+.toolbar-math {
+  font-size: 0.95rem;
+  line-height: 1;
 }

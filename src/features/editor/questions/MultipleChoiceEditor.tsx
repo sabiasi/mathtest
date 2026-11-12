@@ -1,10 +1,11 @@
 "use client";
 
 import { CircleAlert, Plus, X } from "lucide-react";
-import { inputClasses } from "@/components/ui/form";
+import { RichTextInput } from "@/features/math/RichTextInput";
 import { useT } from "@/i18n/language";
 import { newId } from "@/lib/ids";
 import { MAX_OPTIONS, MIN_OPTIONS, optionLabel } from "@/lib/questions";
+import type { RichText } from "@/lib/richText";
 import type { LabelStyle, MultipleChoiceQuestion } from "@/lib/storage/types";
 
 export function MultipleChoiceEditor({
@@ -19,7 +20,7 @@ export function MultipleChoiceEditor({
   const t = useT();
   const { options, correctOptionId } = question;
 
-  function setOptionText(id: string, text: string) {
+  function setOptionText(id: string, text: RichText) {
     onChange({ ...question, options: options.map((o) => (o.id === id ? { ...o, text } : o)) });
   }
 
@@ -54,11 +55,13 @@ export function MultipleChoiceEditor({
                 {label}
               </button>
               <div className="relative min-w-0 flex-1">
-                <input
-                  className={`${inputClasses} ${isCorrect ? "border-emerald-500 bg-emerald-50/60 pr-20" : ""}`}
+                <RichTextInput
+                  singleLine
                   value={option.text}
+                  ariaLabel={t("mc.optionAria", { label })}
                   placeholder={t("mc.optionPlaceholder", { label })}
-                  onChange={(e) => setOptionText(option.id, e.target.value)}
+                  onChange={(text) => setOptionText(option.id, text)}
+                  className={isCorrect ? "border-emerald-500! bg-emerald-50/60! pr-20" : ""}
                 />
                 {isCorrect && (
                   <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold text-emerald-700">
@@ -93,7 +96,7 @@ export function MultipleChoiceEditor({
         {options.length < MAX_OPTIONS && (
           <button
             type="button"
-            onClick={() => onChange({ ...question, options: [...options, { id: newId(), text: "" }] })}
+            onClick={() => onChange({ ...question, options: [...options, { id: newId(), text: [] }] })}
             className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
           >
             <Plus className="size-4" aria-hidden="true" />

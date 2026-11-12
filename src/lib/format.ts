@@ -31,3 +31,12 @@ export function formatDateTime(iso: string, language: Language): string {
   }
   return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" }).format(d);
 }
+
+/** "2026-11-20" → "20 ნოემბერი 2026" (ka) or "20 Nov 2026" (en). "" stays "". */
+export function formatDate(ymd: string, language: Language): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  if (!match) return "";
+  const [, y, m, d] = match.map(Number);
+  if (language === "ka") return `${d} ${GEORGIAN_MONTHS[m - 1]} ${y}`;
+  return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(new Date(y, m - 1, d));
+}

@@ -41,8 +41,10 @@ make it fast and easy.
   - Practice tasks left for the owner in `src/lib/questions.ts`:
     `totalPoints` and `optionLabel` (3 tests fail until done, on purpose).
     Don't implement them unless asked; give hints instead.
-- [ ] **Phase 2**: math input with MathLive `<math-field>` and a Georgian-labelled
-  visual toolbar; math rendering in the editor.
+- [x] **Phase 2**: rich text (text + inline formulas) in question text, options
+  and short answers (TipTap + MathLive); "ფორმულა" button + Alt+= (like Word);
+  sticky math toolbar with 7 tabs and Georgian tooltips; read-only preview
+  with static math.
 - [ ] **Phase 3**: remaining question types: fill-in-the-blank and matching.
 - [ ] **Phase 4**: A4 print layout, PDF export, answer key version.
 - [ ] Later: duplicate tests, backup import/export, templates, then accounts
@@ -56,8 +58,9 @@ make it fast and easy.
 | Styling | Tailwind CSS v4 (configured in `src/app/globals.css`, no tailwind.config) |
 | Font | Noto Sans Georgian via `next/font/google` (self-hosted at build time). Must also be used in print/PDF output. |
 | Icons | lucide-react |
-| Math input | MathLive (`<math-field>` + its virtual keyboard), Phase 2 |
-| Math rendering | KaTeX or MathLive static rendering. Decide in Phase 2 (lean: store math as LaTeX strings, render with whichever prints most reliably). |
+| Rich text | TipTap v3 (ProseMirror) with a custom inline `math` node (`src/features/math/MathNode.ts`) |
+| Math input | MathLive `<math-field>` inside that node; our own toolbar (MathLive's keyboard and menu are hidden) |
+| Math rendering | MathLive `convertLatexToMarkup` (same engine as input). Fonts/styles: `mathlive/fonts.css` + `mathlive/static.css` imported in `layout.tsx`, bundled and self-hosted; `MathfieldElement.fontsDirectory = null` |
 | Storage | Browser localStorage, no login yet. Accounts come later. |
 | PDF | To decide in Phase 4. First idea: print stylesheet (`@page { size: A4 }`) + browser "Save as PDF", which keeps fonts and math identical to the screen. |
 | Drag and drop | @dnd-kit (core + sortable), handle-only, keyboard accessible |
@@ -80,10 +83,13 @@ src/
     page.tsx            /              → features/home/HomeView
     editor/[id]/page.tsx /editor/:id   → features/editor/EditorView
   features/<name>/      Page-level UI for one feature
+  features/math/        RichTextInput (TipTap box), MathNode, MathToolbar + toolbarData,
+                        MathEditingContext (which box is active), RichTextView (static), mathlive.ts
   components/           Shared UI (header, logo, language switch, ui/button)
   i18n/                 dictionaries.ts (ka + en text), language.ts (useT, useLanguage)
   features/editor/      EditorView → TestEditor (state + autosave), TestHeaderForm,
                         questions/ (QuestionList with dnd-kit, QuestionCard, one editor per type)
+  lib/richText.ts       RichText = [{type:"text"} | {type:"math", latex}] + conversions to/from TipTap docs
   lib/questions.ts      Pure helpers: create/duplicate/change type, totals, labels
   lib/storage/          types.ts, migrate.ts (normalizeTest), testsRepository.ts, useTests.ts
   lib/format.ts         Date formatting (Georgian by hand)
@@ -95,12 +101,32 @@ src/
   Components use `useTests()` / `useTest(id)` and the repository functions.
   Every saved test passes through `normalizeTest` (migrate.ts) on read: when
   adding a field, give it a default there so older saved tests keep working.
+- Question text, options and short answers are `RichText` (our own format, not
+  TipTap JSON). Formulas are stored as LaTeX. Use `RichTextInput` to edit and
+  `RichTextView` to display. Exception to the dictionary rule: math toolbar
+  tooltips live in `toolbarData.ts` (ka + en per button).
+- Georgian schools write tg / ctg (not tan / cot) and ";" in intervals.
 - Chrome has no Georgian `Intl` date data: use `src/lib/format.ts`, never
   `toLocaleDateString("ka-GE")`.
 - Pages that read localStorage are client components; the server renders a
   "loading" state (snapshot `null`) to avoid hydration mismatches.
 - Small, clearly described git commits. Run `npm test`, `npm run lint` and
   `npm run build` before committing.
+
+## Gotchas learned the hard way
+
+- MathLive only exists in the browser: import `MathfieldElement` via
+  `loadMathLive()` (dynamic import), never at the top of a module.
+  `convertLatexToMarkup` is fine to import normally (SSR build has it).
+- Setting `mf.menuItems` before the math-field is mounted throws
+  "Mathfield not mounted" and silently cancels the ProseMirror transaction.
+  Set it in the `mount` event.
+- ProseMirror's `state.selection` lags the DOM by a moment after arrow keys.
+  Key handlers next to formulas read the DOM selection (`posAtDOM`).
+- Toolbar buttons use `onMouseDown={preventDefault}` so focus stays in the box.
+- After `npm install`, Turbopack's watcher can miss CSS edits; restart
+  `npm run dev` if styles look stale.
+- On macOS, Home/End don't move the caret in browsers; tests use Cmd+←/→.
 
 ## Commands
 

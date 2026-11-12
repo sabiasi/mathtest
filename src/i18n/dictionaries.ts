@@ -107,6 +107,26 @@ const ka = {
 
   "oa.lines": "ცარიელი ხაზები ამოხსნისთვის",
   "oa.preview": "ასე გამოჩნდება ფურცელზე:",
+
+  "editor.modeEdit": "რედაქტირება",
+  "editor.modePreview": "გადახედვა",
+  "editor.loading": "რედაქტორი იტვირთება…",
+
+  "math.insert": "ფორმულა",
+  "math.insertTooltip": "ფორმულის ჩასმა კურსორის ადგილას",
+  "math.toolbarLabel": "მათემატიკური სიმბოლოები",
+  "math.toolbarHint": "ჯერ დააწკაპუნეთ კითხვის ან პასუხის ველში.",
+  "mc.optionAria": "პასუხი {label}",
+
+  "preview.student": "მოსწავლე",
+  "preview.class": "კლასი",
+  "preview.date": "თარიღი",
+  "preview.time": "დრო: {minutes} წთ",
+  "preview.total": "სულ: {points} ქულა",
+  "preview.points": "{points} ქ.",
+  "preview.answer": "პასუხი",
+  "preview.empty": "კითხვები ჯერ არ არის დამატებული.",
+  "preview.note": "ეს არის გადახედვა. ბეჭდვისა და PDF-ის ვერსია (A4) შემდეგ ეტაპზე დაემატება.",
 };
 
 export type MessageKey = keyof typeof ka;
@@ -199,6 +219,26 @@ const en: Record<MessageKey, string> = {
 
   "oa.lines": "Blank lines for working",
   "oa.preview": "How it will look on paper:",
+
+  "editor.modeEdit": "Edit",
+  "editor.modePreview": "Preview",
+  "editor.loading": "Loading the editor…",
+
+  "math.insert": "Formula",
+  "math.insertTooltip": "Insert a formula at the cursor",
+  "math.toolbarLabel": "Math symbols",
+  "math.toolbarHint": "First click into a question or answer box.",
+  "mc.optionAria": "Answer {label}",
+
+  "preview.student": "Student",
+  "preview.class": "Class",
+  "preview.date": "Date",
+  "preview.time": "Time: {minutes} min",
+  "preview.total": "Total: {points} pts",
+  "preview.points": "{points} pts",
+  "preview.answer": "Answer",
+  "preview.empty": "No questions added yet.",
+  "preview.note": "This is a preview. The print and PDF version (A4) comes in the next phase.",
 };
 
 export const dictionaries: Record<Language, Record<MessageKey, string>> = { ka, en };

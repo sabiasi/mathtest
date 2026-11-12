@@ -1,0 +1,39 @@
+"use client";
+
+/**
+ * Loads MathLive (the library behind the <math-field> formula boxes) once,
+ * only in the browser.
+ *
+ * Why not a normal `import { MathfieldElement } from "mathlive"` at the top?
+ * Next.js also runs our components on the server, where there is no browser
+ * and MathLive's interactive part doesn't exist. A dynamic `import()` inside
+ * a function runs only when called — and we only call it in the browser.
+ */
+import type { MathfieldElement } from "mathlive";
+
+let loading: Promise<void> | null = null;
+
+export function loadMathLive(): Promise<void> {
+  loading ??= import("mathlive").then(({ MathfieldElement }) => {
+    // Fonts come from our own CSS (see layout.tsx), so MathLive shouldn't fetch any.
+    MathfieldElement.fontsDirectory = null;
+    // No click sounds.
+    MathfieldElement.soundsDirectory = null;
+  });
+  return loading;
+}
+
+export type { MathfieldElement };
+
+/** Settings applied to every formula box we create. */
+export function configureMathfield(mf: MathfieldElement) {
+  // We show our own Georgian toolbar instead of MathLive's keyboard and menu.
+  mf.mathVirtualKeyboardPolicy = "manual";
+  // menuItems can only be set once the box is on the page ("mounted"),
+  // otherwise MathLive throws "Mathfield not mounted".
+  mf.addEventListener("mount", () => (mf.menuItems = []), { once: true });
+  // "smart" behaviours that surprise people who don't know LaTeX:
+  mf.smartMode = false; // don't switch to text mode on its own
+  mf.smartFence = true; // typing "(" adds the matching ")"
+  mf.setAttribute("aria-label", "ფორმულა");
+}

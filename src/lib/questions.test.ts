@@ -44,9 +44,10 @@ describe("createQuestion", () => {
 
 describe("changeQuestionType", () => {
   it("keeps id, text and points", () => {
-    const q = { ...createQuestion("short-answer"), text: "2 + 2 = ?", points: 4 };
+    const text = [{ type: "text" as const, text: "2 + 2 = ?" }];
+    const q = { ...createQuestion("short-answer"), text, points: 4 };
     const changed = changeQuestionType(q, "open-answer");
-    expect(changed).toMatchObject({ id: q.id, text: "2 + 2 = ?", points: 4, type: "open-answer" });
+    expect(changed).toMatchObject({ id: q.id, text, points: 4, type: "open-answer" });
   });
 });
 

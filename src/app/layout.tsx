@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Noto_Sans_Georgian } from "next/font/google";
 import { AppHeader } from "@/components/AppHeader";
 import { HtmlLang } from "@/i18n/HtmlLang";
+// MathLive's math fonts and the styles for read-only formulas.
+import "mathlive/fonts.css";
+import "mathlive/static.css";
 import "./globals.css";
 
 // next/font downloads the font when the app is built and serves it from our

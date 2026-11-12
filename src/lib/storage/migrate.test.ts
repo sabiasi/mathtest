@@ -35,13 +35,38 @@ describe("normalizeTest", () => {
       ],
     });
     expect(test?.questions).toEqual([
-      { id: "q1", type: "multiple-choice", text: "?", points: 2, options: [{ id: "a", text: "1" }], correctOptionId: null },
-      { id: "q3", type: "open-answer", text: "", points: 1, lines: 30 },
+      {
+        id: "q1",
+        type: "multiple-choice",
+        text: [{ type: "text", text: "?" }],
+        points: 2,
+        options: [{ id: "a", text: [{ type: "text", text: "1" }] }],
+        correctOptionId: null,
+      },
+      { id: "q3", type: "open-answer", text: [], points: 1, lines: 30 },
     ]);
   });
 
   it("returns null for something that isn't a test", () => {
     expect(normalizeTest(null)).toBeNull();
     expect(normalizeTest({ title: "no id" })).toBeNull();
+  });
+});
+
+describe("normalizeTest (Phase 1 → Phase 2)", () => {
+  it("turns plain-string question text, options and answers into rich text", () => {
+    const test = normalizeTest({
+      id: "t1",
+      questions: [
+        { id: "q1", type: "multiple-choice", text: "რამდენია 2+2?", points: 1, options: [{ id: "a", text: "4" }], correctOptionId: "a" },
+        { id: "q2", type: "short-answer", text: "x=?", points: 1, answer: "5" },
+      ],
+    });
+    expect(test?.questions[0]).toMatchObject({
+      text: [{ type: "text", text: "რამდენია 2+2?" }],
+      options: [{ id: "a", text: [{ type: "text", text: "4" }] }],
+      correctOptionId: "a",
+    });
+    expect(test?.questions[1]).toMatchObject({ answer: [{ type: "text", text: "5" }] });
   });
 });

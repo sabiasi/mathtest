@@ -6,6 +6,8 @@
  * compiler catch mistakes (like a typo in a field name) before you run anything.
  */
 
+import type { RichText } from "@/lib/richText";
+
 /** How multiple-choice options are labelled: A, B, C… or ა, ბ, გ… */
 export type LabelStyle = "latin" | "georgian";
 
@@ -14,12 +16,13 @@ interface QuestionBase {
   id: string;
   /** Can be a half point, e.g. 1.5. */
   points: number;
-  text: string;
+  /** The question: text mixed with formulas. */
+  text: RichText;
 }
 
 export interface ChoiceOption {
   id: string;
-  text: string;
+  text: RichText;
 }
 
 export interface MultipleChoiceQuestion extends QuestionBase {
@@ -39,7 +42,7 @@ export interface TrueFalseQuestion extends QuestionBase {
 export interface ShortAnswerQuestion extends QuestionBase {
   type: "short-answer";
   /** The expected answer, shown only on the answer key. Optional. */
-  answer: string;
+  answer: RichText;
 }
 
 export interface OpenAnswerQuestion extends QuestionBase {

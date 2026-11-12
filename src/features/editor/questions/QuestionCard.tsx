@@ -3,7 +3,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Copy, GripVertical, Trash2 } from "lucide-react";
-import { inputClasses } from "@/components/ui/form";
+import { RichTextInput } from "@/features/math/RichTextInput";
 import { useT } from "@/i18n/language";
 import { QUESTION_TYPES, changeQuestionType } from "@/lib/questions";
 import type { LabelStyle, Question, QuestionType } from "@/lib/storage/types";
@@ -94,14 +94,12 @@ export function QuestionCard({
       </div>
 
       <div className="space-y-4 p-4 sm:p-5">
-        <textarea
-          rows={2}
-          autoFocus={autoFocus}
-          aria-label={t("questions.text")}
+        <RichTextInput
           value={question.text}
+          autoFocus={autoFocus}
+          ariaLabel={t("questions.text")}
           placeholder={t(question.type === "true-false" ? "questions.statementPlaceholder" : "questions.textPlaceholder")}
-          onChange={(e) => onChange({ ...question, text: e.target.value })}
-          className={`${inputClasses} field-sizing-content min-h-16 resize-none`}
+          onChange={(text) => onChange({ ...question, text })}
         />
 
         {question.type === "multiple-choice" && (

@@ -4,6 +4,7 @@
  * Pure functions are the easiest code to test and to reason about.
  */
 import { newId } from "@/lib/ids";
+import type { RichText } from "@/lib/richText";
 import type {
   ChoiceOption,
   LabelStyle,
@@ -24,7 +25,7 @@ export const QUESTION_TYPES: QuestionType[] = [
 ];
 
 function emptyOptions(count: number): ChoiceOption[] {
-  return Array.from({ length: count }, () => ({ id: newId(), text: "" }));
+  return Array.from({ length: count }, () => ({ id: newId(), text: [] }));
 }
 
 /**
@@ -33,16 +34,16 @@ function emptyOptions(count: number): ChoiceOption[] {
  */
 export function createQuestion(
   type: QuestionType,
-  keep: { id?: string; text?: string; points?: number } = {},
+  keep: { id?: string; text?: RichText; points?: number } = {},
 ): Question {
-  const base = { id: keep.id ?? newId(), text: keep.text ?? "", points: keep.points ?? 1 };
+  const base = { id: keep.id ?? newId(), text: keep.text ?? [], points: keep.points ?? 1 };
   switch (type) {
     case "multiple-choice":
       return { ...base, type, options: emptyOptions(4), correctOptionId: null };
     case "true-false":
       return { ...base, type, correct: null };
     case "short-answer":
-      return { ...base, type, answer: "" };
+      return { ...base, type, answer: [] };
     case "open-answer":
       return { ...base, type, points: keep.points ?? 3, lines: DEFAULT_LINES };
   }

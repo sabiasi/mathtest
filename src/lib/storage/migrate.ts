@@ -7,6 +7,7 @@
  * defaults. Unknown or broken questions are dropped rather than crashing.
  */
 import { DEFAULT_LINES, MAX_LINES, MAX_OPTIONS } from "@/lib/questions";
+import { normalizeRichText } from "@/lib/richText";
 import type { ChoiceOption, LabelStyle, Question, Test } from "./types";
 
 type Loose = Record<string, unknown>;
@@ -22,12 +23,13 @@ function normalizeOptions(value: unknown): ChoiceOption[] {
     .filter(isObject)
     .filter((o) => typeof o.id === "string")
     .slice(0, MAX_OPTIONS)
-    .map((o) => ({ id: o.id as string, text: str(o.text) }));
+    .map((o) => ({ id: o.id as string, text: normalizeRichText(o.text) }));
 }
 
 function normalizeQuestion(raw: unknown): Question | null {
   if (!isObject(raw) || typeof raw.id !== "string") return null;
-  const base = { id: raw.id, text: str(raw.text), points: Math.max(0, num(raw.points, 1)) };
+  // Phase 1 saved text as a plain string; normalizeRichText upgrades it.
+  const base = { id: raw.id, text: normalizeRichText(raw.text), points: Math.max(0, num(raw.points, 1)) };
 
   switch (raw.type) {
     case "multiple-choice": {
@@ -44,7 +46,7 @@ function normalizeQuestion(raw: unknown): Question | null {
         correct: typeof raw.correct === "boolean" ? raw.correct : null,
       };
     case "short-answer":
-      return { ...base, type: "short-answer", answer: str(raw.answer) };
+      return { ...base, type: "short-answer", answer: normalizeRichText(raw.answer) };
     case "open-answer": {
       const lines = Math.min(MAX_LINES, Math.max(0, Math.round(num(raw.lines, DEFAULT_LINES))));
       return { ...base, type: "open-answer", lines };
