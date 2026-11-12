@@ -17,8 +17,8 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { paginate, type Page } from "@/lib/paginate";
 import type { Test } from "@/lib/storage/types";
 import { RichTextView } from "@/features/math/RichTextView";
-import { optionLabel } from "@/lib/questions";
-import { PrintHeader, PrintQuestion, visibleOptions, type OptionColumns, type PrintVersion } from "./PrintBlocks";
+import { optionLabel, visibleOptions } from "@/lib/questions";
+import { PrintHeader, PrintQuestion, type OptionColumns, type PrintVersion } from "./PrintBlocks";
 
 // --- Paper geometry, in millimetres (must match .sheet in globals.css) ---
 export const PAGE = { width: 210, height: 297, padTop: 14, padX: 16, padBottom: 18 };
@@ -31,7 +31,7 @@ const OPTION_GAP = 6;
 const BODY_INDENT = 7; // questions' answers are indented under the text
 
 const PX_PER_MM = 96 / 25.4;
-const mmToPx = (mm: number) => mm * PX_PER_MM;
+export const mmToPx = (mm: number) => mm * PX_PER_MM;
 
 export function columnWidth(columns: 1 | 2) {
   return columns === 1 ? CONTENT_WIDTH : (CONTENT_WIDTH - COLUMN_GAP) / 2;
@@ -47,7 +47,7 @@ function chooseOptionColumns(count: number, widestPx: number, columns: 1 | 2): 1
   return 1;
 }
 
-export function usePrintLayout(test: Test, version: PrintVersion, language: string) {
+export function usePrintLayout(test: Test, version: PrintVersion, language: string, variant: string | null) {
   // Fonts (Georgian, math) can finish loading late and change sizes:
   // count those events so we measure again when it happens.
   const [fontEpoch, setFontEpoch] = useState(0);
@@ -59,7 +59,7 @@ export function usePrintLayout(test: Test, version: PrintVersion, language: stri
 
   // A "signature" of everything that affects the layout. When it changes, we re-measure.
   const signature = JSON.stringify([test.questions, test.printOptions, test.labelStyle, test.title, test.schoolName,
-    test.subject, test.grade, test.date, test.timeLimitMinutes, test.instructions, version, language, fontEpoch]);
+    test.subject, test.grade, test.date, test.timeLimitMinutes, test.instructions, version, language, variant, fontEpoch]);
 
   const probeRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -147,7 +147,7 @@ export function usePrintLayout(test: Test, version: PrintVersion, language: stri
       {currentColumns && (
         <div ref={measureRef} className={hidden}>
           <div data-header="" style={{ width: `${CONTENT_WIDTH}mm` }}>
-            <PrintHeader test={test} version={version} />
+            <PrintHeader test={test} version={version} variant={variant} />
           </div>
           <div style={{ width: `${columnWidth(columns)}mm` }}>
             {test.questions.map((q, i) => (

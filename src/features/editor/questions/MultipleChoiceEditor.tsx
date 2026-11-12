@@ -93,6 +93,16 @@ export function MultipleChoiceEditor({
         ) : (
           <p className="text-sm text-slate-500">{t("mc.hint")}</p>
         )}
+        <label className="order-last flex w-full cursor-pointer flex-wrap items-center gap-x-2 text-sm text-slate-600">
+          <input
+            type="checkbox"
+            checked={question.lockOptions}
+            onChange={(e) => onChange({ ...question, lockOptions: e.target.checked })}
+            className="size-4 accent-indigo-600"
+          />
+          {t("variants.lockOptions")}
+          <span className="text-slate-400">({t("variants.lockHint")})</span>
+        </label>
         {options.length < MAX_OPTIONS && (
           <button
             type="button"

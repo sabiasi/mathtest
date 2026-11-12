@@ -1,5 +1,5 @@
 /**
- * POST /api/pdf  { test, version, language }  →  the PDF file
+ * POST /api/pdf  { test, version, variant, language }  →  the PDF file
  *
  * How it works: the test lives in the teacher's browser (localStorage), so
  * the page sends it here. We open an invisible Chrome, put the test into
@@ -18,6 +18,8 @@ export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const test = normalizeTest(body?.test);
   const version = body?.version === "key" ? "key" : "student";
+  // "A"…"F" or "all" — anything else falls back to "A".
+  const variant = typeof body?.variant === "string" && /^([A-F]|all)$/.test(body.variant) ? body.variant : "A";
   const language: Language = LANGUAGES.includes(body?.language as Language) ? (body!.language as Language) : "ka";
   if (!test) return Response.json({ error: "invalid test" }, { status: 400 });
 
@@ -46,8 +48,13 @@ export async function POST(request: Request) {
     );
 
     const origin = new URL(request.url).origin;
-    await page.goto(`${origin}/print/${encodeURIComponent(test.id)}?version=${version}`, { waitUntil: "load" });
-    await page.waitForSelector('[data-print-ready="true"]', { timeout: 30_000 });
+    await page.goto(`${origin}/print/${encodeURIComponent(test.id)}?version=${version}&variant=${variant}`, { waitUntil: "load" });
+    // Ask "are the pages laid out?" every 250 ms. (waitForSelector relies on
+    // the page drawing frames, and it missed the moment with many variants.)
+    await page.waitForFunction(() => document.querySelector('[data-print-ready="true"]') !== null, {
+      polling: 250,
+      timeout: 60_000,
+    });
     await page.evaluate(() => document.fonts.ready);
 
     const pdf = await page.pdf({ printBackground: true, preferCSSPageSize: true });

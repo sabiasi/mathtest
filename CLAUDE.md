@@ -48,6 +48,10 @@ make it fast and easy.
 - [x] **Phase 3 (print)**: `/print/[id]` with real A4 sheets, student version and
   answer key, font size / points / columns options, Print (print CSS) and
   Download PDF (headless Chrome via `/api/pdf`).
+- [x] **Variants**: up to 6 variants (A = original order, B–F shuffled with a
+  seeded, repeatable shuffle), per-question "lock options", variant badge on
+  every paper, per-variant answer keys, "all variants" view/PDF with an
+  answer table first, optional blank pages for double-sided printing.
 - [ ] **Next**: remaining question types: fill-in-the-blank and matching.
 - [ ] Later: duplicate tests, backup import/export, templates, then accounts
   and cloud storage.
@@ -97,6 +101,7 @@ src/
                         usePrintLayout (measure → paginate), downloadPdf
   app/api/pdf/route.ts  PDF generation; lib/server/chrome.ts finds/launches Chrome
   lib/paginate.ts       Pure page packing (never splits a question)
+  lib/variants.ts       buildVariants(test) → [A (original), B…]; seededRandom + shuffle
   lib/richText.ts       RichText = [{type:"text"} | {type:"math", latex}] + conversions to/from TipTap docs
   lib/questions.ts      Pure helpers: create/duplicate/change type, totals, labels
   lib/storage/          types.ts, migrate.ts (normalizeTest), testsRepository.ts, useTests.ts
@@ -146,6 +151,13 @@ src/
 - Print measurement: `[data-print-ready="true"]` is set only when the pages
   match the current data and fonts; the PDF route waits for it.
 - Check which real font Chrome used: CDP `CSS.getPlatformFontsForNode`.
+- Variants must stay repeatable: never use Math.random() for them; change the
+  seed only via "Shuffle again" (it warns that printed papers won't match).
+- The PDF route waits with `waitForFunction(..., { polling: 250 })`; puppeteer's
+  `waitForSelector` missed the ready flag with many variants.
+- PDFs are slow on `npm run dev` (30–45 s for all variants) because the dev
+  server compiles on demand; production takes about 1 s. Measure speed on
+  `next build && next start`.
 
 ## Commands
 

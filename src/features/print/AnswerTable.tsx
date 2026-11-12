@@ -1,0 +1,146 @@
+"use client";
+
+/**
+ * One table with the correct answers of every variant, printed before the
+ * answer keys when "all variants" are shown. Rows = question number on the
+ * paper, columns = variants. Checking a pile of mixed papers is much faster
+ * with it.
+ *
+ * Long tables continue on more pages; rows are measured and packed with the
+ * same `paginate` function the questions use, so a row is never cut in half.
+ */
+import { useEffect, useRef, useState } from "react";
+import { RichTextView } from "@/features/math/RichTextView";
+import { useLanguage, useT } from "@/i18n/language";
+import { paginate, type Page } from "@/lib/paginate";
+import { correctOptionLabel } from "@/lib/questions";
+import { isRichTextEmpty } from "@/lib/richText";
+import type { Question, Test } from "@/lib/storage/types";
+import type { Variant } from "@/lib/variants";
+import { CONTENT_HEIGHT, CONTENT_WIDTH, PAGE, mmToPx } from "./usePrintLayout";
+
+const TITLE_GAP = 4; // mm between the title and the table
+
+function Cell({ question, labelStyle }: { question: Question; labelStyle: Test["labelStyle"] }) {
+  const t = useT();
+  switch (question.type) {
+    case "multiple-choice":
+      return <>{correctOptionLabel(question, labelStyle) ?? "—"}</>;
+    case "true-false":
+      return <>{question.correct === null ? "—" : t(question.correct ? "tf.true" : "tf.false")}</>;
+    case "short-answer":
+      return isRichTextEmpty(question.answer) ? <>—</> : <RichTextView value={question.answer} />;
+    case "open-answer":
+      return <span className="is-open">{t("variants.open")}</span>;
+  }
+}
+
+export function AnswerTable({
+  variants,
+  test,
+  blankAfter,
+  onReady,
+}: {
+  variants: Variant[];
+  test: Test;
+  /** Add a blank page if the table has an odd number of pages (double-sided printing). */
+  blankAfter: boolean;
+  onReady: (ready: boolean) => void;
+}) {
+  const t = useT();
+  const language = useLanguage();
+  const rowCount = test.questions.length;
+  const fontSize = test.printOptions.fontSize;
+  const signature = JSON.stringify([variants.map((v) => v.test.questions), test.labelStyle, fontSize, language]);
+
+  const measureRef = useRef<HTMLDivElement>(null);
+  const [pages, setPages] = useState<{ signature: string; value: Page[] } | null>(null);
+  const ready = pages?.signature === signature;
+
+  useEffect(() => {
+    onReady(ready);
+  }, [ready, onReady]);
+  useEffect(() => () => onReady(false), [onReady]);
+
+  useEffect(() => {
+    if (pages?.signature === signature) return;
+    let alive = true;
+    void measureRef.current?.offsetWidth;
+    document.fonts.ready.then(() => {
+      const root = measureRef.current;
+      if (!alive || !root) return;
+      const title = root.querySelector("h2")!.getBoundingClientRect().height + mmToPx(TITLE_GAP);
+      const head = root.querySelector("thead")!.getBoundingClientRect().height;
+      const rows = [...root.querySelectorAll("tbody tr")].map((row, i) => ({
+        key: String(i),
+        height: row.getBoundingClientRect().height,
+      }));
+      const value = paginate({
+        blocks: rows,
+        columnHeight: mmToPx(CONTENT_HEIGHT) - title - head - 2,
+        columns: 1,
+        gap: 0,
+        firstPageTop: 0,
+      });
+      setPages({ signature, value });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [signature, pages?.signature]);
+
+  const table = (rowIndexes: number[]) => (
+    <table className="answer-table">
+      <thead>
+        <tr>
+          <th>{t("variants.tableQuestion")}</th>
+          {variants.map((v) => (
+            <th key={v.label}>{t("variants.name", { label: v.label })}</th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {rowIndexes.map((i) => (
+          <tr key={i}>
+            <td>{i + 1}</td>
+            {variants.map((v) => (
+              <td key={v.label}>
+                <Cell question={v.test.questions[i]} labelStyle={test.labelStyle} />
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+
+  const title = <h2 className="text-center text-[1.2em] font-bold">{t("variants.tableTitle")}</h2>;
+  const allRows = Array.from({ length: rowCount }, (_, i) => i);
+  const shown = pages?.value ?? [];
+
+  return (
+    <>
+      {/* Invisible copy for measuring row heights. */}
+      <div aria-hidden="true" className={`sheet-font-${fontSize}`}>
+        <div ref={measureRef} className="pointer-events-none invisible absolute top-0 -left-[10000px]" style={{ width: `${CONTENT_WIDTH}mm` }}>
+          {title}
+          <div style={{ marginTop: `${TITLE_GAP}mm` }}>{table(allRows)}</div>
+        </div>
+      </div>
+
+      {shown.map((page, pageIndex) => (
+        <section key={pageIndex} className={`sheet sheet-font-${fontSize}`}>
+          {title}
+          <div style={{ marginTop: `${TITLE_GAP}mm` }}>{table(page.columns[0].map(Number))}</div>
+          <footer className="sheet-footer" style={{ bottom: `${PAGE.padBottom / 2 - 2}mm` }}>
+            <span>
+              {test.title || t("test.untitled")} — {t("variants.tableTitle")}
+            </span>
+            <span>{t("print.page", { page: pageIndex + 1, pages: shown.length })}</span>
+          </footer>
+        </section>
+      ))}
+      {blankAfter && shown.length % 2 === 1 && <section className="sheet" aria-hidden="true" />}
+    </>
+  );
+}

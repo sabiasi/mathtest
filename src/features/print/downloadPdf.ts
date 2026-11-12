@@ -9,11 +9,18 @@ import type { PrintVersion } from "./PrintBlocks";
  * the file. The server opens THIS SAME page in an invisible Chrome, so the
  * PDF looks exactly like the preview. Throws if the server can't do it.
  */
-export async function downloadPdf(test: Test, version: PrintVersion, language: Language, fileName: string) {
+export async function downloadPdf(
+  test: Test,
+  version: PrintVersion,
+  /** "A"…"F", or "all" for every variant in one file. */
+  variant: string,
+  language: Language,
+  fileName: string,
+) {
   const response = await fetch("/api/pdf", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ test, version, language }),
+    body: JSON.stringify({ test, version, variant, language }),
   });
   if (!response.ok) throw new Error(`PDF failed: ${response.status}`);
 

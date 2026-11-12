@@ -8,9 +8,9 @@
 import { RichTextView } from "@/features/math/RichTextView";
 import { useLanguage, useT } from "@/i18n/language";
 import { formatDate } from "@/lib/format";
-import { formatPoints, optionLabel, totalPoints } from "@/lib/questions";
+import { formatPoints, optionLabel, totalPoints, visibleOptions } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
-import type { MultipleChoiceQuestion, Question, Test } from "@/lib/storage/types";
+import type { Question, Test } from "@/lib/storage/types";
 
 export type PrintVersion = "student" | "key";
 
@@ -19,7 +19,16 @@ function Blank({ width }: { width: string }) {
   return <span className="inline-block border-b border-black align-baseline" style={{ width }} />;
 }
 
-export function PrintHeader({ test, version }: { test: Test; version: PrintVersion }) {
+export function PrintHeader({
+  test,
+  version,
+  variant,
+}: {
+  test: Test;
+  version: PrintVersion;
+  /** "B" when printing variants, null otherwise. */
+  variant: string | null;
+}) {
   const t = useT();
   const language = useLanguage();
   const total = formatPoints(totalPoints(test.questions));
@@ -31,7 +40,8 @@ export function PrintHeader({ test, version }: { test: Test; version: PrintVersi
   ].filter(Boolean);
 
   return (
-    <header className="print-header">
+    <header className={`print-header ${variant ? "has-variant" : ""}`}>
+      {variant && <p className="print-variant-badge">{t("variants.name", { label: variant })}</p>}
       {version === "key" && <p className="print-key-banner">{t("print.keyBanner")}</p>}
       {test.schoolName && <p className="print-school">{test.schoolName}</p>}
       <h1 className="print-title">{test.title || t("test.untitled")}</h1>
@@ -161,9 +171,4 @@ function QuestionBody({
         </div>
       );
   }
-}
-
-/** Options the teacher left empty are not printed (and don't use up a letter). */
-export function visibleOptions(question: MultipleChoiceQuestion) {
-  return question.options.filter((option) => !isRichTextEmpty(option.text));
 }
