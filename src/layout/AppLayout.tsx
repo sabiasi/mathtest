@@ -1,7 +1,8 @@
-import { Menu } from 'lucide-react'
-import { useState } from 'react'
-import { Outlet } from 'react-router'
+import { Menu, TriangleAlert } from 'lucide-react'
+import { Suspense, useEffect, useState } from 'react'
+import { Outlet, useLocation } from 'react-router'
 import { Logo } from '../components/Logo'
+import { useProgress } from '../hooks/ProgressContext'
 import { Sidebar } from './Sidebar'
 
 /**
@@ -12,6 +13,14 @@ export function AppLayout() {
   // "State" is data a component remembers between redraws. Here it's just:
   // is the phone menu open right now?
   const [menuOpen, setMenuOpen] = useState(false)
+  const { error } = useProgress()
+  const { pathname } = useLocation()
+
+  // A single-page app doesn't reload between pages, so the browser keeps the
+  // old scroll position. Jump back to the top whenever the page changes.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
 
   return (
     <div className="min-h-dvh">
@@ -41,8 +50,17 @@ export function AppLayout() {
 
       {/* md:pl-64 leaves room for the always-visible sidebar on wide screens. */}
       <main className="md:pl-64">
-        <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
-          <Outlet />
+        <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
+          {error && (
+            <div role="alert" className="mb-6 flex gap-3 rounded-xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-900 dark:border-rose-500/40 dark:bg-rose-500/10 dark:text-rose-200">
+              <TriangleAlert size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+              {error}
+            </div>
+          )}
+          {/* Shown while a page's code is downloading for the first time. */}
+          <Suspense fallback={<p className="text-sm text-slate-500">Loading…</p>}>
+            <Outlet />
+          </Suspense>
         </div>
       </main>
     </div>

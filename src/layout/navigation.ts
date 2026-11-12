@@ -1,5 +1,6 @@
 import {
   Blocks,
+  BookOpen,
   BriefcaseBusiness,
   ChartColumn,
   Code,
@@ -43,7 +44,7 @@ export interface NavGroup {
  * The highest phase that is finished. Menu items from later phases show a small
  * "Phase N" badge so you can see what's coming. Bump this after each phase.
  */
-export const BUILT_UP_TO_PHASE = 0
+export const BUILT_UP_TO_PHASE = 1
 
 export const navGroups: NavGroup[] = [
   {
@@ -70,6 +71,14 @@ export const navGroups: NavGroup[] = [
         phase: 1,
         summary:
           'A clickable map of the whole journey, from how computers work to your first job.',
+      },
+      {
+        id: 'glossary',
+        path: '/glossary',
+        label: 'Glossary',
+        icon: BookOpen,
+        phase: 1,
+        summary: 'Every technical term in DevPath, explained in plain words.',
       },
       {
         id: 'visualizers',
