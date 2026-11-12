@@ -1,5 +1,5 @@
 /**
- * POST /api/pdf  { test, version, variant, language }  →  the PDF file
+ * POST /api/pdf  { test, version, variant, language, images }  →  the PDF file
  *
  * How it works: the test lives in the teacher's browser (localStorage), so
  * the page sends it here. We open an invisible Chrome, put the test into
@@ -22,6 +22,13 @@ export async function POST(request: Request) {
   const variant = typeof body?.variant === "string" && /^([A-F]|all)$/.test(body.variant) ? body.variant : "A";
   const language: Language = LANGUAGES.includes(body?.language as Language) ? (body!.language as Language) : "ka";
   if (!test) return Response.json({ error: "invalid test" }, { status: 400 });
+  // Pictures: { imageId: "data:image/png;base64,…" }. Only image data URLs are accepted.
+  const images: Record<string, string> = {};
+  if (body?.images && typeof body.images === "object") {
+    for (const [id, url] of Object.entries(body.images as Record<string, unknown>)) {
+      if (typeof url === "string" && /^data:image\/(png|jpeg|svg\+xml);base64,/.test(url)) images[id] = url;
+    }
+  }
 
   let browser;
   try {
@@ -37,14 +44,16 @@ export async function POST(request: Request) {
     await page.setViewport({ width: 1280, height: 1000 });
     // Runs before the page's own code: give this browser the test and language.
     await page.evaluateOnNewDocument(
-      (storageKey, testsJson, languageKey, lang) => {
+      (storageKey, testsJson, languageKey, lang, pictures) => {
         localStorage.setItem(storageKey, testsJson);
         localStorage.setItem(languageKey, lang);
+        window.__MATHTEST_IMAGES__ = pictures;
       },
       STORAGE_KEY,
       JSON.stringify([test]),
       LANGUAGE_KEY,
       language,
+      images,
     );
 
     const origin = new URL(request.url).origin;
@@ -56,6 +65,8 @@ export async function POST(request: Request) {
       timeout: 60_000,
     });
     await page.evaluate(() => document.fonts.ready);
+    // Every picture fully loaded, so none prints as an empty box.
+    await page.evaluate(() => Promise.all([...document.images].map((img) => img.decode().catch(() => undefined))));
 
     const pdf = await page.pdf({ printBackground: true, preferCSSPageSize: true });
     return new Response(Buffer.from(pdf), {

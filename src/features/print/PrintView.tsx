@@ -12,7 +12,7 @@ import type { PrintOptions, Test, VariantSettings } from "@/lib/storage/types";
 import { useTest } from "@/lib/storage/useTests";
 import { MAX_VARIANTS, buildVariants, newSeed, type Variant } from "@/lib/variants";
 import { AnswerTable } from "./AnswerTable";
-import { downloadPdf, pdfFileName } from "./downloadPdf";
+import { downloadPdf, pdfFileName, waitForImages } from "./downloadPdf";
 import { PrintHeader, PrintQuestion, type PrintVersion } from "./PrintBlocks";
 import { BLOCK_GAP, COLUMN_GAP, HEADER_GAP, PAGE, usePrintLayout } from "./usePrintLayout";
 
@@ -124,7 +124,12 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
             {t("print.back")}
           </Link>
           <div className="ml-auto flex gap-2">
-            <button type="button" onClick={() => window.print()} className={buttonClasses("secondary")} disabled={!ready}>
+            <button
+              type="button"
+              onClick={() => waitForImages().then(() => window.print())}
+              className={buttonClasses("secondary")}
+              disabled={!ready}
+            >
               <Printer className="size-4" aria-hidden="true" />
               {t("print.print")}
             </button>

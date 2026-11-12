@@ -5,6 +5,8 @@
  * and one block per question. They are drawn twice: once invisibly to
  * measure their height, and once on the real A4 sheets.
  */
+import { GridArea } from "@/components/GridArea";
+import { QuestionImageView } from "@/components/QuestionImageView";
 import { RichTextView } from "@/features/math/RichTextView";
 import { useLanguage, useT } from "@/i18n/language";
 import { formatDate } from "@/lib/format";
@@ -90,20 +92,59 @@ export function PrintQuestion({
   const points = formatPoints(question.points);
   const pointsText = t(question.points === 1 ? "print.pointsOne" : "print.pointsMany", { points });
 
+  const above = question.images.filter((image) => image.position === "above");
+  const right = question.images.filter((image) => image.position === "right");
+  const rightWidth = rightColumnPercent(question);
+
+  //  [1.] [ pictures above                              ] [(2 points)]
+  //       [ question text, answers, grid  | pictures →  ]
   return (
     <div className="print-question">
       <div className="flex items-start gap-[2mm]">
         <span className="print-number">{number}.</span>
         <div className="min-w-0 flex-1">
-          <RichTextView value={question.text} />
+          {above.length > 0 && (
+            <div className="print-images-above">
+              {above.map((image) => (
+                <div key={image.id} className="print-image" style={{ width: `${image.widthPercent}%` }}>
+                  <QuestionImageView image={image} />
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex items-start gap-[3mm]">
+            <div className="min-w-0 flex-1">
+              <RichTextView value={question.text} className="print-text" />
+              <div className="print-body">
+                <QuestionBody question={question} test={test} version={version} optionColumns={optionColumns} />
+              </div>
+              {question.grid && (
+                <div className="print-grid">
+                  <GridArea grid={question.grid} />
+                </div>
+              )}
+            </div>
+            {right.length > 0 && (
+              <div className="print-images-right" style={{ width: `${rightWidth}%` }}>
+                {right.map((image) => (
+                  // Sizes are a % of the whole question width; inside this column, relative to the widest.
+                  <div key={image.id} style={{ width: `${(image.widthPercent / rightWidth) * 100}%` }}>
+                    <QuestionImageView image={image} />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         {test.printOptions.showPoints && <span className="print-points">({pointsText})</span>}
       </div>
-      <div className="print-body">
-        <QuestionBody question={question} test={test} version={version} optionColumns={optionColumns} />
-      </div>
     </div>
   );
+}
+
+/** How wide (in % of the question) the column of pictures on the right is. */
+export function rightColumnPercent(question: Question): number {
+  return Math.max(0, ...question.images.filter((i) => i.position === "right").map((i) => i.widthPercent));
 }
 
 function QuestionBody({

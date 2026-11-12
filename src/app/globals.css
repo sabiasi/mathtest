@@ -199,7 +199,38 @@ math-field::part(virtual-keyboard-toggle) {
 }
 .print-body {
   margin-top: 1.5mm;
-  padding-left: 7mm;
+}
+.print-body:empty {
+  display: none;
+}
+
+/* Pictures in questions */
+.print-images-above {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  margin-bottom: 2mm;
+}
+.print-image {
+  box-sizing: border-box;
+  padding: 0 2.5mm 2mm 0; /* space between neighbouring pictures */
+}
+.print-image:last-child {
+  padding-right: 0;
+}
+.print-images-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2mm;
+  flex-shrink: 0;
+}
+.print-question img {
+  max-height: 150mm; /* a very tall picture never takes more than ~half a page */
+  object-fit: contain;
+}
+.print-grid {
+  margin-top: 2mm;
 }
 .print-options {
   display: grid;

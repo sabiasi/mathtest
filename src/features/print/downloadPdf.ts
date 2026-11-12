@@ -1,6 +1,7 @@
 "use client";
 
 import type { Language } from "@/i18n/dictionaries";
+import { imagesForTest } from "@/lib/images/imageStore";
 import type { Test } from "@/lib/storage/types";
 import type { PrintVersion } from "./PrintBlocks";
 
@@ -20,7 +21,8 @@ export async function downloadPdf(
   const response = await fetch("/api/pdf", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ test, version, variant, language }),
+    // Pictures live in this browser's IndexedDB, so they travel with the request.
+    body: JSON.stringify({ test, version, variant, language, images: await imagesForTest(test) }),
   });
   if (!response.ok) throw new Error(`PDF failed: ${response.status}`);
 
@@ -34,6 +36,11 @@ export async function downloadPdf(
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
+}
+
+/** Resolves once every picture on the page has loaded (so nothing prints blank). */
+export function waitForImages(): Promise<unknown> {
+  return Promise.all([...document.images].map((img) => img.decode().catch(() => undefined)));
 }
 
 /** A file name that's safe on Windows and Mac: "ალგებრა — მოსწავლე.pdf". */

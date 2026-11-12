@@ -18,7 +18,7 @@ import { paginate, type Page } from "@/lib/paginate";
 import type { Test } from "@/lib/storage/types";
 import { RichTextView } from "@/features/math/RichTextView";
 import { optionLabel, visibleOptions } from "@/lib/questions";
-import { PrintHeader, PrintQuestion, type OptionColumns, type PrintVersion } from "./PrintBlocks";
+import { PrintHeader, PrintQuestion, rightColumnPercent, type OptionColumns, type PrintVersion } from "./PrintBlocks";
 
 // --- Paper geometry, in millimetres (must match .sheet in globals.css) ---
 export const PAGE = { width: 210, height: 297, padTop: 14, padX: 16, padBottom: 18 };
@@ -28,7 +28,8 @@ export const COLUMN_GAP = 8;
 export const BLOCK_GAP = 5;
 export const HEADER_GAP = 6;
 const OPTION_GAP = 6;
-const BODY_INDENT = 7; // questions' answers are indented under the text
+const BODY_INDENT = 7; // the question number column (5mm) + gap (2mm)
+const RIGHT_IMAGES_GAP = 3;
 
 const PX_PER_MM = 96 / 25.4;
 export const mmToPx = (mm: number) => mm * PX_PER_MM;
@@ -37,8 +38,11 @@ export function columnWidth(columns: 1 | 2) {
   return columns === 1 ? CONTENT_WIDTH : (CONTENT_WIDTH - COLUMN_GAP) / 2;
 }
 
-function chooseOptionColumns(count: number, widestPx: number, columns: 1 | 2): 1 | 2 | 3 | 4 {
-  const available = mmToPx(columnWidth(columns) - BODY_INDENT);
+function chooseOptionColumns(count: number, widestPx: number, columns: 1 | 2, rightPercent: number): 1 | 2 | 3 | 4 {
+  // Pictures on the right take part of the width away from the answers.
+  const questionWidth = columnWidth(columns) - BODY_INDENT;
+  const besidePictures = rightPercent > 0 ? (questionWidth * (100 - rightPercent)) / 100 - RIGHT_IMAGES_GAP : questionWidth;
+  const available = mmToPx(besidePictures);
   const candidates: (1 | 2 | 3 | 4)[] = count === 4 ? [4, 2, 1] : count === 2 ? [2, 1] : count === 3 ? [3, 1] : [3, 2, 1];
   for (const n of candidates) {
     const cell = (available - (n - 1) * mmToPx(OPTION_GAP)) / n;
@@ -78,14 +82,16 @@ export function usePrintLayout(test: Test, version: PrintVersion, language: stri
       const value: OptionColumns = {};
       root.querySelectorAll<HTMLElement>("[data-qid]").forEach((group) => {
         const widths = [...group.children].map((el) => el.getBoundingClientRect().width);
-        value[group.dataset.qid!] = chooseOptionColumns(widths.length, Math.max(0, ...widths), columns);
+        const question = test.questions.find((q) => q.id === group.dataset.qid);
+        const rightPercent = question ? rightColumnPercent(question) : 0;
+        value[group.dataset.qid!] = chooseOptionColumns(widths.length, Math.max(0, ...widths), columns, rightPercent);
       });
       setOptionColumns({ signature, value });
     });
     return () => {
       alive = false;
     };
-  }, [signature, optionColumns?.signature, columns]);
+  }, [signature, optionColumns?.signature, columns, test.questions]);
 
   // Step 2: block heights → pages.
   useEffect(() => {

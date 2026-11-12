@@ -2,14 +2,18 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Copy, GripVertical, Trash2 } from "lucide-react";
+import { Copy, GripVertical, ImagePlus, Trash2 } from "lucide-react";
+import { useState, type ClipboardEvent, type DragEvent } from "react";
 import { RichTextInput } from "@/features/math/RichTextInput";
 import { useT } from "@/i18n/language";
+import { newId } from "@/lib/ids";
+import { UnsupportedImageError, addImage } from "@/lib/images/imageStore";
 import { QUESTION_TYPES, changeQuestionType } from "@/lib/questions";
-import type { LabelStyle, Question, QuestionType } from "@/lib/storage/types";
+import type { LabelStyle, Question, QuestionImage, QuestionType } from "@/lib/storage/types";
 import { MultipleChoiceEditor } from "./MultipleChoiceEditor";
 import { OpenAnswerEditor } from "./OpenAnswerEditor";
 import { PointsInput } from "./PointsInput";
+import { ImageStrip, MediaBar } from "./QuestionMedia";
 import { ShortAnswerEditor } from "./ShortAnswerEditor";
 import { TrueFalseEditor } from "./TrueFalseEditor";
 
@@ -19,6 +23,7 @@ export function QuestionCard({
   labelStyle,
   autoFocus,
   onChange,
+  onPatch,
   onDuplicate,
   onDelete,
 }: {
@@ -27,6 +32,7 @@ export function QuestionCard({
   labelStyle: LabelStyle;
   autoFocus: boolean;
   onChange: (question: Question) => void;
+  onPatch: (patch: (question: Question) => Question) => void;
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
@@ -37,14 +43,76 @@ export function QuestionCard({
 
   const iconButton = "rounded-lg p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800";
 
+  // ---- Pictures: upload, paste, drop ----
+  const [mediaBusy, setMediaBusy] = useState(false);
+  const [mediaError, setMediaError] = useState<string | null>(null);
+  const [dropActive, setDropActive] = useState(false);
+
+  async function addFiles(files: File[]) {
+    if (files.length === 0) return;
+    setMediaBusy(true);
+    setMediaError(null);
+    for (const file of files) {
+      try {
+        const { imageId, width, height } = await addImage(file);
+        const placement: QuestionImage = {
+          id: newId(),
+          imageId,
+          width,
+          height,
+          widthPercent: width > height ? 50 : 35, // a sensible start; easy to resize
+          position: "above",
+        };
+        onPatch((q) => ({ ...q, images: [...q.images, placement] }));
+      } catch (error) {
+        setMediaError(t(error instanceof UnsupportedImageError ? "media.unsupported" : "media.failed"));
+      }
+    }
+    setMediaBusy(false);
+  }
+
+  function handlePaste(event: ClipboardEvent) {
+    const files = [...event.clipboardData.files].filter((f) => f.type.startsWith("image/"));
+    // Copying text from Word ALSO puts a picture of that text on the clipboard.
+    // So only treat it as a picture when there's no text — otherwise paste text.
+    const hasText = event.clipboardData.getData("text/plain").trim() !== "";
+    if (files.length === 0 || hasText) return;
+    event.preventDefault();
+    event.stopPropagation(); // don't let the text box paste it too
+    void addFiles(files);
+  }
+
+  function handleDrop(event: DragEvent) {
+    if (!event.dataTransfer.types.includes("Files")) return;
+    event.preventDefault();
+    setDropActive(false);
+    void addFiles([...event.dataTransfer.files]);
+  }
+
   return (
     <li
       ref={setNodeRef}
       style={{ transform: CSS.Translate.toString(transform), transition }}
-      className={`rounded-2xl border bg-white shadow-sm ${
-        isDragging ? "relative z-10 border-indigo-400 shadow-xl ring-2 ring-indigo-400/40" : "border-slate-200"
-      }`}
+      onPasteCapture={handlePaste}
+      onDragOver={(event) => {
+        if (!event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault(); // allows dropping here
+        setDropActive(true);
+      }}
+      onDragLeave={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropActive(false);
+      }}
+      onDrop={handleDrop}
+      className={`relative rounded-2xl border bg-white shadow-sm ${
+        isDragging ? "z-10 border-indigo-400 shadow-xl ring-2 ring-indigo-400/40" : "border-slate-200"
+      } ${dropActive ? "ring-2 ring-indigo-500" : ""}`}
     >
+      {dropActive && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-indigo-50/90 text-indigo-700">
+          <ImagePlus className="mr-2 size-6" aria-hidden="true" />
+          <span className="font-semibold">{t("media.dropHere")}</span>
+        </div>
+      )}
       <div className="flex flex-wrap items-center gap-2 border-b border-slate-100 px-3 py-2.5">
         <button
           type="button"
@@ -102,12 +170,22 @@ export function QuestionCard({
           onChange={(text) => onChange({ ...question, text })}
         />
 
+        <ImageStrip images={question.images} onChange={(images) => onChange({ ...question, images })} />
+
         {question.type === "multiple-choice" && (
           <MultipleChoiceEditor question={question} labelStyle={labelStyle} onChange={onChange} />
         )}
         {question.type === "true-false" && <TrueFalseEditor question={question} onChange={onChange} />}
         {question.type === "short-answer" && <ShortAnswerEditor question={question} onChange={onChange} />}
         {question.type === "open-answer" && <OpenAnswerEditor question={question} onChange={onChange} />}
+
+        <MediaBar
+          grid={question.grid}
+          busy={mediaBusy}
+          error={mediaError}
+          onFiles={(files) => void addFiles(files)}
+          onGridChange={(grid) => onChange({ ...question, grid })}
+        />
       </div>
     </li>
   );

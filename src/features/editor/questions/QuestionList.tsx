@@ -33,6 +33,7 @@ export function QuestionList({
   focusId,
   onReorder,
   onChange,
+  onPatch,
   onDuplicate,
   onDelete,
 }: {
@@ -41,6 +42,7 @@ export function QuestionList({
   focusId: string | null;
   onReorder: (questions: Question[]) => void;
   onChange: (question: Question) => void;
+  onPatch: (id: string, patch: (question: Question) => Question) => void;
   onDuplicate: (question: Question) => void;
   onDelete: (question: Question, number: number) => void;
 }) {
@@ -74,6 +76,7 @@ export function QuestionList({
               labelStyle={labelStyle}
               autoFocus={question.id === focusId}
               onChange={onChange}
+              onPatch={(patch) => onPatch(question.id, patch)}
               onDuplicate={() => onDuplicate(question)}
               onDelete={() => onDelete(question, index + 1)}
             />

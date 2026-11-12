@@ -143,6 +143,9 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                   onChange={(changed) =>
                     updateQuestions((qs) => qs.map((q) => (q.id === changed.id ? changed : q)))
                   }
+                  // Changes that finish later (an image upload) are applied to the
+                  // newest version of the question, so nothing typed meanwhile is lost.
+                  onPatch={(id, patch) => updateQuestions((qs) => qs.map((q) => (q.id === id ? patch(q) : q)))}
                   onDuplicate={duplicate}
                   onDelete={remove}
                 />

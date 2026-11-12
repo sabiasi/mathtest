@@ -2,9 +2,11 @@
 
 import { ClipboardList, Info, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { cleanUpImages } from "@/lib/images/imageStore";
 import { buttonClasses } from "@/components/ui/button";
 import { useLanguage, useT } from "@/i18n/language";
-import { createTest } from "@/lib/storage/testsRepository";
+import { createTest, listTests } from "@/lib/storage/testsRepository";
 import { useTests } from "@/lib/storage/useTests";
 import { TestCard } from "./TestCard";
 
@@ -14,6 +16,12 @@ export function HomeView() {
   const language = useLanguage();
   const router = useRouter();
   const tests = useTests();
+
+  // Tidy up: delete stored pictures that no test uses any more (e.g. from
+  // deleted tests or removed images). Runs quietly in the background.
+  useEffect(() => {
+    void cleanUpImages(listTests());
+  }, [tests]);
 
   function handleCreate() {
     const test = createTest({
