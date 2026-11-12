@@ -15,7 +15,7 @@ export function HomeView() {
   const tests = useTests();
 
   function handleCreate() {
-    const test = createTest();
+    const test = createTest({ subject: t("test.defaultSubject") });
     router.push(`/editor/${test.id}`);
   }
 
