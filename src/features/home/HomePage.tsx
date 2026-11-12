@@ -2,6 +2,8 @@ import { ArrowRight, Compass } from 'lucide-react'
 import { Link } from 'react-router'
 import { PageHeader } from '../../components/PageHeader'
 import { BUILT_UP_TO_PHASE, navGroups } from '../../layout/navigation'
+import { DataBackup } from './DataBackup'
+import { ProgressSummary } from './ProgressSummary'
 
 /** The welcome page: what DevPath is, and a card for each area of the app. */
 export function HomePage() {
@@ -14,6 +16,8 @@ export function HomePage() {
         title="Welcome to DevPath 👋"
         intro="Your personal guide from absolute beginner to job-ready developer. Follow the roadmap, see how things work, track your growth, and get ready for interviews, one small step at a time."
       />
+
+      <ProgressSummary />
 
       <div className="mb-10 flex items-start gap-4 rounded-2xl bg-brand-50 p-5 dark:bg-brand-950/60">
         <Compass className="mt-0.5 shrink-0 text-brand-700 dark:text-brand-300" aria-hidden="true" />
@@ -65,6 +69,8 @@ export function HomePage() {
           </div>
         </section>
       ))}
+
+      <DataBackup />
     </>
   )
 }
