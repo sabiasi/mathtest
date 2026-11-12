@@ -3,7 +3,7 @@
 import { ClipboardList, Info, Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { buttonClasses } from "@/components/ui/button";
-import { useT } from "@/i18n/language";
+import { useLanguage, useT } from "@/i18n/language";
 import { createTest } from "@/lib/storage/testsRepository";
 import { useTests } from "@/lib/storage/useTests";
 import { TestCard } from "./TestCard";
@@ -11,11 +11,16 @@ import { TestCard } from "./TestCard";
 /** The home page: "My tests". */
 export function HomeView() {
   const t = useT();
+  const language = useLanguage();
   const router = useRouter();
   const tests = useTests();
 
   function handleCreate() {
-    const test = createTest({ subject: t("test.defaultSubject") });
+    const test = createTest({
+      subject: t("test.defaultSubject"),
+      // Georgian interface → ა, ბ, გ, დ; English interface → A, B, C, D
+      labelStyle: language === "en" ? "latin" : "georgian",
+    });
     router.push(`/editor/${test.id}`);
   }
 

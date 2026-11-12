@@ -102,21 +102,9 @@ const LABELS: Record<LabelStyle, string> = {
 /**
  * The label for an option at position `index` (0 = first).
  * optionLabel(0, "latin") → "A", optionLabel(2, "georgian") → "გ"
- *
- * ✏️  PRACTICE TASK 2 — write this function yourself.
- * Right now every answer is labelled "?".
- *
- * Hints:
- * - LABELS (just above) holds the letters: LABELS["latin"] is "ABCDEF".
- * - LABELS[style] picks the right string for the chosen style.
- * - Strings can be indexed like in Python: "ABC"[1] → "B".
- * - Bonus: if the index is too big, "ABCDEF"[10] gives `undefined`.
- *   Return "?" in that case (look up the `??` operator).
- * - Check your work: `npm test` → the "optionLabel" tests turn green.
  */
 export function optionLabel(index: number, style: LabelStyle): string {
-  // TODO(you): return the letter at position `index` for this style.
-  return "?";
+  return LABELS[style][index] ?? "?";
 }
 
 /** Shows points nicely: 2 → "2", 1.5 → "1.5". */
