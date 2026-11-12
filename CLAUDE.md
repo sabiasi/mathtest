@@ -38,9 +38,8 @@ make it fast and easy.
   add/duplicate/delete/drag-and-drop questions; question types multiple
   choice, true/false, short answer, open answer; points + total; home cards
   with edit/duplicate/delete.
-  - Practice task left for the owner in `src/lib/questions.ts`: `totalPoints`
-    (1 test fails until done, on purpose; printed totals show 0 until then).
-    Don't implement it unless asked; give hints instead.
+  - `totalPoints` was a practice task; the owner asked Claude to write it
+    during the first-time-teacher review.
 - [x] **Phase 2**: rich text (text + inline formulas) in question text, options
   and short answers (TipTap + MathLive); "ფორმულა" button + Alt+= (like Word);
   sticky math toolbar with 7 tabs and Georgian tooltips; read-only preview

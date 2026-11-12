@@ -87,25 +87,13 @@ export function duplicateQuestion(question: Question): Question {
 /**
  * The total number of points in a test.
  * Example: questions worth 2, 3 and 1.5 points → 6.5
- *
- * ✏️  PRACTICE TASK 1 — write this function yourself.
- * Right now it always returns 0, so the editor shows "სულ: 0 ქულა".
- *
- * Hints:
- * - Each question has a `points` number: question.points
- * - In Python you might write:
- *       total = 0
- *       for question in questions:
- *           total += question.points
- *       return total
- * - TypeScript looks almost the same:
- *       let total = 0;
- *       for (const question of questions) { ... }
- * - Check your work: `npm test` → the "totalPoints" tests turn green.
  */
 export function totalPoints(questions: Question[]): number {
-  // TODO(you): add up the points of every question.
-  return 0;
+  let total = 0;
+  for (const question of questions) {
+    total += question.points;
+  }
+  return total;
 }
 
 const LABELS: Record<LabelStyle, string> = {
