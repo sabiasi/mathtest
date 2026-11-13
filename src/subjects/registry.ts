@@ -2,15 +2,16 @@
  * All subject toolkits in one list. The rest of the app asks
  * `getToolkit(test.subjectId)` and never mentions a subject by name.
  *
- * Adding a subject (e.g. biology):
- *   1. ids.ts            add "biology" to SUBJECT_IDS (and any name aliases)
- *   2. src/subjects/biology/index.ts   its toolkit (copy history's to start)
- *      src/subjects/biology/print.css  its print styles, imported in globals.css
+ * Adding a subject (e.g. geography):
+ *   1. ids.ts            add "geography" to SUBJECT_IDS (and any name aliases)
+ *   2. src/subjects/geography/index.ts   its toolkit (copy biology's to start)
+ *      src/subjects/geography/print.css  its print styles, imported in globals.css
  *   3. below             add it to TOOLKITS
- *   4. dictionaries.ts   "subject.biology" (+ "subjectHint.biology") in ka and en
- *   5. globals.css       a --subject-biology colour (light + dark) and --color-subject-biology
+ *   4. dictionaries.ts   "subject.geography" (+ "subjectHint.geography") in ka and en
+ *   5. globals.css       a --subject-geography colour (light + dark) and --color-subject-geography
  * TypeScript points at anything that's still missing.
  */
+import { biologyToolkit } from "./biology";
 import { chemistryToolkit } from "./chemistry";
 import { georgianToolkit } from "./georgian";
 import { historyToolkit } from "./history";
@@ -24,6 +25,7 @@ const TOOLKITS: Record<SubjectId, SubjectToolkit> = {
   math: mathToolkit,
   physics: physicsToolkit,
   chemistry: chemistryToolkit,
+  biology: biologyToolkit,
   history: historyToolkit,
   georgian: georgianToolkit,
   english: englishToolkit,

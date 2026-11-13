@@ -14,10 +14,12 @@
  * A variant is just a normal Test with a new order, so the whole print
  * system works on it unchanged.
  */
+import { bankWords } from "@/lib/labelDiagram";
 import { isTextBlock } from "@/lib/questions";
 import { seedFromString } from "@/lib/storage/migrate";
 import type {
   FillBlankQuestion,
+  LabelDiagramQuestion,
   MatchingQuestion,
   MultipleChoiceQuestion,
   OrderQuestion,
@@ -63,6 +65,7 @@ function arrangement(questions: Question[]): string {
       if (q.type === "multiple-choice") return `${q.id}(${q.options.map((o) => o.id).join(",")})`;
       if (q.type === "order" || q.type === "matching") return `${q.id}(${(q.shownOrder ?? []).join(",")})`;
       if (q.type === "fill-blank") return `${q.id}(${JSON.stringify([q.shownBank, q.shownChoices])})`;
+      if (q.type === "label-diagram" || q.type === "picture-match") return `${q.id}(${(q.shownBank ?? []).join(",")})`;
       return q.id;
     })
     .join("|");
@@ -103,6 +106,10 @@ export function arrangeItems(question: Question, random: () => number): Question
       shownBank: shuffle(bank, random),
       shownChoices: question.blanks.map((b) => shuffle([b.word, ...(b.options ?? []).filter((o) => o.trim())], random)),
     } satisfies FillBlankQuestion;
+  }
+  if (question.type === "label-diagram") {
+    // Only the word box is shuffled ("match" mode); the numbered labels never move.
+    return question.mode === "match" ? ({ ...question, shownBank: shuffle(bankWords(question), random) } satisfies LabelDiagramQuestion) : question;
   }
   if (question.type === "picture-match") {
     const bank = [...question.pictures.map((p) => p.answer), ...question.extras].filter((w) => w.trim());

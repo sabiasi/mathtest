@@ -4,12 +4,12 @@
  * This file is plain data (no React), so saved-data code like migrate.ts can
  * use it. The toolkits themselves (icons, toolbars…) are in registry.ts.
  *
- * Adding a subject (e.g. biology) — the steps are listed in registry.ts.
+ * Adding a subject (e.g. geography) — the steps are listed in registry.ts.
  */
 import { dictionaries } from "@/i18n/dictionaries";
 
 /** In the order the subject picker shows them. */
-export const SUBJECT_IDS = ["math", "physics", "chemistry", "history", "georgian", "english"] as const;
+export const SUBJECT_IDS = ["math", "physics", "chemistry", "biology", "history", "georgian", "english"] as const;
 export type SubjectId = (typeof SUBJECT_IDS)[number];
 
 /** Tests saved before subjects existed were all math tests. */
@@ -24,6 +24,7 @@ const ALIASES: Record<SubjectId, string[]> = {
   math: ["მათემატიკა", "ალგებრა", "გეომეტრია", "math", "maths", "algebra", "geometry"],
   physics: ["ფიზიკა"],
   chemistry: ["ქიმია"],
+  biology: ["ბიოლოგია", "biology"],
   history: ["ისტორია", "საქართველოს ისტორია", "მსოფლიო ისტორია"],
   georgian: ["ქართული", "ქართული ენა", "ქართული ლიტერატურა", "ლიტერატურა", "georgian", "literature"],
   english: ["ინგლისური", "ინგლისური ენა", "english", "english language", "efl"],

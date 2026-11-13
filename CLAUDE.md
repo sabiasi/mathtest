@@ -3,8 +3,8 @@
 # MathTest
 
 A web app for school teachers in Georgia (the country) to create tests,
-quizzes and exams in **any subject** (Mathematics, Physics, Chemistry, History,
-Georgian Language & Literature, English as a foreign language; more later), then print them or export them as
+quizzes and exams in **any subject** (Mathematics, Physics, Chemistry, Biology,
+History, Georgian Language & Literature, English as a foreign language; more later), then print them or export them as
 PDF to hand out in class. Today teachers use Microsoft Word, where typing math
 (and other special content) is painful. MathTest must make it fast and easy.
 Visitors can try everything without an account (guest mode).
@@ -152,6 +152,35 @@ Visitors can try everything without an account (guest mode).
   extras: `instructionTemplates` (menu in the card), `typeLabels`, `presets`
   (Verb forms, True/False/Not Given), `markersOnPicture` (map → "Label the
   picture"). Section headings keep with the next block.
+- [ ] **Biology toolkit** (in phases; stop for review after each):
+  - [x] **B1 — subject + "Label the diagram"**: subject id `biology` (Dna
+    icon, green `--subject-biology`, Georgian typography, `chemistry: true`).
+    Question type `label-diagram`: a built-in drawing (8 original SVG line
+    drawings in `subjects/biology/drawings.ts`: animal cell, plant cell,
+    flower, leaf cross-section, heart, digestive system, neuron, DNA; each
+    with named `parts`) or an uploaded picture; click to add pointer lines,
+    drag point and label separately; "add all parts" (spread on both sides,
+    no crossing lines, numbered top to bottom); modes `boxes` (empty boxes on
+    the drawing), `numbers` (numbered lines below), `match` (lettered word
+    box, shuffled per variant via `shownBank`; letters computed from it);
+    optional alphabetical word bank + extra words. Toolbar: ♂ ♀ → ⇌ × %,
+    units μm/nm (Latin) or მკმ/ნმ (Georgian, remembered), magnification
+    formulas, Latin-name tool (inserted in italics, "homo SAPIENS" →
+    *Homo sapiens*), chemistry tab (H₂O, CO₂, O₂, C₆H₁₂O₆, ATP,
+    photosynthesis/respiration equations as mhchem), math basic. Georgian
+    instruction templates; `order` offered as "stages in order".
+  - [ ] **B2 — genetics**: Punnett square (mono/dihybrid, sex-linked; blank
+    cells; key with genotype/phenotype ratios), genotype notation buttons
+    (italic alleles, Xᴬ Xᵃ Y), pedigree builder (□ ○, filled = affected,
+    half-filled = carrier, marriage/offspring lines, generations I II III).
+  - [ ] **B3 — molecular, ecology, classification**: DNA/RNA sequence tasks
+    (complementary strand, mRNA, translation; key computed), printable codon
+    table (3-letter amino acids + Georgian legend), food chain/web, ecological
+    pyramid, dichotomous key, taxonomy ranks template.
+  - [ ] **B4 — processes and data**: stages in order with pictures (+ ready
+    sets: mitosis, meiosis, digestion, circulation, nerve impulse), cycle
+    diagrams, data table → line/bar chart (B&W patterns) + questions,
+    experiment design frame (hypothesis, variables, conclusion).
 - [ ] **Business: Free / Premium / School plans** (built in stages; stop for
   review after each):
   - [x] **Stage 1 — plans, limits, pricing**: one config file
@@ -220,6 +249,7 @@ Visitors can try everything without an account (guest mode).
 | Plan enforcement | The server decides, the browser only shows: `/api/pdf` reads the plan (`serverEntitlements`, Free if unknown), caps the variant, and injects `entitlements` into `window.__MATHTEST_PRINT__`; the print page reads them via `usePlan()`. Picture uploads are refused by the storage policy once `image_upload_allowed()` is false (`addImage` checks first → `ImageStorageFullError`). The browser's own Print button can't be controlled (documented) |
 | Privileged writes | Still NO service_role key. Plan changes come from `security definer` database functions; stage 2 will add narrow functions that require a server-only secret (env var) for verified payment callbacks |
 | Upgrade UX | `useUpgrade()("variants" \| "images" \| "footer")` opens a small dialog only after a click on a Premium feature; it changes nothing and loses nothing. `PremiumBadge` (gold `--premium-*` tokens). Guests are offered "create a free account" (= 14-day trial) |
+| Label the diagram | `LabelDiagramQuestion` (`picture`: `{kind:"builtin", drawing}` or `{kind:"upload", imageId, width, height}`). Positions (`x,y` = where the line points, `lx,ly` = the label) are in % of the DRAWING AREA = picture + `SIDE` (0.32 × width) room left/right + `PAD` above/below (`lib/labelDiagram.ts`: `PICTURE_BOX`, `areaAspect`, `placeLabel`, `labelsForParts` → `spreadAlongSide` + `uncross`, `printedBank`, `labelLetters`). Paper and editor share `LabelArea` (`subjects/biology/LabelDiagramView.tsx`): picture, SVG lines (viewBox 1000 wide), labels as HTML (boxes sized in mm). Built-in drawings are `<img src="data:image/svg+xml…">` (`drawingUrl`), no storage used. Uploaded pictures count in `usedImageIds` |
 | Tests | Vitest + jsdom (`npm test`) |
 
 Next.js 16 notes (see AGENTS.md: read `node_modules/next/dist/docs/` before
@@ -281,6 +311,9 @@ src/
   lib/server/           chrome.ts (PDF Chrome), rateLimit.ts (limits for /api/pdf)
   lib/plans/            plans.ts (THE config), entitlements.ts, pricing.ts, subscription.ts
                         (load row / picture space), server.ts (server-only), plansSql.ts
+  subjects/biology/     drawings.ts (+ drawingIds.ts), LabelDiagramEditor, LabelDiagramView
+                        (paper + shared area), toolbar.ts, BioTools (Latin name), latin.ts
+  lib/labelDiagram.ts   label positions, word box, letters (pure)
   features/plans/       PlanProvider (usePlan), UpgradeDialog (useUpgrade), PremiumBadge,
                         PlanSummary (Settings → My plan), useImageError
   features/pricing/     PricingView (/pricing), SchoolRequestForm (→ /api/school-request)
@@ -461,6 +494,16 @@ src/
   only once it's known. The PDF route never depends on this.
 - Supabase functions in `public` are executable by anon/authenticated by
   default: helper functions that take a user id must `revoke execute`.
+- Instruction templates: the PAPER's language goes into the question
+  (`toolkit.print.language === "en"` → `en`, else `ka`); only bilingual
+  toolkits (English) also fill `instructionKa`.
+- Toolbar widgets can insert formatted text: `insertText(text, caretBack,
+  ["italic"])` adds a plain space after it, so typing continues unformatted.
+- Built-in biology drawings and their part names live in
+  `subjects/biology/drawings.ts` (content data, like `elements.ts`), not in
+  the dictionaries. Drawings have no words on them; keep them black/grey on
+  white. To check a drawing, bundle drawings.ts with `npx rolldown` and
+  render it in headless Chrome.
 - SQL in schema.sql can be tried locally in Docker (postgres image) with
   small stand-ins for `auth.users`, `auth.uid()` and `storage.objects`.
 

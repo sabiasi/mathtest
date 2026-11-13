@@ -17,6 +17,7 @@ import { changeQuestionType, isTextBlock } from "@/lib/questions";
 import type { Diagram, DiagramKind, LabelStyle, Question, QuestionImage, QuestionType } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
 import { MapEditor } from "@/subjects/history/editors/MapEditor";
+import { LabelDiagramEditor } from "@/subjects/biology/LabelDiagramEditor";
 import { OrderEditor } from "@/subjects/history/editors/OrderEditor";
 import { SourceEditor } from "@/subjects/history/editors/SourceEditor";
 import { TimelineEditor } from "@/subjects/history/editors/TimelineEditor";
@@ -64,6 +65,7 @@ const TEXT_PLACEHOLDERS: Partial<Record<QuestionType, MessageKey>> = {
   timeline: "questions.timelinePlaceholder",
   source: "questions.sourcePlaceholder",
   map: "questions.mapPlaceholder",
+  "label-diagram": "questions.labelPlaceholder",
   passage: "questions.textBlockPlaceholder",
   poem: "questions.textBlockPlaceholder",
   "fill-blank": "questions.fillPlaceholder",
@@ -112,6 +114,8 @@ export function QuestionCard({
 }) {
   const t = useT();
   const imageError = useImageError();
+  // The paper's language (English tests are printed in English; everything else in Georgian).
+  const paperLanguage = toolkit.print.language ?? "ka";
   // useSortable connects this card to drag-and-drop (see QuestionList).
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: question.id, transition: { duration: 220, easing: "cubic-bezier(0.2, 0, 0, 1)" } });
@@ -290,8 +294,11 @@ export function QuestionCard({
             {toolkit.instructionTemplates && (
               <InstructionMenu
                 templates={toolkit.instructionTemplates}
+                paperLanguage={paperLanguage}
                 onPick={(template) => {
-                  onChange({ ...question, text: [{ type: "text", text: template.en }], instructionKa: template.ka });
+                  // The paper's language goes into the question; bilingual tests also keep the Georgian one.
+                  const text = paperLanguage === "en" ? template.en : template.ka;
+                  onChange({ ...question, text: [{ type: "text", text }], ...(toolkit.bilingual ? { instructionKa: template.ka } : {}) });
                   setTextVersion((v) => v + 1); // the text box shows the new text
                 }}
               />
@@ -346,6 +353,14 @@ export function QuestionCard({
             {question.type === "odd-one-out" && <OddOneOutEditor question={question} onChange={onChange} />}
             {question.type === "crossword" && <CrosswordEditor question={question} onChange={onChange} />}
             {question.type === "word-search" && <WordSearchEditor question={question} onChange={onChange} />}
+            {question.type === "label-diagram" && (
+              <LabelDiagramEditor
+                question={question}
+                paperLanguage={paperLanguage}
+                onChange={onChange}
+                onPatch={(patch) => onPatch((q) => (q.type === "label-diagram" ? patch(q) : q))}
+              />
+            )}
             {question.type === "map" && (
               <MapEditor
                 question={question}

@@ -6,6 +6,7 @@
  * compiler catch mistakes (like a typo in a field name) before you run anything.
  */
 
+import type { BioDrawingId } from "@/subjects/biology/drawingIds";
 import type { RichText } from "@/lib/richText";
 import type { WordRef } from "@/lib/words";
 import type { SubjectId } from "@/subjects/ids";
@@ -441,6 +442,41 @@ export interface PictureMatchQuestion extends QuestionBase {
   shownBank?: string[];
 }
 
+/** Biology: one label on a diagram. Positions are in % of the drawing area (the picture plus room at the sides). */
+export interface DiagramLabel {
+  id: string;
+  /** Where the line points to. */
+  x: number;
+  y: number;
+  /** Where the label (an empty box or a number) sits. */
+  lx: number;
+  ly: number;
+  /** The name: shown on the answer key (and in the word box). */
+  answer: string;
+}
+
+/**
+ * Biology: "label the diagram". A built-in drawing (subjects/biology/drawings.ts)
+ * or an uploaded picture, with numbered pointer lines.
+ * - boxes:   empty boxes on the paper; students write the names in them
+ * - numbers: numbers on the paper and numbered lines below
+ * - match:   numbers on the paper and a lettered word box; students write the letters
+ */
+export interface LabelDiagramQuestion extends QuestionBase {
+  type: "label-diagram";
+  picture: { kind: "builtin"; drawing: BioDrawingId } | { kind: "upload"; imageId: string; width: number; height: number } | null;
+  /** How wide the drawing area is printed, in % of the question width. */
+  pictureWidth: number;
+  labels: DiagramLabel[];
+  mode: "boxes" | "numbers" | "match";
+  /** boxes / numbers: also print the names to choose from (alphabetical). */
+  wordBank: boolean;
+  /** Extra wrong names for the word box. */
+  extras: string[];
+  /** Printed copies only (lib/variants.ts): the word box order in "match" mode. */
+  shownBank?: string[];
+}
+
 /** Odd one out: rows of words; students circle the one that doesn't belong. */
 export interface OddOneOutQuestion extends QuestionBase {
   type: "odd-one-out";
@@ -497,7 +533,8 @@ export type Question =
   | PictureMatchQuestion
   | OddOneOutQuestion
   | CrosswordQuestion
-  | WordSearchQuestion;
+  | WordSearchQuestion
+  | LabelDiagramQuestion;
 
 export type QuestionType = Question["type"];
 

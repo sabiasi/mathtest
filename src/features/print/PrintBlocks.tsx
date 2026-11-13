@@ -17,6 +17,7 @@ import { MapPrint, OrderPrint, SourcePrint, TimelinePrint } from "@/subjects/his
 import { GivenFindPrint } from "@/subjects/physics/GivenFindPrint";
 import { EssayPrint, FindMistakePrint, GrammarTablePrint, MarkWordsPrint, SentenceAnalysisPrint } from "@/subjects/georgian/GeorgianPrint";
 import { BalancePrint } from "@/subjects/chemistry/BalancePrint";
+import { LabelDiagramPrint } from "@/subjects/biology/LabelDiagramView";
 import { FillBlankPrint } from "./FillBlankPrint";
 import {
   CrosswordPrint,
@@ -253,6 +254,9 @@ function QuestionBody({
 
     case "map":
       return <MapPrint question={question} answerKey={key} />;
+
+    case "label-diagram":
+      return <LabelDiagramPrint question={question} labelStyle={test.labelStyle} answerKey={key} />;
 
     case "fill-blank":
       return <FillBlankPrint question={question} labelStyle={test.labelStyle} answerKey={key} />;

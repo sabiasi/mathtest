@@ -19,6 +19,8 @@ export type ProblemKind =
   | "noBlanks"
   | "noMap"
   | "noMarkers"
+  | "noPicture"
+  | "noLabels"
   | "noSource"
   | "emptyText"
   | "noGaps"
@@ -94,6 +96,11 @@ export function findProblems(test: Test): Problem[] {
       else if (buildWordSearch(q.words, q.size, q.allDirections, q.seed).unplaced.length > 0) problems.push({ kind: "puzzleUnplaced", number, keyOnly: false });
     }
     if (q.type === "sentence-analysis" && (q.parts.length === 0 || !q.sentence.trim())) problems.push({ kind: "fewItems", number, keyOnly: false });
+    if (q.type === "label-diagram") {
+      if (!q.picture) problems.push({ kind: "noPicture", number, keyOnly: false });
+      else if (q.labels.length === 0) problems.push({ kind: "noLabels", number, keyOnly: false });
+      else if (q.labels.some((l) => !l.answer.trim())) problems.push({ kind: "noAnswer", number, keyOnly: true });
+    }
     if (q.type === "map") {
       if (!q.map) problems.push({ kind: "noMap", number, keyOnly: false });
       else if (q.markers.length === 0) problems.push({ kind: "noMarkers", number, keyOnly: false });
