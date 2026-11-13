@@ -20,7 +20,7 @@ import { AnimatePresence } from "motion/react";
 import { useT } from "@/i18n/language";
 import type { LabelStyle, Question } from "@/lib/storage/types";
 import type { SubjectToolkit } from "@/subjects/types";
-import { questionNumbers } from "@/lib/questions";
+import { questionNumbers, sectionPoints } from "@/lib/questions";
 import { QuestionCard } from "./QuestionCard";
 
 /**
@@ -57,6 +57,7 @@ export function QuestionList({
   const numberOf = (id: string | number) => questions.findIndex((q) => q.id === id) + 1;
   // Printed question numbers (texts and poems have none).
   const numbers = questionNumbers(questions);
+  const sections = sectionPoints(questions);
   const sensors = useSensors(
     // A drag starts only after moving 5px, so normal clicks still work.
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -99,6 +100,7 @@ export function QuestionList({
               key={question.id}
               question={question}
               number={numbers.get(question.id) ?? null}
+              sectionTotal={sections.get(question.id)}
               labelStyle={labelStyle}
               toolkit={toolkit}
               autoFocus={question.id === focusId}

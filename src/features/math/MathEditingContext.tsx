@@ -9,6 +9,7 @@
  */
 import type { Editor } from "@tiptap/core";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import type { TextMark } from "@/lib/richText";
 import { startChem, typeIntoChem } from "./MathNode";
 import type { MathfieldElement } from "./mathlive";
 
@@ -26,6 +27,8 @@ type MathEditing = {
    * cursor is in, or a new chemistry formula is started with it.
    */
   insertChem: (text: string, caretBack?: number) => void;
+  /** Turns bold / italic / underline / word box on or off for the selected text. */
+  toggleFormat: (mark: TextMark) => void;
   /** Inserts plain text at the cursor (e.g. "ძვ. წ." from the history toolbar). */
   insertText: (text: string, caretBack?: number) => void;
 };
@@ -108,9 +111,18 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
     [activeEditor],
   );
 
+  const toggleFormat = useCallback(
+    (mark: TextMark) => {
+      const editor = activeEditor;
+      if (!editor || editor.isDestroyed) return;
+      editor.chain().focus().toggleMark(mark).run();
+    },
+    [activeEditor],
+  );
+
   const value = useMemo(
-    () => ({ activeEditor, reportFocus, forget, insert, insertText, insertChem }),
-    [activeEditor, reportFocus, forget, insert, insertText, insertChem],
+    () => ({ activeEditor, reportFocus, forget, insert, insertText, insertChem, toggleFormat }),
+    [activeEditor, reportFocus, forget, insert, insertText, insertChem, toggleFormat],
   );
   return <MathEditingContext.Provider value={value}>{children}</MathEditingContext.Provider>;
 }

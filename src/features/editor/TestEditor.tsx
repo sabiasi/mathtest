@@ -8,6 +8,16 @@ import {
   Feather,
   PenLine,
   Scale,
+  CircleSlash,
+  Grid2x2,
+  Heading,
+  Headphones,
+  Images,
+  MessagesSquare,
+  Repeat,
+  Search,
+  WholeWord,
+  type LucideIcon,
   SpellCheck,
   Split,
   Table2,
@@ -37,7 +47,7 @@ import { GuestBanner } from "@/components/GuestBanner";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MathEditingProvider, useMathEditing, useMathLiveReady } from "@/features/math/MathEditingContext";
-import { useT } from "@/i18n/language";
+import { useLanguage, useT } from "@/i18n/language";
 import { createQuestion, duplicateQuestion, formatPoints, questionNumbers, totalPoints } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
 import { useSaveState, useStorageKind } from "@/lib/storage/useTests";
@@ -71,7 +81,36 @@ const TYPE_ICONS: Record<QuestionType, typeof ListChecks> = {
   "sentence-analysis": Split,
   essay: PenLine,
   balance: Scale,
+  section: Heading,
+  listening: Headphones,
+  speaking: MessagesSquare,
+  transformation: Repeat,
+  "word-formation": WholeWord,
+  "picture-match": Images,
+  "odd-one-out": CircleSlash,
+  crossword: Grid2x2,
+  "word-search": Search,
 };
+
+/** One "add a question" button. */
+function AddButton({ Icon, label, hint, onClick, dataType }: { Icon: LucideIcon; label: string; hint: string; onClick: () => void; dataType: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      data-add-type={dataType}
+      className="group flex items-center gap-3 rounded-xl border px-4 py-3 text-left font-medium text-foreground transition-[background-color,border-color,box-shadow,translate,scale] duration-150 hover:border-primary-soft-border hover:bg-primary-soft/60 hover:shadow-sm motion-safe:hover:-translate-y-px motion-safe:active:scale-[0.98]"
+    >
+      <span className="rounded-lg bg-primary-soft p-1.5 text-brand transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+        <Icon className="size-5" aria-hidden="true" />
+      </span>
+      <span>
+        <span className="block">{label}</span>
+        <span className="block text-sm font-normal text-muted-foreground">{hint}</span>
+      </span>
+    </button>
+  );
+}
 
 /**
  * The editor for one test. It keeps its own copy of the test in React
@@ -79,6 +118,7 @@ const TYPE_ICONS: Record<QuestionType, typeof ListChecks> = {
  */
 export function TestEditor({ initialTest }: { initialTest: Test }) {
   const t = useT();
+  const language = useLanguage();
   const confirm = useConfirm();
   const [test, setTest] = useState(initialTest);
   const [dirty, setDirty] = useState(false); // true = has unsaved changes
@@ -127,8 +167,9 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
     setDirty(true);
   }
 
-  function addQuestion(type: QuestionType) {
-    const question = createQuestion(type);
+  function addQuestion(type: QuestionType, prepare?: (question: Question) => Question) {
+    const fresh = createQuestion(type);
+    const question = prepare ? prepare(fresh) : fresh;
     updateQuestions((qs) => [...qs, question]);
     setFocusId(question.id);
   }
@@ -177,7 +218,8 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
 
   return (
     <MathEditingProvider>
-      <div className="pb-24" data-editor-ready={mathReady ? "true" : "false"}>
+      {/* lang: the browser spellchecks English tests in English. */}
+      <div className="pb-24" data-editor-ready={mathReady ? "true" : "false"} lang={toolkit.contentLanguage} spellCheck>
         {/* Sticky bar: stays at the top while scrolling. */}
         <div ref={stickyRef} className="sticky top-0 z-20 border-b bg-card/85 shadow-sm backdrop-blur-md">
           <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
@@ -273,24 +315,29 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                 <p className="mb-3 text-sm font-medium text-soft-foreground">{t("questions.add")}:</p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {toolkit.questionTypes.map((type) => {
-                    const Icon = TYPE_ICONS[type];
+                    // A subject may name a type its own way ("Label the picture").
+                    const own = toolkit.typeLabels?.[type];
                     return (
-                    <button
-                      key={type}
-                      type="button"
-                      onClick={() => addQuestion(type)}
-                      className="group flex items-center gap-3 rounded-xl border px-4 py-3 text-left font-medium text-foreground transition-[background-color,border-color,box-shadow,translate,scale] duration-150 hover:border-primary-soft-border hover:bg-primary-soft/60 hover:shadow-sm motion-safe:hover:-translate-y-px motion-safe:active:scale-[0.98]"
-                    >
-                      <span className="rounded-lg bg-primary-soft p-1.5 text-brand transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-                        <Icon className="size-5" aria-hidden="true" />
-                      </span>
-                      <span>
-                        <span className="block">{t(`type.${type}`)}</span>
-                        <span className="block text-sm font-normal text-muted-foreground">{t(`typeHint.${type}`)}</span>
-                      </span>
-                    </button>
+                      <AddButton
+                        key={type}
+                        Icon={TYPE_ICONS[type]}
+                        label={own ? own[language] : t(`type.${type}`)}
+                        hint={own ? (language === "en" ? own.hintEn : own.hintKa) : t(`typeHint.${type}`)}
+                        onClick={() => addQuestion(type)}
+                        dataType={type}
+                      />
                     );
                   })}
+                  {toolkit.presets?.map((preset) => (
+                    <AddButton
+                      key={preset.id}
+                      Icon={TYPE_ICONS[preset.type]}
+                      label={preset[language]}
+                      hint={language === "en" ? preset.hintEn : preset.hintKa}
+                      onClick={() => addQuestion(preset.type, preset.apply)}
+                      dataType={preset.id}
+                    />
+                  ))}
                 </div>
               </div>
             </section>

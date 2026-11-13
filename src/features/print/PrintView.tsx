@@ -11,7 +11,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SegmentedControl } from "@/components/ui/form";
-import { useLanguage, useT } from "@/i18n/language";
+import { LanguageOverride, useLanguage, useT } from "@/i18n/language";
 import { findProblems } from "@/lib/checks";
 import { saveTest } from "@/lib/storage/testsRepository";
 import type { PrintOptions, Test, VariantSettings } from "@/lib/storage/types";
@@ -86,6 +86,7 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
   const [pdfBusy, setPdfBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const options = test.printOptions;
+  const toolkit = getToolkit(test.subjectId);
   const zoom = useFitToWidth();
 
   // ---- Which variants to show ----
@@ -251,6 +252,10 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
                 ]}
               />
             </Option>
+            {/* English tests: Georgian instructions under the English ones (younger students). */}
+            {toolkit.bilingual && (
+              <Checkbox checked={options.bilingual} onChange={(bilingual) => setOptions({ bilingual })} label={t("print.bilingual")} />
+            )}
           </div>
 
           {/* Variants */}
@@ -324,8 +329,10 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
           The subject's class (e.g. "subject-math") lets src/subjects/<id>/print.css
           style its paper. The invisible measuring copies sit inside too, so
           pages are measured with the same styles they're printed with. */}
-      <div className={`print-sheets ${getToolkit(test.subjectId).print.className}`} style={{ zoom }}>
-        <TypographyProvider georgian={getToolkit(test.subjectId).print.typography === "georgian"}>
+      <div className={`print-sheets ${toolkit.print.className}`} style={{ zoom }}>
+        {/* The paper's language: English tests print "Name", "Answer"… in English. */}
+        <LanguageOverride language={toolkit.print.language ?? null}>
+        <TypographyProvider georgian={toolkit.print.typography === "georgian"}>
         {withTable && <AnswerTable variants={variants} test={test} blankAfter={test.variants.duplex} onReady={reportTableReady} />}
         {shown.map((variant, i) => (
           <PrintedVariant
@@ -339,6 +346,7 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
           />
         ))}
         </TypographyProvider>
+        </LanguageOverride>
       </div>
     </div>
   );
@@ -376,7 +384,7 @@ function PrintedVariant({
     .filter(Boolean)
     .join(" — ");
 
-  const blocks = new Map(printBlocks(test.questions).map((block) => [block.key, block]));
+  const blocks = new Map(printBlocks(test.questions, version).map((block) => [block.key, block]));
   const blockFor = (key: string, indexInColumn: number) => {
     const block = blocks.get(key);
     if (!block) return null;

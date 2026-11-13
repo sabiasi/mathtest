@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SubjectPicker } from "@/features/subjects/SubjectPicker";
 import { dictionaries } from "@/i18n/dictionaries";
 import { useT } from "@/i18n/language";
-import type { LabelStyle, Test } from "@/lib/storage/types";
+import { CEFR_LEVELS, type LabelStyle, type Test } from "@/lib/storage/types";
 import type { SubjectId } from "@/subjects/ids";
 import { getToolkit } from "@/subjects/registry";
 
@@ -71,6 +71,18 @@ export function TestHeaderForm({
             onChange={(e) => onChange({ subject: e.target.value })}
           />
         </Field>
+
+        {toolkit.levels && (
+          <div>
+            <FieldLabel id="level-label">{t("header.level")}</FieldLabel>
+            <SegmentedControl
+              label={t("header.level")}
+              value={test.level || "none"}
+              onChange={(level) => onChange({ level: level === "none" ? "" : (level as Test["level"]) })}
+              options={[{ value: "none", label: "—" }, ...CEFR_LEVELS.map((level) => ({ value: level, label: level }))]}
+            />
+          </div>
+        )}
 
         <Field label={t("header.grade")}>
           <Input

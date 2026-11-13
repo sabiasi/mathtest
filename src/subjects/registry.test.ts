@@ -62,10 +62,25 @@ describe("subject toolkits", () => {
       if (toolkit.formulas) continue;
       for (const tab of toolkit.toolbar) {
         for (const buttons of [tab.buttons, ...(tab.styles?.options.map((o) => o.buttons) ?? [])]) {
-          for (const button of buttons) expect(button.text).toBeDefined();
+          for (const button of buttons) expect(button.text !== undefined || button.format !== undefined).toBe(true);
         }
       }
     }
+  });
+
+  it("English: sections, listening, puzzles, English paper, bilingual instructions", () => {
+    const english = getToolkit("english");
+    for (const type of ["section", "passage", "listening", "fill-blank", "transformation", "word-formation", "crossword", "word-search", "speaking"]) {
+      expect(english.questionTypes).toContain(type);
+    }
+    expect(english.print.language).toBe("en");
+    expect(english.bilingual && english.levels).toBe(true);
+    expect(english.labelStyle).toBe("latin");
+    // Every instruction template has both languages.
+    for (const template of english.instructionTemplates ?? []) expect(template.en && template.ka).toBeTruthy();
+    // A preset prepares a question of an existing type.
+    const verbForms = english.presets?.find((p) => p.id === "verb-forms");
+    expect(verbForms?.type).toBe("fill-blank");
   });
 
   it("Georgian offers texts, grammar and essays, matching templates and Georgian typography", () => {

@@ -30,7 +30,7 @@ export function TestCard({ test }: { test: Test }) {
   const title = test.title || t("test.untitled");
   const editUrl = `/editor/${test.id}`;
   const printUrl = `/print/${test.id}`;
-  const tags = [test.subject || t(`subject.${test.subjectId}`), test.grade].filter(Boolean);
+  const tags = [test.subject || t(`subject.${test.subjectId}`), test.level, test.grade].filter(Boolean);
 
   function handleDuplicate() {
     duplicateTest(test.id, test.title ? t("test.copyTitle", { title: test.title }) : "");

@@ -132,6 +132,8 @@ interface QuestionBase {
   images: QuestionImage[];
   /** An optional grid answer area under the question. */
   grid: AnswerGrid | null;
+  /** The instruction in Georgian, printed under the (English) question text when "bilingual" is on. */
+  instructionKa?: string;
 }
 
 export interface ChoiceOption {
@@ -151,8 +153,10 @@ export interface MultipleChoiceQuestion extends QuestionBase {
 
 export interface TrueFalseQuestion extends QuestionBase {
   type: "true-false";
-  /** true = the statement is true; null = not marked yet. */
-  correct: boolean | null;
+  /** Also offer "Not given" (English reading tasks: True / False / Not Given). */
+  notGiven?: boolean;
+  /** true / false / "not-given" (only with notGiven); null = not marked yet. */
+  correct: boolean | "not-given" | null;
 }
 
 export interface ShortAnswerQuestion extends QuestionBase {
@@ -282,6 +286,8 @@ export interface MapQuestion extends QuestionBase {
 
 export interface PassageQuestion extends QuestionBase {
   type: "passage";
+  /** Letters A, B, C… before the paragraphs ("Which paragraph mentions…"). */
+  paragraphLetters?: boolean;
   title: string;
   author: string;
   /** The text, one paragraph per line. Pasted by the teacher. */
@@ -299,14 +305,26 @@ export interface PoemQuestion extends QuestionBase {
   lineNumbers: boolean;
 }
 
-/** Fill in the blanks (every subject): words of `body` the teacher chose are left blank. */
+/**
+ * Fill in the blanks / gap fill (every subject): words of `body` the teacher
+ * chose are left blank.
+ *   open   — students write the word (a hint like "(go)" may follow the gap)
+ *   bank   — the words (plus extra wrong ones) are printed in a box, shuffled
+ *   choice — each gap has options A/B/C/D printed under the text
+ */
 export interface FillBlankQuestion extends QuestionBase {
   type: "fill-blank";
   body: string;
-  /** Which words are blanks, with an optional hint printed after the blank, e.g. "წერა". */
-  blanks: (WordRef & { hint: string })[];
-  /** Also print the missing words as a list to choose from. */
-  wordBank: boolean;
+  /** Which words are blanks; `hint` is printed after the gap; `options` are wrong choices (choice mode). */
+  blanks: (WordRef & { hint: string; options?: string[] })[];
+  mode: "open" | "bank" | "choice";
+  /** Number the gaps (1), (2)… */
+  numbered: boolean;
+  /** Extra wrong words for the word box. */
+  extras: string[];
+  /** Printed copies only (lib/variants.ts): word box order, and each gap's choices in order. */
+  shownBank?: string[];
+  shownChoices?: string[][];
 }
 
 /** Georgian: "underline the nouns" — the key shows the marked words underlined. */
@@ -329,7 +347,10 @@ export interface GrammarTableQuestion extends QuestionBase {
 /** Georgian: find and correct the mistake in each sentence. */
 export interface FindMistakeQuestion extends QuestionBase {
   type: "find-mistake";
-  items: { id: string; sentence: string; mistake: WordRef | null; correction: string }[];
+  /** "correct": find and write the correction; "abcd": 4 underlined parts A–D, one is wrong. */
+  style?: "correct" | "abcd";
+  /** `parts`: the underlined words (abcd style); the mistake is one of them. */
+  items: { id: string; sentence: string; mistake: WordRef | null; correction: string; parts?: WordRef[] }[];
 }
 
 /** Georgian: sentence analysis — subject (ქვემდებარე), predicate (შემასმენელი)… */
@@ -358,6 +379,92 @@ export interface BalanceQuestion extends QuestionBase {
   equations: { id: string; balanced: string }[];
 }
 
+// ---------------------------------------------------------------------------
+// English (as a foreign language)
+// ---------------------------------------------------------------------------
+
+export const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1"] as const;
+export type CefrLevel = (typeof CEFR_LEVELS)[number];
+
+export const SECTION_KINDS = ["reading", "use-of-english", "vocabulary", "listening", "writing", "speaking", "custom"] as const;
+export type SectionKind = (typeof SECTION_KINDS)[number];
+
+/** A section heading ("Reading", "Writing"…): not a question; its points are the sum of the questions after it. */
+export interface SectionQuestion extends QuestionBase {
+  type: "section";
+  kind: SectionKind;
+  /** Used for "custom" (and printed instead of the standard name when filled). */
+  title: string;
+}
+
+/** Listening: a link to the recording (QR code on paper) and the transcript (answer key only). Not a question. */
+export interface ListeningQuestion extends QuestionBase {
+  type: "listening";
+  /** A public link students can open (YouTube, Google Drive…); "" = none. */
+  link: string;
+  showQr: boolean;
+  /** "You will hear the recording twice." */
+  plays: 1 | 2 | 3;
+  transcript: string;
+}
+
+/** Speaking: cue cards printed on their own pages with cut lines. Not a question. */
+export interface SpeakingQuestion extends QuestionBase {
+  type: "speaking";
+  perPage: 2 | 4;
+  /** `prompts`: one per line. */
+  cards: { id: string; title: string; prompts: string }[];
+}
+
+/** Rewrite the sentence using the KEY WORD: original, KEY WORD, "before ______ after". */
+export interface TransformationQuestion extends QuestionBase {
+  type: "transformation";
+  items: { id: string; original: string; keyWord: string; before: string; after: string; answer: string }[];
+}
+
+/** Word formation: each line has a gap and the root word in CAPITALS at its end (HAPPY → happiness). */
+export interface WordFormationQuestion extends QuestionBase {
+  type: "word-formation";
+  /** The full, correct sentence; `gap` = the word students form; `root` = the given word. */
+  items: { id: string; sentence: string; gap: WordRef | null; root: string }[];
+}
+
+/** Vocabulary: numbered pictures, students write the word (from a box of words). */
+export interface PictureMatchQuestion extends QuestionBase {
+  type: "picture-match";
+  pictures: { id: string; imageId: string; width: number; height: number; answer: string }[];
+  /** Extra wrong words for the box. */
+  extras: string[];
+  /** Print the word box (else students write the words freely). */
+  wordBank: boolean;
+  /** Printed copies only: the word box order. */
+  shownBank?: string[];
+}
+
+/** Odd one out: rows of words; students circle the one that doesn't belong. */
+export interface OddOneOutQuestion extends QuestionBase {
+  type: "odd-one-out";
+  rows: { id: string; words: string[]; odd: number | null }[];
+}
+
+/** A crossword made automatically from words and clues. `seed` decides the layout ("new layout" changes it). */
+export interface CrosswordQuestion extends QuestionBase {
+  type: "crossword";
+  entries: { id: string; word: string; clue: string }[];
+  seed: number;
+}
+
+/** A word search made automatically from a word list. */
+export interface WordSearchQuestion extends QuestionBase {
+  type: "word-search";
+  words: string[];
+  /** Grid size (cells per side). */
+  size: number;
+  /** Also diagonal and backwards (harder). */
+  allDirections: boolean;
+  seed: number;
+}
+
 /**
  * A question is exactly ONE of these. The `type` field tells which one —
  * TypeScript calls this a "discriminated union".
@@ -381,7 +488,16 @@ export type Question =
   | FindMistakeQuestion
   | SentenceAnalysisQuestion
   | EssayQuestion
-  | BalanceQuestion;
+  | BalanceQuestion
+  | SectionQuestion
+  | ListeningQuestion
+  | SpeakingQuestion
+  | TransformationQuestion
+  | WordFormationQuestion
+  | PictureMatchQuestion
+  | OddOneOutQuestion
+  | CrosswordQuestion
+  | WordSearchQuestion;
 
 export type QuestionType = Question["type"];
 
@@ -390,9 +506,11 @@ export interface PrintOptions {
   fontSize: "normal" | "large";
   showPoints: boolean;
   columns: 1 | 2;
+  /** English tests: print the Georgian instructions too (under the English ones). */
+  bilingual: boolean;
 }
 
-export const DEFAULT_PRINT_OPTIONS: PrintOptions = { fontSize: "normal", showPoints: true, columns: 1 };
+export const DEFAULT_PRINT_OPTIONS: PrintOptions = { fontSize: "normal", showPoints: true, columns: 1, bilingual: false };
 
 /**
  * Variants A, B, C… of the same test with questions / options in a different
@@ -426,6 +544,8 @@ export interface Test {
   /** The subject's name as printed on the paper (teachers may write e.g. "ალგებრა"). */
   subject: string;
   grade: string;
+  /** CEFR level (English tests): "A1"… "C1", or "" when not set. */
+  level: CefrLevel | "";
   /** Exam date as "YYYY-MM-DD", or "" when not set. */
   date: string;
   /** Time allowed in minutes, or null when not set. */

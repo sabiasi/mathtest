@@ -18,6 +18,15 @@ import { GivenFindPrint } from "@/subjects/physics/GivenFindPrint";
 import { EssayPrint, FindMistakePrint, GrammarTablePrint, MarkWordsPrint, SentenceAnalysisPrint } from "@/subjects/georgian/GeorgianPrint";
 import { BalancePrint } from "@/subjects/chemistry/BalancePrint";
 import { FillBlankPrint } from "./FillBlankPrint";
+import {
+  CrosswordPrint,
+  GeorgianInstruction,
+  OddOneOutPrint,
+  PictureMatchPrint,
+  TransformationPrint,
+  WordFormationPrint,
+  WordSearchPrint,
+} from "@/subjects/english/EnglishPrint";
 import { MatchingPrint } from "./MatchingPrint";
 import { useTypography } from "./Typography";
 
@@ -44,6 +53,7 @@ export function PrintHeader({
   const total = formatPoints(totalPoints(test.questions));
   const meta = [
     test.subject,
+    test.level && t("print.level", { level: test.level }),
     test.grade,
     formatDate(test.date, language),
     test.timeLimitMinutes ? t("print.time", { minutes: test.timeLimitMinutes }) : "",
@@ -124,6 +134,7 @@ export function PrintQuestion({
           <div className="flex items-start gap-[3mm]">
             <div className="min-w-0 flex-1">
               <RichTextView value={question.text} className="print-text" />
+              <GeorgianInstruction text={question.instructionKa} show={test.printOptions.bilingual} />
               <div className="print-body">
                 <QuestionBody question={question} test={test} version={version} optionColumns={optionColumns} />
               </div>
@@ -187,17 +198,20 @@ function QuestionBody({
         </ul>
       );
 
-    case "true-false":
+    case "true-false": {
+      const choices: (boolean | "not-given")[] = question.notGiven ? [true, false, "not-given"] : [true, false];
+      const label = (value: boolean | "not-given") => t(value === "not-given" ? "tf.notGiven" : value ? "tf.true" : "tf.false");
       return (
-        <div className="flex gap-[10mm]">
-          {[true, false].map((value) => (
+        <div className="flex flex-wrap gap-x-[10mm] gap-y-[1mm]">
+          {choices.map((value) => (
             <span key={String(value)} className={`print-choice ${key && question.correct === value ? "is-correct" : ""}`}>
               <span className="print-circle" />
-              {t(value ? "tf.true" : "tf.false")}
+              {label(value)}
             </span>
           ))}
         </div>
       );
+    }
 
     case "short-answer":
       return (
@@ -241,7 +255,25 @@ function QuestionBody({
       return <MapPrint question={question} answerKey={key} />;
 
     case "fill-blank":
-      return <FillBlankPrint question={question} answerKey={key} />;
+      return <FillBlankPrint question={question} labelStyle={test.labelStyle} answerKey={key} />;
+
+    case "transformation":
+      return <TransformationPrint question={question} answerKey={key} />;
+
+    case "word-formation":
+      return <WordFormationPrint question={question} answerKey={key} />;
+
+    case "picture-match":
+      return <PictureMatchPrint question={question} answerKey={key} />;
+
+    case "odd-one-out":
+      return <OddOneOutPrint question={question} answerKey={key} />;
+
+    case "crossword":
+      return <CrosswordPrint question={question} answerKey={key} />;
+
+    case "word-search":
+      return <WordSearchPrint question={question} answerKey={key} />;
 
     case "mark-words":
       return <MarkWordsPrint question={question} answerKey={key} />;
@@ -250,7 +282,7 @@ function QuestionBody({
       return <GrammarTablePrint question={question} answerKey={key} />;
 
     case "find-mistake":
-      return <FindMistakePrint question={question} answerKey={key} />;
+      return <FindMistakePrint question={question} labelStyle={test.labelStyle} answerKey={key} />;
 
     case "sentence-analysis":
       return <SentenceAnalysisPrint question={question} answerKey={key} />;
@@ -264,6 +296,9 @@ function QuestionBody({
     // Reading texts and poems are drawn piece by piece (see pieces.tsx), never here.
     case "passage":
     case "poem":
+    case "section":
+    case "listening":
+    case "speaking":
       return null;
   }
 }

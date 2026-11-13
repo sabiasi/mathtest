@@ -8,7 +8,9 @@
  */
 import type { LucideIcon } from "lucide-react";
 import type { ComponentType } from "react";
-import type { DiagramKind, QuestionType } from "@/lib/storage/types";
+import type { TextMark } from "@/lib/richText";
+import type { Language } from "@/i18n/dictionaries";
+import type { DiagramKind, LabelStyle, Question, QuestionType } from "@/lib/storage/types";
 import type { SubjectId } from "./ids";
 
 /**
@@ -31,6 +33,8 @@ export type ToolbarButton = {
   text?: string;
   /** After inserting `text`, move the cursor this many characters back (e.g. inside „“). */
   caretBack?: number;
+  /** Turn this formatting on/off for the selected text (the button shows `display` as text). */
+  format?: TextMark;
   /**
    * Chemistry: type this into the chemistry formula (mhchem, e.g. "->",
    * "(aq)", "^2+") instead of a math formula. `display` is LaTeX for the button.
@@ -82,11 +86,27 @@ export interface SubjectToolkit {
   questionTypes: readonly QuestionType[];
   /** Diagrams teachers can draw in a question ("circuit", "forces"); [] = none. */
   diagrams: readonly DiagramKind[];
+  /** Show the CEFR level (A1–C1) in the test header and on the paper. */
+  levels?: boolean;
+  /** Offer Georgian versions of the instructions (printed under the English ones when "bilingual" is on). */
+  bilingual?: boolean;
+  /** The language the content is written in (for the browser's spellcheck), e.g. "en". */
+  contentLanguage?: string;
+  /** Answer letters for new tests (English: A, B, C, D). */
+  labelStyle?: LabelStyle;
+  /** Picture questions with numbered markers are about a picture, not a map (changes the editor's wording). */
+  markersOnPicture?: boolean;
+  /** One-click instructions (English + Georgian) for the question text. */
+  instructionTemplates?: { id: string; en: string; ka: string }[];
+  /** Subject-specific names for question types in the "add a question" buttons. */
+  typeLabels?: Partial<Record<QuestionType, { ka: string; en: string; hintKa: string; hintEn: string }>>;
+  /** Extra "add" buttons that create a ready-set-up question of an existing type. */
+  presets?: { id: string; type: QuestionType; ka: string; en: string; hintKa: string; hintEn: string; apply: (question: Question) => Question }[];
   /** Ready-made column headings for matching questions (e.g. Person ↔ Date). */
   matchingTemplates?: { id: string; left: { ka: string; en: string }; right: { ka: string; en: string } }[];
   /**
    * The printed sheets get `className`, so ./<id>/print.css can style them.
    * `typography: "georgian"` prints „quotes“ and long dashes (lib/typography.ts).
    */
-  print: { className: string; typography?: "georgian" };
+  print: { className: string; typography?: "georgian"; language?: Language };
 }

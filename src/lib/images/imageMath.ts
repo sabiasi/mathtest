@@ -30,6 +30,7 @@ export function usedImageIds(tests: Test[]): Set<string> {
     for (const q of test.questions) {
       for (const image of q.images) if (image.imageId && !image.diagram) used.add(image.imageId);
       if (q.type === "map" && q.map) used.add(q.map.imageId);
+      if (q.type === "picture-match") for (const picture of q.pictures) used.add(picture.imageId);
     }
   }
   return used;

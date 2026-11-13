@@ -8,8 +8,11 @@
 import { RichTextView } from "@/features/math/RichTextView";
 import { useTypography } from "@/features/print/Typography";
 import { useT } from "@/i18n/language";
+import { GeorgianInstruction } from "@/subjects/english/EnglishPrint";
 import { isRichTextEmpty } from "@/lib/richText";
+import { optionLabel } from "@/lib/questions";
 import type {
+  LabelStyle,
   EssayQuestion,
   FindMistakeQuestion,
   GrammarTableQuestion,
@@ -29,11 +32,12 @@ import { ESSAY_FIRST, paragraphs, stanzas } from "./text";
 const PASSAGE_LINE_HEIGHT = 1.65;
 
 /** Title, author and the instruction above a text (only on its first block). */
-function TextHeading({ question }: { question: PassageQuestion | PoemQuestion }) {
+function TextHeading({ question, bilingual }: { question: PassageQuestion | PoemQuestion; bilingual: boolean }) {
   const fix = useTypography();
   return (
     <>
       {!isRichTextEmpty(question.text) && <RichTextView value={question.text} className="print-text mb-[2mm] block" />}
+      <GeorgianInstruction text={question.instructionKa} show={bilingual} />
       {question.title && <p className="print-passage-title">{fix(question.title)}</p>}
       {question.author && <p className="print-passage-author">{fix(question.author)}</p>}
     </>
@@ -46,7 +50,17 @@ function TextHeading({ question }: { question: PassageQuestion | PoemQuestion })
  * `lineStart` = the number of this paragraph's first line (measured by
  * usePrintLayout); the numbers column is cut off where the paragraph ends.
  */
-export function PassagePiece({ question, index, lineStart }: { question: PassageQuestion; index: number; lineStart: number }) {
+export function PassagePiece({
+  question,
+  index,
+  lineStart,
+  bilingual = false,
+}: {
+  question: PassageQuestion;
+  index: number;
+  lineStart: number;
+  bilingual?: boolean;
+}) {
   const fix = useTypography();
   const text = paragraphs(question.body)[index] ?? "";
   const numbers: number[] = [];
@@ -55,7 +69,7 @@ export function PassagePiece({ question, index, lineStart }: { question: Passage
   }
   return (
     <div className="print-passage">
-      {index === 0 && <TextHeading question={question} />}
+      {index === 0 && <TextHeading question={question} bilingual={bilingual} />}
       <div className="print-passage-text" data-passage-lines="">
         {question.lineNumbers && (
           <div className="print-line-numbers" aria-hidden="true">
@@ -68,14 +82,18 @@ export function PassagePiece({ question, index, lineStart }: { question: Passage
             ))}
           </div>
         )}
-        <p>{fix(text)}</p>
+        <p>
+          {/* "Which paragraph mentions…": A, B, C… before each paragraph */}
+          {question.paragraphLetters && <strong className="print-paragraph-letter">{String.fromCharCode(65 + index)} </strong>}
+          {fix(text)}
+        </p>
       </div>
     </div>
   );
 }
 
 /** One stanza of a poem; verses keep their line breaks and leading spaces. Every 5th verse is numbered. */
-export function PoemPiece({ question, index }: { question: PoemQuestion; index: number }) {
+export function PoemPiece({ question, index, bilingual = false }: { question: PoemQuestion; index: number; bilingual?: boolean }) {
   const fix = useTypography();
   const all = stanzas(question.body);
   const verses = all[index] ?? [];
@@ -83,7 +101,7 @@ export function PoemPiece({ question, index }: { question: PoemQuestion; index: 
   const before = all.slice(0, index).reduce((sum, stanza) => sum + stanza.length, 0);
   return (
     <div className="print-poem">
-      {index === 0 && <TextHeading question={question} />}
+      {index === 0 && <TextHeading question={question} bilingual={bilingual} />}
       <div className="print-poem-stanza">
         {verses.map((verse, i) => {
           const n = before + i + 1;
@@ -200,10 +218,15 @@ export function GrammarTablePrint({ question, answerKey }: { question: GrammarTa
   );
 }
 
-/** Each sentence, then a line for the corrected word. The key underlines the mistake and gives the correction. */
-export function FindMistakePrint({ question, answerKey }: { question: FindMistakeQuestion; answerKey: boolean }) {
+/**
+ * Each sentence, then a line for the corrected word. The key underlines the
+ * mistake and gives the correction. In the A–D style the sentence has up to
+ * four underlined parts lettered A, B, C, D, and a box for the wrong one.
+ */
+export function FindMistakePrint({ question, labelStyle, answerKey }: { question: FindMistakeQuestion; labelStyle: LabelStyle; answerKey: boolean }) {
   const t = useT();
   const items = question.items.filter((item) => item.sentence.trim());
+  if (question.style === "abcd") return <MistakeAbcdPrint items={items} labelStyle={labelStyle} answerKey={answerKey} />;
   return (
     <ol className="print-mistakes">
       {items.map((item, i) => (
@@ -218,6 +241,51 @@ export function FindMistakePrint({ question, answerKey }: { question: FindMistak
           </div>
         </li>
       ))}
+    </ol>
+  );
+}
+
+function MistakeAbcdPrint({ items, labelStyle, answerKey }: { items: FindMistakeQuestion["items"]; labelStyle: LabelStyle; answerKey: boolean }) {
+  const t = useT();
+  return (
+    <ol className="print-mistakes">
+      {items.map((item, i) => {
+        const tokens = tokenize(item.sentence);
+        const refs = wordRefs(tokens);
+        const parts = item.parts ?? [];
+        // Letters follow the order of the parts in the sentence.
+        const ordered = refs.map((ref) => parts.findIndex((p) => sameRef(p, ref))).filter((index) => index >= 0);
+        const wrong = item.mistake ? ordered.findIndex((index) => sameRef(parts[index], item.mistake)) : -1;
+        return (
+          <li key={item.id}>
+            <div className="flex flex-wrap items-baseline gap-[2mm]">
+              <span className="print-option-label">{i + 1})</span>
+              <p className="print-abcd-line">
+                {tokens.map((token, j) => {
+                  const partIndex = refs[j] ? parts.findIndex((p) => sameRef(p, refs[j])) : -1;
+                  if (partIndex < 0) return <span key={j}>{token.text}</span>;
+                  return (
+                    <span key={j} className="print-abcd-part">
+                      <u>{token.text}</u>
+                      <span className="print-abcd-letter">{optionLabel(ordered.indexOf(partIndex), labelStyle)}</span>
+                    </span>
+                  );
+                })}
+              </p>
+              <span className="ml-auto flex items-center gap-[1.5mm]">
+                <span className="print-box">{answerKey && wrong >= 0 ? optionLabel(wrong, labelStyle) : ""}</span>
+                {answerKey && item.correction && <span className="print-key-text">→ {item.correction}</span>}
+              </span>
+            </div>
+            {!answerKey && (
+              <div className="mt-[1mm] flex items-end gap-[2mm] pl-[5mm]">
+                <span>{t("mistake.correctionLabel")}</span>
+                <span className="print-answer-line" />
+              </div>
+            )}
+          </li>
+        );
+      })}
     </ol>
   );
 }

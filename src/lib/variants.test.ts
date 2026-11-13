@@ -13,9 +13,9 @@ function mc(id: string, lock = false): MultipleChoiceQuestion {
 
 function makeTest(questions: Question[], variants: Partial<Test["variants"]> = {}): Test {
   return {
-    id: "t", schoolName: "", title: "", subjectId: "math", subject: "", grade: "", date: "", timeLimitMinutes: null,
+    id: "t", schoolName: "", title: "", subjectId: "math", subject: "", grade: "", level: "", date: "", timeLimitMinutes: null,
     instructions: "", labelStyle: "latin", questions,
-    printOptions: { fontSize: "normal", showPoints: true, columns: 1 },
+    printOptions: { fontSize: "normal", showPoints: true, columns: 1, bilingual: false },
     variants: { count: 4, shuffleQuestions: true, shuffleOptions: true, seed: 42, duplex: false, ...variants },
     createdAt: "", updatedAt: "",
   };
@@ -147,5 +147,30 @@ describe("shuffleAroundTexts", () => {
       expect(ids.slice(1, 4).sort()).toEqual(["a", "b", "c"]);
       expect(ids.slice(5).sort()).toEqual(["d", "e"]);
     }
+  });
+});
+
+describe("gap fill in variants", () => {
+  it("shuffles the word box and each gap's choices, but not the gaps", async () => {
+    const { buildVariants: build } = await import("./variants");
+    const q = {
+      ...createQuestion("fill-blank", { id: "f" }),
+      body: "I go to school and she goes home.",
+      mode: "choice",
+      blanks: [
+        { word: "go", occurrence: 0, hint: "", options: ["goes", "went", "going"] },
+        { word: "goes", occurrence: 0, hint: "", options: ["go", "gone", "went"] },
+      ],
+      extras: ["run"],
+    } as Question;
+    const [a] = build(makeTest([q], { count: 1 }));
+    const shown = a.test.questions[0];
+    if (shown.type !== "fill-blank") throw new Error("type");
+    expect([...(shown.shownBank ?? [])].sort()).toEqual(["go", "goes", "run"]);
+    expect(shown.shownChoices?.map((c) => [...c].sort())).toEqual([
+      ["go", "goes", "going", "went"],
+      ["go", "goes", "gone", "went"],
+    ]);
+    expect(shown.blanks.map((b) => b.word)).toEqual(["go", "goes"]); // gaps keep their order
   });
 });

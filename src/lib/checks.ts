@@ -4,6 +4,7 @@
  * correct one marked, and missing answers (which leave gaps in the key).
  */
 import { checkBalance } from "@/lib/chem";
+import { buildCrossword, buildWordSearch } from "@/lib/puzzles";
 import { isTextBlock, visibleOptions } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
 import type { Test } from "@/lib/storage/types";
@@ -21,7 +22,8 @@ export type ProblemKind =
   | "noSource"
   | "emptyText"
   | "noGaps"
-  | "unbalanced";
+  | "unbalanced"
+  | "puzzleUnplaced";
 
 export type Problem = {
   kind: ProblemKind;
@@ -39,7 +41,7 @@ export function findProblems(test: Test): Problem[] {
   test.questions.forEach((q) => {
     // Reading texts and poems have no number: their problem says "a text is empty".
     if (isTextBlock(q)) {
-      if (!("body" in q) || !q.body.trim()) problems.push({ kind: "emptyText", number: 0, keyOnly: false });
+      if ((q.type === "passage" || q.type === "poem") && !q.body.trim()) problems.push({ kind: "emptyText", number: 0, keyOnly: false });
       return;
     }
     const number = next++;
@@ -72,6 +74,24 @@ export function findProblems(test: Test): Problem[] {
       if (written.length === 0) problems.push({ kind: "fewItems", number, keyOnly: false });
       // The key would show wrong coefficients if the "balanced" equation isn't.
       else if (written.some((e) => checkBalance(e.balanced).status !== "balanced")) problems.push({ kind: "unbalanced", number, keyOnly: true });
+    }
+    if (q.type === "fill-blank" && q.mode === "choice" && q.blanks.some((b) => (b.options ?? []).filter((o) => o.trim()).length === 0)) {
+      problems.push({ kind: "fewOptions", number, keyOnly: false });
+    }
+    if ((q.type === "transformation" || q.type === "word-formation") && q.items.filter((i) => ("original" in i ? i.original : i.sentence).trim()).length === 0) {
+      problems.push({ kind: "fewItems", number, keyOnly: false });
+    }
+    if (q.type === "word-formation" && q.items.some((i) => i.sentence.trim() && (!i.gap || !i.root.trim()))) problems.push({ kind: "noGaps", number, keyOnly: false });
+    if (q.type === "picture-match" && q.pictures.length === 0) problems.push({ kind: "fewItems", number, keyOnly: false });
+    if (q.type === "odd-one-out" && q.rows.some((r) => r.words.some((w) => w.trim()) && r.odd === null)) problems.push({ kind: "noCorrect", number, keyOnly: true });
+    if (q.type === "crossword") {
+      const words = q.entries.filter((e) => e.word.trim());
+      if (words.length < 2) problems.push({ kind: "fewItems", number, keyOnly: false });
+      else if (buildCrossword(q.entries, q.seed).unplaced.length > 0) problems.push({ kind: "puzzleUnplaced", number, keyOnly: false });
+    }
+    if (q.type === "word-search") {
+      if (q.words.filter((w) => w.trim()).length < 2) problems.push({ kind: "fewItems", number, keyOnly: false });
+      else if (buildWordSearch(q.words, q.size, q.allDirections, q.seed).unplaced.length > 0) problems.push({ kind: "puzzleUnplaced", number, keyOnly: false });
     }
     if (q.type === "sentence-analysis" && (q.parts.length === 0 || !q.sentence.trim())) problems.push({ kind: "fewItems", number, keyOnly: false });
     if (q.type === "map") {

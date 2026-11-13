@@ -9,7 +9,7 @@
 import { dictionaries } from "@/i18n/dictionaries";
 
 /** In the order the subject picker shows them. */
-export const SUBJECT_IDS = ["math", "physics", "chemistry", "history", "georgian"] as const;
+export const SUBJECT_IDS = ["math", "physics", "chemistry", "history", "georgian", "english"] as const;
 export type SubjectId = (typeof SUBJECT_IDS)[number];
 
 /** Tests saved before subjects existed were all math tests. */
@@ -26,6 +26,7 @@ const ALIASES: Record<SubjectId, string[]> = {
   chemistry: ["ქიმია"],
   history: ["ისტორია", "საქართველოს ისტორია", "მსოფლიო ისტორია"],
   georgian: ["ქართული", "ქართული ენა", "ქართული ლიტერატურა", "ლიტერატურა", "georgian", "literature"],
+  english: ["ინგლისური", "ინგლისური ენა", "english", "english language", "efl"],
 };
 
 const simplify = (text: string) => text.trim().toLocaleLowerCase().replace(/\s+/g, " ");

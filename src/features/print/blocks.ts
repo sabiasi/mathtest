@@ -14,7 +14,17 @@ import { ESSAY_CHUNK, ESSAY_FIRST, paragraphs, stanzas } from "@/subjects/georgi
 
 export type PrintBlock = { key: string; question: Question; piece: string; number: number | null };
 
-function piecesOf(question: Question): string[] {
+function piecesOf(question: Question, version: "student" | "key"): string[] {
+  // Listening: the transcript follows on the answer key only, paragraph by paragraph.
+  if (question.type === "listening") {
+    const count = version === "key" ? question.transcript.split("\n").filter((line) => line.trim()).length : 0;
+    return ["", ...Array.from({ length: count }, (_, i) => `t${i}`)];
+  }
+  // Speaking cards: one full page per 2 or 4 cards.
+  if (question.type === "speaking") {
+    const pages = Math.max(1, Math.ceil(question.cards.length / question.perPage));
+    return Array.from({ length: pages }, (_, i) => `c${i}`);
+  }
   // A text with nothing in it still gets one (empty) block, so it isn't lost.
   if (question.type === "passage") {
     const count = paragraphs(question.body).length;
@@ -31,10 +41,10 @@ function piecesOf(question: Question): string[] {
   return [""];
 }
 
-export function printBlocks(questions: Question[]): PrintBlock[] {
+export function printBlocks(questions: Question[], version: "student" | "key" = "student"): PrintBlock[] {
   const numbers = questionNumbers(questions);
   return questions.flatMap((question) =>
-    piecesOf(question).map((piece) => ({
+    piecesOf(question, version).map((piece) => ({
       key: piece ? `${question.id}~${piece}` : question.id,
       question,
       piece,
@@ -44,7 +54,11 @@ export function printBlocks(questions: Question[]): PrintBlock[] {
 }
 
 /** True for pieces that continue the block before them (no gap between them on paper). */
-export const isContinuation = (block: PrintBlock) => /^(p|s)[1-9]|^l\d/.test(block.piece);
+export const isContinuation = (block: PrintBlock) => /^(p|s)[1-9]|^l\d|^t\d/.test(block.piece);
+
+/** Headings that must not be left alone at the bottom of a page: they move on with what follows. */
+export const keepsWithNext = (block: PrintBlock) =>
+  block.question.type === "section" || (block.question.type === "listening" && block.piece === "") || block.piece === "p0";
 
 /** Continuations drawn with no gap: reading-text paragraphs and essay lines (stanzas keep a gap). */
 export const flowsOn = (block: PrintBlock) => isContinuation(block) && block.question.type !== "poem";

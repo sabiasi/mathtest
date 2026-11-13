@@ -28,6 +28,19 @@ import { MarkWordsEditor } from "@/subjects/georgian/editors/MarkWordsEditor";
 import { SentenceAnalysisEditor } from "@/subjects/georgian/editors/SentenceAnalysisEditor";
 import { TextBlockEditor } from "@/subjects/georgian/editors/TextBlockEditor";
 import { FillBlankEditor } from "./FillBlankEditor";
+import { Input } from "@/components/ui/input";
+import {
+  CrosswordEditor,
+  ListeningEditor,
+  OddOneOutEditor,
+  PictureMatchEditor,
+  SectionEditor,
+  SpeakingEditor,
+  TransformationEditor,
+  WordFormationEditor,
+  WordSearchEditor,
+} from "@/subjects/english/EnglishEditors";
+import { InstructionMenu } from "./InstructionMenu";
 import { MatchingEditor } from "./MatchingEditor";
 import { DiagramDialog } from "@/subjects/physics/diagrams/DiagramDialog";
 import { diagramSize } from "@/subjects/physics/diagrams/DiagramView";
@@ -58,6 +71,15 @@ const TEXT_PLACEHOLDERS: Partial<Record<QuestionType, MessageKey>> = {
   "find-mistake": "questions.mistakePlaceholder",
   "sentence-analysis": "questions.analysisPlaceholder",
   essay: "questions.essayPlaceholder",
+  section: "questions.sectionPlaceholder",
+  listening: "questions.listeningPlaceholder",
+  speaking: "questions.speakingPlaceholder",
+  transformation: "questions.englishPlaceholder",
+  "word-formation": "questions.englishPlaceholder",
+  "picture-match": "questions.englishPlaceholder",
+  "odd-one-out": "questions.englishPlaceholder",
+  crossword: "questions.englishPlaceholder",
+  "word-search": "questions.englishPlaceholder",
   balance: "questions.balancePlaceholder",
 };
 
@@ -66,6 +88,7 @@ export function QuestionCard({
   number,
   labelStyle,
   toolkit,
+  sectionTotal,
   autoFocus,
   onChange,
   onPatch,
@@ -78,6 +101,8 @@ export function QuestionCard({
   labelStyle: LabelStyle;
   /** The subject's tools: question types and diagrams. */
   toolkit: SubjectToolkit;
+  /** Sections: the sum of the points of the questions in it. */
+  sectionTotal?: number;
   autoFocus: boolean;
   onChange: (question: Question) => void;
   onPatch: (patch: (question: Question) => Question) => void;
@@ -95,6 +120,7 @@ export function QuestionCard({
   const [dropActive, setDropActive] = useState(false);
   const questionTypes = toolkit.questionTypes;
   const textBlock = isTextBlock(question);
+  const [textVersion, setTextVersion] = useState(0);
 
   // ---- Diagrams (circuit, forces): drawn in a window, kept as data ----
   const [diagramEdit, setDiagramEdit] = useState<{ placementId: string | null; diagram: Diagram } | null>(null);
@@ -222,7 +248,7 @@ export function QuestionCard({
             </IconButton>
             {/* Reading texts and poems aren't numbered questions. */}
             <span className="font-semibold text-foreground">
-              {number === null ? t(question.type === "poem" ? "text.poemLabel" : "text.passageLabel") : t("questions.number", { number })}
+              {number === null ? t(`type.${question.type}`) : t("questions.number", { number })}
             </span>
             <select
               value={question.type}
@@ -259,13 +285,36 @@ export function QuestionCard({
           </div>
 
           <div className="space-y-4 p-4 sm:p-5">
+            {toolkit.instructionTemplates && (
+              <InstructionMenu
+                templates={toolkit.instructionTemplates}
+                onPick={(template) => {
+                  onChange({ ...question, text: [{ type: "text", text: template.en }], instructionKa: template.ka });
+                  setTextVersion((v) => v + 1); // the text box shows the new text
+                }}
+              />
+            )}
             <RichTextInput
+              // A template replaces the text: a new key gives a fresh box with it.
+              key={textVersion}
               value={question.text}
               autoFocus={autoFocus}
               ariaLabel={t("questions.text")}
               placeholder={t(TEXT_PLACEHOLDERS[question.type] ?? "questions.textPlaceholder")}
               onChange={(text) => onChange({ ...question, text })}
             />
+            {toolkit.bilingual && (
+              <Input
+                lang="ka"
+                className="h-9 text-sm"
+                value={question.instructionKa ?? ""}
+                maxLength={500}
+                placeholder={t("questions.instructionKa")}
+                aria-label={t("questions.instructionKa")}
+                onChange={(e) => onChange({ ...question, instructionKa: e.target.value })}
+                data-instruction-ka=""
+              />
+            )}
 
             <ImageStrip
               images={question.images}
@@ -284,8 +333,24 @@ export function QuestionCard({
             {question.type === "order" && <OrderEditor question={question} onChange={onChange} />}
             {question.type === "timeline" && <TimelineEditor question={question} onChange={onChange} />}
             {question.type === "source" && <SourceEditor question={question} labelStyle={labelStyle} onChange={onChange} />}
+            {question.type === "section" && <SectionEditor question={question} points={sectionTotal ?? 0} onChange={onChange} />}
+            {question.type === "listening" && <ListeningEditor question={question} onChange={onChange} />}
+            {question.type === "speaking" && <SpeakingEditor question={question} onChange={onChange} />}
+            {question.type === "transformation" && <TransformationEditor question={question} onChange={onChange} />}
+            {question.type === "word-formation" && <WordFormationEditor question={question} onChange={onChange} />}
+            {question.type === "picture-match" && (
+              <PictureMatchEditor question={question} onChange={onChange} onPatch={(patch) => onPatch((q) => (q.type === "picture-match" ? patch(q) : q))} />
+            )}
+            {question.type === "odd-one-out" && <OddOneOutEditor question={question} onChange={onChange} />}
+            {question.type === "crossword" && <CrosswordEditor question={question} onChange={onChange} />}
+            {question.type === "word-search" && <WordSearchEditor question={question} onChange={onChange} />}
             {question.type === "map" && (
-              <MapEditor question={question} onChange={onChange} onPatch={(patch) => onPatch((q) => (q.type === "map" ? patch(q) : q))} />
+              <MapEditor
+                question={question}
+                picture={toolkit.markersOnPicture}
+                onChange={onChange}
+                onPatch={(patch) => onPatch((q) => (q.type === "map" ? patch(q) : q))}
+              />
             )}
 
             {question.type === "passage" && <TextBlockEditor question={question} onChange={onChange} />}

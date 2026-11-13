@@ -179,6 +179,7 @@ export function createTest(defaults: Partial<Omit<Test, "id">> = {}): Test {
     subjectId: DEFAULT_SUBJECT,
     subject: "",
     grade: "",
+    level: "",
     date: "",
     timeLimitMinutes: null,
     instructions: "",

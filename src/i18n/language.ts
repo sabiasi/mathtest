@@ -4,7 +4,7 @@
  * Remembers the chosen language (in localStorage) and gives components
  * a `t()` function that turns a message key into text.
  */
-import { useCallback, useSyncExternalStore } from "react";
+import { createContext, createElement, useCallback, useContext, useSyncExternalStore, type ReactNode } from "react";
 import {
   DEFAULT_LANGUAGE,
   LANGUAGES,
@@ -49,9 +49,21 @@ export function setLanguage(language: Language) {
   listeners.forEach((listener) => listener());
 }
 
-/** The current language. The server always renders Georgian. */
+/**
+ * A part of the page that must use a fixed language, whatever the interface
+ * language is: e.g. the printed sheets of an English test are in English.
+ */
+const LanguageOverrideContext = createContext<Language | null>(null);
+
+export function LanguageOverride({ language, children }: { language: Language | null; children: ReactNode }) {
+  return createElement(LanguageOverrideContext.Provider, { value: language }, children);
+}
+
+/** The current language (or the override). The server always renders Georgian. */
 export function useLanguage(): Language {
-  return useSyncExternalStore(subscribe, readLanguage, () => DEFAULT_LANGUAGE);
+  const override = useContext(LanguageOverrideContext);
+  const chosen = useSyncExternalStore(subscribe, readLanguage, () => DEFAULT_LANGUAGE);
+  return override ?? chosen;
 }
 
 /** Fills `{name}` placeholders: format("Hi {name}", { name: "Nino" }) → "Hi Nino". */

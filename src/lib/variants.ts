@@ -16,7 +16,15 @@
  */
 import { isTextBlock } from "@/lib/questions";
 import { seedFromString } from "@/lib/storage/migrate";
-import type { MatchingQuestion, MultipleChoiceQuestion, OrderQuestion, Question, Test } from "@/lib/storage/types";
+import type {
+  FillBlankQuestion,
+  MatchingQuestion,
+  MultipleChoiceQuestion,
+  OrderQuestion,
+  PictureMatchQuestion,
+  Question,
+  Test,
+} from "@/lib/storage/types";
 
 export const VARIANT_LABELS = ["A", "B", "C", "D", "E", "F"] as const;
 export const MAX_VARIANTS = VARIANT_LABELS.length;
@@ -54,6 +62,7 @@ function arrangement(questions: Question[]): string {
     .map((q) => {
       if (q.type === "multiple-choice") return `${q.id}(${q.options.map((o) => o.id).join(",")})`;
       if (q.type === "order" || q.type === "matching") return `${q.id}(${(q.shownOrder ?? []).join(",")})`;
+      if (q.type === "fill-blank") return `${q.id}(${JSON.stringify([q.shownBank, q.shownChoices])})`;
       return q.id;
     })
     .join("|");
@@ -85,6 +94,19 @@ export function arrangeItems(question: Question, random: () => number): Question
       order = shuffle(order, random);
     }
     return { ...question, shownOrder: order } satisfies MatchingQuestion;
+  }
+  if (question.type === "fill-blank") {
+    // The word box and each gap's choices are shuffled; the gaps themselves stay in place.
+    const bank = [...question.blanks.map((b) => b.word), ...question.extras.filter((w) => w.trim())];
+    return {
+      ...question,
+      shownBank: shuffle(bank, random),
+      shownChoices: question.blanks.map((b) => shuffle([b.word, ...(b.options ?? []).filter((o) => o.trim())], random)),
+    } satisfies FillBlankQuestion;
+  }
+  if (question.type === "picture-match") {
+    const bank = [...question.pictures.map((p) => p.answer), ...question.extras].filter((w) => w.trim());
+    return { ...question, shownBank: shuffle(bank, random) } satisfies PictureMatchQuestion;
   }
   return question;
 }

@@ -5,7 +5,10 @@
  * Used for question text, multiple-choice options and short answers.
  */
 import { Extension } from "@tiptap/core";
+import Bold from "@tiptap/extension-bold";
 import Document from "@tiptap/extension-document";
+import Italic from "@tiptap/extension-italic";
+import Underline from "@tiptap/extension-underline";
 import Paragraph from "@tiptap/extension-paragraph";
 import Text from "@tiptap/extension-text";
 import { Placeholder, UndoRedo } from "@tiptap/extensions";
@@ -13,6 +16,7 @@ import { EditorContent, useEditor } from "@tiptap/react";
 import { useEffect, useRef } from "react";
 import { docToRichText, richTextToDoc, type RichText } from "@/lib/richText";
 import { useMathEditing } from "./MathEditingContext";
+import { BoxMark } from "./BoxMark";
 import { MathNode } from "./MathNode";
 
 /** For one-line boxes (answer options): exactly one paragraph, Enter does nothing. */
@@ -57,6 +61,11 @@ export function RichTextInput({
       UndoRedo,
       Placeholder.configure({ placeholder }),
       MathNode,
+      // Formatting (⌘/Ctrl + B, I, U; the "word box" from the toolbar).
+      Bold,
+      Italic,
+      Underline,
+      BoxMark,
       ...(singleLine ? [NoEnter] : []),
     ],
     content: richTextToDoc(value),

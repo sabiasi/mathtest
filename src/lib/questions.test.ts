@@ -70,3 +70,18 @@ describe("formatPoints", () => {
     expect(formatPoints(0.1 + 0.2)).toBe("0.3");
   });
 });
+
+describe("sections", () => {
+  it("adds up the points of the questions in each section, and texts have no number", async () => {
+    const { sectionPoints, questionNumbers } = await import("./questions");
+    const reading = createQuestion("section", { id: "s1" });
+    const text = createQuestion("passage", { id: "t" });
+    const q1 = createQuestion("true-false", { id: "a", points: 2 });
+    const q2 = createQuestion("short-answer", { id: "b", points: 3 });
+    const writing = createQuestion("section", { id: "s2" });
+    const q3 = createQuestion("essay", { id: "c", points: 10 });
+    const questions = [reading, text, q1, q2, writing, q3];
+    expect(Object.fromEntries(sectionPoints(questions))).toEqual({ s1: 5, s2: 10 });
+    expect([...questionNumbers(questions).values()]).toEqual([null, null, 1, 2, null, 3]);
+  });
+});

@@ -15,7 +15,7 @@
  * `gap`: space before this block, if it isn't the first in its column
  * (default: the normal gap). 0 for a paragraph that continues a reading text.
  */
-export type MeasuredBlock = { key: string; height: number; gap?: number };
+export type MeasuredBlock = { key: string; height: number; gap?: number; keepWithNext?: boolean };
 
 /** One page: for each column, the keys of the questions in it. */
 export type Page = { columns: string[][] };
@@ -43,10 +43,13 @@ export function paginate({
 
   const available = () => columnHeight - (pages.length === 1 ? firstPageTop : 0);
 
-  for (const block of blocks) {
+  for (const [index, block] of blocks.entries()) {
     const isFirstInColumn = pages[pages.length - 1].columns[column].length === 0;
     const blockGap = block.gap ?? gap;
-    const needed = (isFirstInColumn ? 0 : blockGap) + block.height;
+    let needed = (isFirstInColumn ? 0 : blockGap) + block.height;
+    // A heading moves on together with the block after it (never alone at the bottom).
+    const next = blocks[index + 1];
+    if (block.keepWithNext && next) needed += (next.gap ?? gap) + next.height;
 
     if (!isFirstInColumn && used + needed > available()) {
       // Doesn't fit: next column, or a fresh page.

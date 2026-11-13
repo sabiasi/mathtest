@@ -17,7 +17,9 @@ import { cleanUpImages } from "@/lib/images/imageStore";
 import { createSampleTest } from "@/lib/sample";
 import { createTest, retryLoad } from "@/lib/storage/testsRepository";
 import { useLoadStatus, useTests } from "@/lib/storage/useTests";
+import { dictionaries } from "@/i18n/dictionaries";
 import { subjectFromText, type SubjectId } from "@/subjects/ids";
+import { getToolkit } from "@/subjects/registry";
 import { TestCard } from "./TestCard";
 
 /** The "My tests" page (/tests). */
@@ -57,13 +59,15 @@ export function HomeView() {
 
   function handleCreate(subjectId: SubjectId) {
     setChoosingSubject(false);
+    const toolkit = getToolkit(subjectId);
     const test = createTest({
       // From Settings: the teacher's school.
       schoolName: profile?.school_name ?? "",
       subjectId,
-      subject: t(`subject.${subjectId}`),
-      // Georgian interface → ა, ბ, გ, დ; English interface → A, B, C, D
-      labelStyle: language === "en" ? "latin" : "georgian",
+      // English tests print in English, so their subject name is English too.
+      subject: toolkit.print.language ? dictionaries[toolkit.print.language][`subject.${subjectId}`] : t(`subject.${subjectId}`),
+      // English tests: A, B, C, D. Otherwise by interface: ა, ბ, გ, დ or A, B, C, D.
+      labelStyle: toolkit.labelStyle ?? (language === "en" ? "latin" : "georgian"),
     });
     toast.success(t("toast.created"));
     router.push(`/editor/${test.id}`);

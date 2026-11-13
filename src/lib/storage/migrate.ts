@@ -19,6 +19,10 @@ import { normalizeDiagram } from "@/subjects/physics/diagrams/normalize";
 import { normalizeRichText } from "@/lib/richText";
 import { DEFAULT_SUBJECT, isSubjectId, subjectFromText } from "@/subjects/ids";
 import {
+  CEFR_LEVELS,
+  SECTION_KINDS,
+  type CefrLevel,
+  type SectionKind,
   type AnswerGrid,
   type QuestionImage,
   DEFAULT_PRINT_OPTIONS,
@@ -110,6 +114,7 @@ function normalizeQuestion(raw: unknown): Question | null {
     points: Math.max(0, num(raw.points, 1)),
     images: normalizeImages(raw.images),
     grid: normalizeGrid(raw.grid),
+    ...(typeof raw.instructionKa === "string" && raw.instructionKa.trim() ? { instructionKa: raw.instructionKa.slice(0, 500) } : {}),
   };
 
   switch (raw.type) {
@@ -120,12 +125,15 @@ function normalizeQuestion(raw: unknown): Question | null {
         : null;
       return { ...base, type: "multiple-choice", options, correctOptionId: correct, lockOptions: raw.lockOptions === true };
     }
-    case "true-false":
+    case "true-false": {
+      const notGiven = raw.notGiven === true;
       return {
         ...base,
         type: "true-false",
-        correct: typeof raw.correct === "boolean" ? raw.correct : null,
+        notGiven,
+        correct: typeof raw.correct === "boolean" ? raw.correct : notGiven && raw.correct === "not-given" ? "not-given" : null,
       };
+    }
     case "short-answer":
       return { ...base, type: "short-answer", answer: normalizeRichText(raw.answer) };
     case "open-answer": {
@@ -200,6 +208,7 @@ function normalizeQuestion(raw: unknown): Question | null {
         author: str(raw.author).slice(0, 300),
         body: str(raw.body).slice(0, LIMITS.passageChars),
         lineNumbers: typeof raw.lineNumbers === "boolean" ? raw.lineNumbers : raw.type === "passage",
+        ...(raw.type === "passage" ? { paragraphLetters: raw.paragraphLetters === true } : {}),
       };
     case "fill-blank":
       return {
@@ -210,10 +219,14 @@ function normalizeQuestion(raw: unknown): Question | null {
           .slice(0, LIMITS.blanks)
           .map((b) => {
             const ref = wordRef(b);
-            return ref ? { ...ref, hint: str(isObject(b) ? b.hint : "").slice(0, 100) } : null;
+            if (!ref || !isObject(b)) return null;
+            return { ...ref, hint: str(b.hint).slice(0, 100), options: strings(b.options, 3, 100) };
           })
           .filter((b) => b !== null),
-        wordBank: raw.wordBank === true,
+        // Older tests had wordBank: true / false.
+        mode: raw.mode === "bank" || raw.mode === "choice" || raw.mode === "open" ? raw.mode : raw.wordBank === true ? "bank" : "open",
+        numbered: raw.numbered === true,
+        extras: strings(raw.extras, 10, 100),
       };
     case "mark-words":
       return {
@@ -235,11 +248,13 @@ function normalizeQuestion(raw: unknown): Question | null {
       return {
         ...base,
         type: "find-mistake",
+        style: raw.style === "abcd" ? "abcd" : "correct",
         items: list(raw.items, LIMITS.mistakeItems, (item) => ({
           id: item.id,
           sentence: str(item.sentence).slice(0, 500),
           mistake: wordRef(item.mistake),
           correction: str(item.correction).slice(0, 200),
+          parts: (Array.isArray(item.parts) ? item.parts : []).slice(0, 4).map(wordRef).filter((p) => p !== null),
         })),
       };
     case "sentence-analysis":
@@ -262,6 +277,91 @@ function normalizeQuestion(raw: unknown): Question | null {
         ...base,
         type: "balance",
         equations: list(raw.equations, LIMITS.equations, (e) => ({ id: e.id, balanced: str(e.balanced).slice(0, 300) })),
+      };
+    case "section":
+      return {
+        ...base,
+        type: "section",
+        points: 0,
+        kind: SECTION_KINDS.includes(raw.kind as SectionKind) ? (raw.kind as SectionKind) : "custom",
+        title: str(raw.title).slice(0, 200),
+      };
+    case "listening":
+      return {
+        ...base,
+        type: "listening",
+        points: 0,
+        link: /^https?:\/\//i.test(str(raw.link)) ? str(raw.link).slice(0, 1000) : "",
+        showQr: raw.showQr !== false,
+        plays: raw.plays === 1 || raw.plays === 3 ? raw.plays : 2,
+        transcript: str(raw.transcript).slice(0, LIMITS.passageChars),
+      };
+    case "speaking":
+      return {
+        ...base,
+        type: "speaking",
+        points: 0,
+        perPage: raw.perPage === 2 ? 2 : 4,
+        cards: list(raw.cards, LIMITS.cards, (c) => ({ id: c.id, title: str(c.title).slice(0, 200), prompts: str(c.prompts).slice(0, 2000) })),
+      };
+    case "transformation":
+      return {
+        ...base,
+        type: "transformation",
+        items: list(raw.items, LIMITS.items, (i) => ({
+          id: i.id,
+          original: str(i.original).slice(0, 500),
+          keyWord: str(i.keyWord).slice(0, 50),
+          before: str(i.before).slice(0, 300),
+          after: str(i.after).slice(0, 300),
+          answer: str(i.answer).slice(0, 300),
+        })),
+      };
+    case "word-formation":
+      return {
+        ...base,
+        type: "word-formation",
+        items: list(raw.items, LIMITS.items, (i) => ({ id: i.id, sentence: str(i.sentence).slice(0, 500), gap: wordRef(i.gap), root: str(i.root).slice(0, 50) })),
+      };
+    case "picture-match":
+      return {
+        ...base,
+        type: "picture-match",
+        pictures: list(raw.pictures, LIMITS.pictures, (p) => ({
+          id: p.id,
+          imageId: str(p.imageId),
+          width: Math.max(1, num(p.width, 400)),
+          height: Math.max(1, num(p.height, 300)),
+          answer: str(p.answer).slice(0, 100),
+        })).filter((p) => p.imageId),
+        extras: strings(raw.extras, 10, 100),
+        wordBank: raw.wordBank !== false,
+      };
+    case "odd-one-out":
+      return {
+        ...base,
+        type: "odd-one-out",
+        rows: list(raw.rows, LIMITS.items, (row) => {
+          const words = strings(row.words, 6, 100);
+          const odd = typeof row.odd === "number" && row.odd >= 0 && row.odd < words.length ? Math.round(row.odd) : null;
+          return { id: row.id, words, odd };
+        }),
+      };
+    case "crossword":
+      return {
+        ...base,
+        type: "crossword",
+        entries: list(raw.entries, LIMITS.puzzleWords, (e) => ({ id: e.id, word: str(e.word).slice(0, 30), clue: str(e.clue).slice(0, 300) })),
+        seed: Math.round(num(raw.seed, 1)) >>> 0,
+      };
+    case "word-search":
+      return {
+        ...base,
+        type: "word-search",
+        words: strings(raw.words, LIMITS.puzzleWords, 30),
+        size: clamp(Math.round(num(raw.size, 10)), LIMITS.wordSearchSize.min, LIMITS.wordSearchSize.max),
+        allDirections: raw.allDirections === true,
+        seed: Math.round(num(raw.seed, 1)) >>> 0,
       };
     case "given-find": {
       const lines = clamp(Math.round(num(raw.lines, DEFAULT_GIVEN_FIND_LINES)), MIN_GIVEN_FIND_LINES, MAX_LINES);
@@ -286,6 +386,7 @@ function normalizePrintOptions(raw: unknown): PrintOptions {
     fontSize: o.fontSize === "large" ? "large" : DEFAULT_PRINT_OPTIONS.fontSize,
     showPoints: typeof o.showPoints === "boolean" ? o.showPoints : DEFAULT_PRINT_OPTIONS.showPoints,
     columns: o.columns === 2 ? 2 : DEFAULT_PRINT_OPTIONS.columns,
+    bilingual: o.bilingual === true,
   };
 }
 
@@ -325,6 +426,7 @@ export function normalizeTest(raw: unknown): Test | null {
     subjectId: isSubjectId(raw.subjectId) ? raw.subjectId : (subjectFromText(str(raw.subject)) ?? DEFAULT_SUBJECT),
     subject: str(raw.subject),
     grade: str(raw.grade),
+    level: CEFR_LEVELS.includes(raw.level as CefrLevel) ? (raw.level as CefrLevel) : "",
     date: str(raw.date),
     timeLimitMinutes:
       typeof raw.timeLimitMinutes === "number" && raw.timeLimitMinutes > 0

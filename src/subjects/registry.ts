@@ -16,6 +16,7 @@ import { georgianToolkit } from "./georgian";
 import { historyToolkit } from "./history";
 import { DEFAULT_SUBJECT, SUBJECT_IDS, type SubjectId } from "./ids";
 import { mathToolkit } from "./math";
+import { englishToolkit } from "./english";
 import { physicsToolkit } from "./physics";
 import type { SubjectToolkit } from "./types";
 
@@ -25,6 +26,7 @@ const TOOLKITS: Record<SubjectId, SubjectToolkit> = {
   chemistry: chemistryToolkit,
   history: historyToolkit,
   georgian: georgianToolkit,
+  english: englishToolkit,
 };
 
 /** Every toolkit, in picker order. */

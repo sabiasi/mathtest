@@ -52,6 +52,17 @@ export function TextBlockEditor<Q extends PassageQuestion | PoemQuestion>({ ques
           />
           {t(poem ? "text.verseNumbers" : "text.lineNumbers")}
         </label>
+        {question.type === "passage" && (
+          <label className="flex items-center gap-2 text-soft-foreground">
+            <input
+              type="checkbox"
+              className="size-4 accent-primary"
+              checked={question.paragraphLetters === true}
+              onChange={(e) => onChange({ ...question, paragraphLetters: e.target.checked })}
+            />
+            {t("text.paragraphLetters")}
+          </label>
+        )}
         <span className="inline-flex items-center gap-1.5 text-muted-foreground">
           <BookOpenText className="size-4" aria-hidden="true" />
           {count}

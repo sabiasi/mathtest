@@ -39,7 +39,7 @@ const isMac = () => typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(n
 export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
   const t = useT();
   const language = useLanguage();
-  const { insert, insertText, insertChem } = useMathEditing();
+  const { insert, insertText, insertChem, toggleFormat } = useMathEditing();
   const tabs = toolkit.toolbar;
   const [tabId, setTabId] = useState(tabs[0]?.id);
   const tab = tabs.find((x) => x.id === tabId) ?? tabs[0];
@@ -63,7 +63,7 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
       (style?.buttons ?? tab?.buttons ?? []).map((button) => ({
         ...button,
         // Text buttons show their text; formula buttons a little formula.
-        html: button.text === undefined ? convertLatexToMarkup(button.display) : null,
+        html: button.text === undefined && !button.format ? convertLatexToMarkup(button.display) : null,
       })),
     [tab, style],
   );
@@ -72,7 +72,8 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
 
   /** A button inserts chemistry, plain text, or (most often) a formula. */
   function press(button: ToolbarButton) {
-    if (button.chem !== undefined) insertChem(button.chem, button.caretBack);
+    if (button.format) toggleFormat(button.format);
+    else if (button.chem !== undefined) insertChem(button.chem, button.caretBack);
     else if (button.text !== undefined) insertText(button.text, button.caretBack);
     else insert(button.latex);
   }

@@ -1,9 +1,9 @@
 "use client";
 
 import { convertLatexToMarkup } from "mathlive";
-import { Fragment } from "react";
+import { Fragment, type ReactNode } from "react";
 import { useTypography } from "@/features/print/Typography";
-import type { RichText } from "@/lib/richText";
+import type { RichText, TextMark } from "@/lib/richText";
 
 /**
  * Shows rich text read-only: text as-is, formulas drawn as static math.
@@ -17,7 +17,9 @@ export function RichTextView({ value, className = "" }: { value: RichText; class
     <span className={`whitespace-pre-wrap ${className}`}>
       {value.map((segment, i) =>
         segment.type === "text" ? (
-          <Fragment key={i}>{fix(segment.text)}</Fragment>
+          <Formatted key={i} marks={segment.marks}>
+            {fix(segment.text)}
+          </Formatted>
         ) : (
           <span
             key={i}
@@ -30,4 +32,14 @@ export function RichTextView({ value, className = "" }: { value: RichText; class
       )}
     </span>
   );
+}
+
+/** Wraps text in its formatting: <strong>, <em>, <u> and the word box. */
+function Formatted({ marks, children }: { marks?: TextMark[]; children: ReactNode }) {
+  let content = children;
+  if (marks?.includes("bold")) content = <strong>{content}</strong>;
+  if (marks?.includes("italic")) content = <em>{content}</em>;
+  if (marks?.includes("underline")) content = <u>{content}</u>;
+  if (marks?.includes("box")) content = <span className="rt-box">{content}</span>;
+  return <>{content}</>;
 }

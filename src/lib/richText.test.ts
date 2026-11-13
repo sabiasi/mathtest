@@ -19,6 +19,21 @@ describe("richTextToDoc / docToRichText", () => {
     expect(docToRichText(richTextToDoc(sample))).toEqual(sample);
   });
 
+  it("keeps bold / italic / underline / box formatting", () => {
+    const formatted: RichText = [
+      { type: "text", text: "Choose the " },
+      { type: "text", text: "correct", marks: ["bold", "underline"] },
+      { type: "text", text: " word." },
+    ];
+    expect(docToRichText(richTextToDoc(formatted))).toEqual(formatted);
+    expect(richTextToDoc(formatted).content?.[0].content?.[1].marks).toEqual([{ type: "bold" }, { type: "underline" }]);
+    // Saved data with unknown marks is cleaned; plain text stays without "marks".
+    expect(normalizeRichText([{ type: "text", text: "a", marks: ["bold", "glitter"] }, { type: "text", text: "b" }])).toEqual([
+      { type: "text", text: "a", marks: ["bold"] },
+      { type: "text", text: "b" },
+    ]);
+  });
+
   it("puts each line in its own paragraph", () => {
     const doc = richTextToDoc(sample);
     expect(doc.content).toHaveLength(2);

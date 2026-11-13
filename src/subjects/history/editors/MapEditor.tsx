@@ -26,8 +26,11 @@ export function MapEditor({
   question,
   onChange,
   onPatch,
+  picture = false,
 }: {
   question: MapQuestion;
+  /** Wording for a picture to label (English "Label the picture") instead of a map. */
+  picture?: boolean;
   onChange: (question: MapQuestion) => void;
   /** For the upload, which finishes later: applied to the newest version of the question. */
   onPatch: (patch: (question: MapQuestion) => MapQuestion) => void;
@@ -78,10 +81,10 @@ export function MapEditor({
         data-map-editor=""
       >
         <MapPinned className="size-8 text-brand" aria-hidden="true" />
-        <p className="max-w-md text-[15px] text-soft-foreground">{t("map.empty")}</p>
+        <p className="max-w-md text-[15px] text-soft-foreground">{t(picture ? "picture.empty" : "map.empty")}</p>
         <button type="button" disabled={busy} onClick={() => fileInput.current?.click()} className={buttonVariants({ variant: "outline" })}>
           {busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <ImagePlus className="size-4" aria-hidden="true" />}
-          {t(busy ? "media.uploading" : "map.upload")}
+          {t(busy ? "media.uploading" : picture ? "picture.upload" : "map.upload")}
         </button>
         {error && <p className="text-sm text-destructive-text">{error}</p>}
         {picker}

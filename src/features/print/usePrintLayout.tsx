@@ -19,7 +19,7 @@ import type { Test } from "@/lib/storage/types";
 import { RichTextView } from "@/features/math/RichTextView";
 import { optionLabel, visibleOptions } from "@/lib/questions";
 import { PrintHeader, rightColumnPercent, type OptionColumns, type PrintVersion } from "./PrintBlocks";
-import { flowsOn, printBlocks } from "./blocks";
+import { flowsOn, keepsWithNext, printBlocks } from "./blocks";
 import { renderBlock } from "./pieces";
 
 // --- Paper geometry, in millimetres (must match .sheet in globals.css) ---
@@ -131,11 +131,14 @@ export function usePrintLayout(test: Test, version: PrintVersion, language: stri
       const header = root.querySelector<HTMLElement>("[data-header]")!;
       // Paragraphs and essay lines that continue the block before them are
       // drawn without a gap (see pieces.tsx), so they need none here either.
-      const flowing = new Set(printBlocks(test.questions).filter(flowsOn).map((b) => b.key));
+      const list = printBlocks(test.questions, version);
+      const flowing = new Set(list.filter(flowsOn).map((b) => b.key));
+      const keepers = new Set(list.filter(keepsWithNext).map((b) => b.key));
       const blocks = [...root.querySelectorAll<HTMLElement>("[data-block]")].map((el) => ({
         key: el.dataset.block!,
         height: el.getBoundingClientRect().height,
         gap: flowing.has(el.dataset.block!) ? 0 : undefined,
+        keepWithNext: keepers.has(el.dataset.block!),
       }));
       const value = paginate({
         blocks,
@@ -150,7 +153,7 @@ export function usePrintLayout(test: Test, version: PrintVersion, language: stri
     return () => {
       alive = false;
     };
-  }, [signature, optionColumns, pages?.signature, columns, test.questions]);
+  }, [signature, optionColumns, pages?.signature, columns, test.questions, version]);
 
   // While re-measuring (e.g. a font finished loading), keep showing the previous
   // pages instead of flashing an empty screen. `ready` says the pages are up to date.
@@ -187,7 +190,7 @@ export function usePrintLayout(test: Test, version: PrintVersion, language: stri
             <PrintHeader test={test} version={version} variant={variant} />
           </div>
           <div style={{ width: `${columnWidth(columns)}mm` }}>
-            {printBlocks(test.questions).map((block) => (
+            {printBlocks(test.questions, version).map((block) => (
               <div key={block.key} data-block={block.key}>
                 {renderBlock(block, { test, version, optionColumns: currentColumns, lineStarts: {} })}
               </div>

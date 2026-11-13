@@ -35,9 +35,38 @@ export const QUESTION_TYPES: readonly QuestionType[] = [
   "fill-blank",
 ];
 
-/** Reading texts and poems: not questions (no number, no points), questions refer to them. */
+/**
+ * Blocks that are not questions (no number, no points): reading texts and
+ * poems, section headings, listening blocks, speaking cards.
+ */
+const NOT_QUESTIONS: readonly QuestionType[] = ["passage", "poem", "section", "listening", "speaking"];
 export function isTextBlock(question: Question): boolean {
-  return question.type === "passage" || question.type === "poem";
+  return NOT_QUESTIONS.includes(question.type);
+}
+
+/** A stable number from a text (for the first layout of a crossword / word search). */
+function seedOf(text: string): number {
+  let hash = 2166136261;
+  for (let i = 0; i < text.length; i++) hash = Math.imul(hash ^ text.charCodeAt(i), 16777619);
+  return hash >>> 0;
+}
+
+/**
+ * Points of each section: the sum of the questions after it, up to the next
+ * section. Returns { section id: points }.
+ */
+export function sectionPoints(questions: Question[]): Map<string, number> {
+  const totals = new Map<string, number>();
+  let current: string | null = null;
+  for (const question of questions) {
+    if (question.type === "section") {
+      current = question.id;
+      totals.set(current, 0);
+    } else if (current && !isTextBlock(question)) {
+      totals.set(current, (totals.get(current) ?? 0) + question.points);
+    }
+  }
+  return totals;
 }
 
 /**
@@ -69,6 +98,11 @@ export const LIMITS = {
   essayLines: 60,
   guidePoints: 8,
   equations: 8,
+  items: 12,
+  cards: 12,
+  pictures: 12,
+  puzzleWords: 20,
+  wordSearchSize: { min: 8, max: 15 },
 };
 
 function emptyOptions(count: number): ChoiceOption[] {
@@ -134,7 +168,7 @@ export function createQuestion(
     case "poem":
       return { ...base, type, points: 0, title: "", author: "", body: "", lineNumbers: false };
     case "fill-blank":
-      return { ...base, type, points: keep.points ?? 2, body: "", blanks: [], wordBank: false };
+      return { ...base, type, points: keep.points ?? 2, body: "", blanks: [], mode: "open", numbered: true, extras: [] };
     case "mark-words":
       return { ...base, type, points: keep.points ?? 2, body: "", marked: [] };
     case "grammar-table":
@@ -165,6 +199,29 @@ export function createQuestion(
         points: keep.points ?? 2,
         equations: Array.from({ length: 2 }, () => ({ id: newId(), balanced: "" })),
       };
+    case "section":
+      return { ...base, type, points: 0, kind: "reading", title: "" };
+    case "listening":
+      return { ...base, type, points: 0, link: "", showQr: true, plays: 2, transcript: "" };
+    case "speaking":
+      return { ...base, type, points: 0, perPage: 4, cards: [{ id: newId(), title: "", prompts: "" }] };
+    case "transformation":
+      return {
+        ...base,
+        type,
+        points: keep.points ?? 4,
+        items: Array.from({ length: 2 }, () => ({ id: newId(), original: "", keyWord: "", before: "", after: "", answer: "" })),
+      };
+    case "word-formation":
+      return { ...base, type, points: keep.points ?? 4, items: Array.from({ length: 3 }, () => ({ id: newId(), sentence: "", gap: null, root: "" })) };
+    case "picture-match":
+      return { ...base, type, points: keep.points ?? 4, pictures: [], extras: [], wordBank: true };
+    case "odd-one-out":
+      return { ...base, type, points: keep.points ?? 3, rows: Array.from({ length: 3 }, () => ({ id: newId(), words: ["", "", "", ""], odd: null })) };
+    case "crossword":
+      return { ...base, type, points: keep.points ?? 5, entries: Array.from({ length: 4 }, () => ({ id: newId(), word: "", clue: "" })), seed: seedOf(base.id) };
+    case "word-search":
+      return { ...base, type, points: keep.points ?? 4, words: [], size: 10, allDirections: false, seed: seedOf(base.id) };
     case "given-find":
       return { ...base, type, points: keep.points ?? 3, lines: DEFAULT_GIVEN_FIND_LINES, given: [], find: [], solution: [], answer: [] };
   }

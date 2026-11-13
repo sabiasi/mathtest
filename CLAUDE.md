@@ -4,7 +4,7 @@
 
 A web app for school teachers in Georgia (the country) to create tests,
 quizzes and exams in **any subject** (Mathematics, Physics, Chemistry, History,
-Georgian Language & Literature; more later), then print them or export them as
+Georgian Language & Literature, English as a foreign language; more later), then print them or export them as
 PDF to hand out in class. Today teachers use Microsoft Word, where typing math
 (and other special content) is painful. MathTest must make it fast and easy.
 Visitors can try everything without an account (guest mode).
@@ -134,6 +134,24 @@ Visitors can try everything without an account (guest mode).
   paper shows a box before each substance, key the coefficients).
   Structural formulas as a diagram (`structure`: atoms on grid dots, bonds
   1/2/3 on gaps, templates methane … acetic acid). All five subjects ready.
+- [x] **English toolkit** (EFL, A1–C1): subject id `english`; paper in
+  English (`print.language: "en"` → `LanguageOverride` around the sheets),
+  optional Georgian instructions (`instructionKa` on any question, print
+  option `bilingual`), CEFR `test.level`, `lang="en"` on the editor for
+  spellcheck, Latin letters by default. Non-question blocks: `section`
+  (points = sum of following questions, `sectionPoints`), `listening` (public
+  link → QR via qrcode-generator, plays 1–3×, transcript on the key only;
+  an audio file can be played from the computer, never uploaded), `speaking`
+  (cue cards, 2/4 per 220 mm page, cut lines). New types: transformation,
+  word-formation, picture-match, odd-one-out, crossword, word-search
+  (`lib/puzzles.ts`, seeded; "New layout" = new seed). Extended: true/false
+  `notGiven`, passage `paragraphLetters`, fill-blank `mode` open/bank/choice
+  + `numbered` + `extras` + per-gap `options` (bank and choices shuffled in
+  every variant, gaps never), find-mistake `style: "abcd"` with `parts`.
+  Rich text marks bold/italic/underline/box (all subjects; ⌘B/I/U). Toolkit
+  extras: `instructionTemplates` (menu in the card), `typeLabels`, `presets`
+  (Verb forms, True/False/Not Given), `markersOnPicture` (map → "Label the
+  picture"). Section headings keep with the next block.
 - [ ] Later: backup import/export, templates, own email service (SMTP) and
   hosting.
 
@@ -160,6 +178,8 @@ Visitors can try everything without an account (guest mode).
 | Chemistry | `lib/chem.ts`: `chemLatex`/`chemSource` (\ce wrapper), `fixCharges`, `parseEquation`, `countAtoms`, `checkBalance`. In `MathNode.ts` a node whose LaTeX starts with `\ce{` gets `chemNodeView` (input[data-chem] + preview) instead of a math-field. `MathEditingContext.insertChem` types into the last focused chemistry box or starts one (`startChem`). Toolbar buttons with `chem: "..."` type mhchem code; toolkit flag `chemistry` shows the button. Elements in `subjects/chemistry/elements.ts` |
 | Diagrams | Stored as DATA inside `QuestionImage.diagram` (with `imageId: ""`), so they reuse picture placement (above/right, size %) and print layout. Kinds: circuit, forces (physics), structure (chemistry, `subjects/chemistry/structure/`). Grid gaps "h:x:y"/"v:x:y" via `lib/gridEdges.ts`. Drawn as inline SVG by `subjects/physics/diagrams/DiagramView.tsx` (the shared entry point) (page font → Georgian labels work; black on white). Pure geometry in `geometry.ts`, validation/defaults in `normalize.ts` (called from migrate.ts). Editors open in `DiagramDialog` and work on a draft (Cancel = no change). `diagramSize()` sets width/height (aspect ratio) on save |
 | Print blocks | `features/print/blocks.ts`: `printBlocks(questions)` = what `paginate` packs. One block per question, except: `passage` → one per paragraph (`id~p0…`), `poem` → one per stanza (`id~s0…`), `essay` → the question + blocks of 10 lines (`id~l0…`). Continuations (`flowsOn`) get `gap: 0` in paginate and are pulled up over the flex gap when not first in a column. `pieces.tsx` `renderBlock` draws a block. Reading-text line numbers: every line has the same height (line-height 1.65 = PASSAGE_LINE_HEIGHT), `usePrintLayout` measures each paragraph's height ÷ line height → `lineStarts`; numbers are positioned at n × 1.65em (on a wrapper with the text's font size) and clipped. Question numbers come from `questionNumbers()` (texts get none); the answer table skips texts; variants shuffle only the questions between texts (`shuffleAroundTexts`) |
+| Rich text marks | `RichText` text segments may have `marks` (bold, italic, underline, box); TipTap Bold/Italic/Underline + our `BoxMark`; `RichTextView` wraps them. Toolbar buttons with `format` toggle a mark |
+| Print language | `LanguageOverride` (i18n/language.ts) makes `useT`/`useLanguage` return a fixed language inside the sheets (English tests). The app around them stays in the interface language |
 | Typography | `lib/typography.ts` `georgianTypography` („“, —, …) applied at print time when the toolkit has `print.typography: "georgian"`, via `TypographyProvider` / `useTypography()` (RichTextView, header, Georgian blocks). Editors show text as typed |
 | Words | `lib/words.ts`: `tokenize`, clicked words saved as `WordRef { word, occurrence }` (survives edits elsewhere); `WordPicker` in the editor |
 | Print | Our own pagination (`src/lib/paginate.ts` + `usePrintLayout`) into fixed 210×297mm `.sheet`s; `@page { size: A4; margin: 0 }` |
@@ -371,6 +391,14 @@ src/
   chemistry box after the periodic-table window). Don't chain `.focus()` there.
 - Toolbar windows (periodic table) carry `data-keep-editing`, or the toolbar
   would close (and unmount the window) when focus moves into them.
+- A RichTextInput only reads `value` when created: to replace the text from
+  outside (instruction templates), change its `key` (QuestionCard `textVersion`).
+- Non-question blocks (`isTextBlock`): passage, poem, section, listening,
+  speaking — no number, no points, skipped by the answer table, fixed in
+  shuffled variants. Pieces may depend on the version (`printBlocks(questions,
+  version)`): the transcript exists on the key only.
+- Pictures used by `picture-match` live in `q.pictures`; `usedImageIds` counts
+  them (like maps).
 - This project has no Prettier: don't run `npx prettier` (it downloads one
   and re-wraps whole files at 80 columns). Match the existing ~140-column style.
 - `cleanUpImages(tests)` must only run once tests are loaded (`tests !== null`):

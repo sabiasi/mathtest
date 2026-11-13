@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
+import { SegmentedControl } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { WordPicker } from "@/features/editor/questions/WordPicker";
 import { useT } from "@/i18n/language";
@@ -18,9 +19,22 @@ export function FindMistakeEditor({ question, onChange }: { question: FindMistak
   const { items } = question;
   const setItem = (id: string, changes: Partial<Item>) => onChange({ ...question, items: items.map((i) => (i.id === id ? { ...i, ...changes } : i)) });
 
+  const abcd = question.style === "abcd";
   return (
     <div className="space-y-3" data-find-mistake-editor="">
-      <p className="text-sm text-muted-foreground">{t("mistake.hint")}</p>
+      <div className="flex flex-wrap items-center gap-2 text-sm text-soft-foreground">
+        {t("mistake.style")}
+        <SegmentedControl
+          label={t("mistake.style")}
+          value={abcd ? "abcd" : "correct"}
+          onChange={(style) => onChange({ ...question, style })}
+          options={[
+            { value: "correct", label: t("mistake.styleCorrect") },
+            { value: "abcd", label: t("mistake.styleAbcd") },
+          ]}
+        />
+      </div>
+      <p className="text-sm text-muted-foreground">{t(abcd ? "mistake.hintAbcd" : "mistake.hint")}</p>
       <ol className="space-y-3">
         {items.map((item, index) => {
           const mistake = item.mistake && findRef(tokenize(item.sentence), item.mistake) >= 0 ? item.mistake : null;
@@ -45,12 +59,16 @@ export function FindMistakeEditor({ question, onChange }: { question: FindMistak
                 />
               </div>
               <div className="ml-8 space-y-2">
-                <WordPicker
-                  text={item.sentence}
-                  isChosen={(ref) => sameRef(mistake, ref)}
-                  onPick={(ref) => setItem(item.id, { mistake: sameRef(mistake, ref) ? null : ref })}
-                  label={t("mistake.pick")}
-                />
+                {abcd ? (
+                  <AbcdPicker item={item} onChange={(changes) => setItem(item.id, changes)} />
+                ) : (
+                  <WordPicker
+                    text={item.sentence}
+                    isChosen={(ref) => sameRef(mistake, ref)}
+                    onPick={(ref) => setItem(item.id, { mistake: sameRef(mistake, ref) ? null : ref })}
+                    label={t("mistake.pick")}
+                  />
+                )}
                 <Input
                   className="h-9"
                   value={item.correction}
@@ -73,6 +91,47 @@ export function FindMistakeEditor({ question, onChange }: { question: FindMistak
         <Plus className="size-4" aria-hidden="true" />
         {t("mistake.add")}
       </button>
+    </div>
+  );
+}
+
+/**
+ * A–D style: click up to 4 words to underline them (A, B, C, D in sentence
+ * order), then click the wrong one in the row below.
+ */
+function AbcdPicker({ item, onChange }: { item: Item; onChange: (changes: Partial<Item>) => void }) {
+  const t = useT();
+  const tokens = tokenize(item.sentence);
+  const parts = (item.parts ?? []).filter((p) => findRef(tokens, p) >= 0).sort((a, b) => findRef(tokens, a) - findRef(tokens, b));
+  return (
+    <div className="space-y-2">
+      <WordPicker
+        text={item.sentence}
+        isChosen={(ref) => parts.some((p) => sameRef(p, ref))}
+        onPick={(ref) => {
+          const exists = parts.some((p) => sameRef(p, ref));
+          if (!exists && parts.length >= 4) return;
+          const next = exists ? parts.filter((p) => !sameRef(p, ref)) : [...parts, ref];
+          onChange({ parts: next, mistake: item.mistake && next.some((p) => sameRef(p, item.mistake)) ? item.mistake : null });
+        }}
+        label={t("mistake.pickParts")}
+      />
+      {parts.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-muted-foreground">{t("mistake.whichWrong")}</span>
+          {parts.map((part, i) => (
+            <button
+              key={`${part.word}-${part.occurrence}`}
+              type="button"
+              aria-pressed={sameRef(item.mistake, part)}
+              onClick={() => onChange({ mistake: sameRef(item.mistake, part) ? null : part })}
+              className="rounded-md border px-2 py-1 transition-colors hover:bg-accent aria-pressed:border-destructive aria-pressed:bg-destructive-soft aria-pressed:text-destructive-text"
+            >
+              {String.fromCharCode(65 + i)}: {part.word}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

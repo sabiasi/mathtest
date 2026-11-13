@@ -1,0 +1,7 @@
+/*
+ * Print styles that only apply to English tests (inside ".subject-english").
+ * The shared English blocks are styled in globals.css.
+ */
+.subject-english .print-text {
+  font-weight: 600; /* exam-style: instructions in bold */
+}

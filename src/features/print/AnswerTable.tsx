@@ -19,7 +19,7 @@ import type { Question, Test } from "@/lib/storage/types";
 import type { Variant } from "@/lib/variants";
 import { orderAnswer } from "@/subjects/history/HistoryPrint";
 import { balanceAnswer } from "@/subjects/chemistry/BalancePrint";
-import { fillBlankAnswers } from "./FillBlankPrint";
+import { fillBlankAnswers, fillBlankChoiceAnswers } from "./FillBlankPrint";
 import { matchingAnswers } from "./MatchingPrint";
 import { CONTENT_HEIGHT, CONTENT_WIDTH, PAGE, mmToPx } from "./usePrintLayout";
 
@@ -31,7 +31,7 @@ function Cell({ question, labelStyle }: { question: Question; labelStyle: Test["
     case "multiple-choice":
       return <>{correctOptionLabel(question, labelStyle) ?? "—"}</>;
     case "true-false":
-      return <>{question.correct === null ? "—" : t(question.correct ? "tf.true" : "tf.false")}</>;
+      return <>{question.correct === null ? "—" : t(question.correct === "not-given" ? "tf.notGiven" : question.correct ? "tf.true" : "tf.false")}</>;
     case "short-answer":
       return isRichTextEmpty(question.answer) ? <>—</> : <RichTextView value={question.answer} />;
     case "open-answer":
@@ -43,7 +43,20 @@ function Cell({ question, labelStyle }: { question: Question; labelStyle: Test["
     case "balance":
       return <>{question.equations.filter((e) => e.balanced.trim()).map((e) => balanceAnswer(e.balanced)).join(" | ") || "—"}</>;
     case "fill-blank":
-      return <>{fillBlankAnswers(question).join(", ") || "—"}</>;
+      return (
+        <>
+          {(question.mode === "choice" ? fillBlankChoiceAnswers(question, labelStyle).map((l, i) => `${i + 1}${l}`).join(" ") : fillBlankAnswers(question).join(", ")) ||
+            "—"}
+        </>
+      );
+    case "transformation":
+      return <>{question.items.map((i) => i.answer).filter(Boolean).join("; ") || "—"}</>;
+    case "word-formation":
+      return <>{question.items.map((i) => i.gap?.word).filter(Boolean).join(", ") || "—"}</>;
+    case "picture-match":
+      return <>{question.pictures.map((p, i) => `${i + 1} ${p.answer}`).join(", ") || "—"}</>;
+    case "odd-one-out":
+      return <>{question.rows.map((r) => (r.odd === null ? "?" : r.words[r.odd])).join(", ") || "—"}</>;
     case "mark-words":
       return <>{question.marked.map((m) => m.word).join(", ") || "—"}</>;
     case "find-mistake":
@@ -51,6 +64,11 @@ function Cell({ question, labelStyle }: { question: Question; labelStyle: Test["
     case "timeline":
     case "source":
     case "map":
+    case "crossword":
+    case "word-search":
+    case "section":
+    case "listening":
+    case "speaking":
     case "grammar-table":
     case "sentence-analysis":
     case "essay":
