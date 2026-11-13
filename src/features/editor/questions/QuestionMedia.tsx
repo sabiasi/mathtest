@@ -3,7 +3,7 @@
 /**
  * Pictures and the answer grid of one question, in the editor.
  */
-import { Grid3x3, ImagePlus, LoaderCircle, Minus, MoveUpRight, Pencil, Plus, X, Zap, type LucideIcon } from "lucide-react";
+import { Grid3x3, Hexagon, ImagePlus, LoaderCircle, Minus, MoveUpRight, Pencil, Plus, X, Zap, type LucideIcon } from "lucide-react";
 import { useRef, useState, type PointerEvent } from "react";
 import { GRID_CELL_MM, GridArea } from "@/components/GridArea";
 import { QuestionImageView } from "@/components/QuestionImageView";
@@ -169,7 +169,7 @@ function EditableImage({
 // The bar under a question: "Add image" and the answer grid
 // ---------------------------------------------------------------------------
 
-const DIAGRAM_ICONS: Record<DiagramKind, LucideIcon> = { circuit: Zap, forces: MoveUpRight };
+const DIAGRAM_ICONS: Record<DiagramKind, LucideIcon> = { circuit: Zap, forces: MoveUpRight, structure: Hexagon };
 
 export function MediaBar({
   grid,

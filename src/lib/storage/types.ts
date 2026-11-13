@@ -99,7 +99,20 @@ export interface ForceDiagram {
   vectorLabels: boolean;
 }
 
-export type Diagram = CircuitDiagram | ForceDiagram;
+/**
+ * Chemistry: an expanded structural formula on a grid of dots. Atoms sit on
+ * dots ("x:y"), bonds on the gaps between neighbouring dots ("h:x:y" /
+ * "v:x:y", like circuits): single, double or triple.
+ */
+export interface StructureDiagram {
+  kind: "structure";
+  cols: number;
+  rows: number;
+  atoms: { at: string; label: string }[];
+  bonds: { at: string; order: 1 | 2 | 3 }[];
+}
+
+export type Diagram = CircuitDiagram | ForceDiagram | StructureDiagram;
 export type DiagramKind = Diagram["kind"];
 
 /** Graph paper or a coordinate plane printed as an answer area. 5 mm squares. */
@@ -336,6 +349,16 @@ export interface EssayQuestion extends QuestionBase {
 }
 
 /**
+ * Chemistry: balance the equation. The teacher writes the BALANCED equation
+ * ("2H2 + O2 -> 2H2O"); the paper shows an empty box before every substance,
+ * the answer key the coefficients.
+ */
+export interface BalanceQuestion extends QuestionBase {
+  type: "balance";
+  equations: { id: string; balanced: string }[];
+}
+
+/**
  * A question is exactly ONE of these. The `type` field tells which one —
  * TypeScript calls this a "discriminated union".
  */
@@ -357,7 +380,8 @@ export type Question =
   | GrammarTableQuestion
   | FindMistakeQuestion
   | SentenceAnalysisQuestion
-  | EssayQuestion;
+  | EssayQuestion
+  | BalanceQuestion;
 
 export type QuestionType = Question["type"];
 

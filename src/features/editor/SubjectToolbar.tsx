@@ -1,20 +1,24 @@
 "use client";
 
 import { convertLatexToMarkup } from "mathlive";
-import { Sigma } from "lucide-react";
+import { FlaskConical, Sigma } from "lucide-react";
 import { motion } from "motion/react";
 import { Fragment, useMemo, useState, type MouseEvent } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMathEditing } from "@/features/math/MathEditingContext";
 import { useLanguage, useT } from "@/i18n/language";
-import type { SubjectToolkit } from "@/subjects/types";
+import type { SubjectToolkit, ToolbarButton } from "@/subjects/types";
 
 // Clicking a toolbar button must NOT move the keyboard focus away from the
 // text box — otherwise we'd lose track of where the cursor was.
 // (Radix Tabs would normally switch tabs on mouse-down; preventing it there
 // means we switch in onClick instead — see the tab buttons below.)
 const keepFocus = (event: MouseEvent) => event.preventDefault();
+
+/** The big "Σ Formula" / "Chemical formula" buttons. */
+const primaryButton =
+  "inline-flex h-9 shrink-0 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-sm transition-[background-color,transform] duration-150 hover:bg-primary-hover motion-safe:active:scale-[0.97]";
 
 /** The remembered writing style of a tab (e.g. units), or null. */
 function readStyle(storageKey: string): string | null {
@@ -35,7 +39,7 @@ const isMac = () => typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(n
 export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
   const t = useT();
   const language = useLanguage();
-  const { insert, insertText } = useMathEditing();
+  const { insert, insertText, insertChem } = useMathEditing();
   const tabs = toolkit.toolbar;
   const [tabId, setTabId] = useState(tabs[0]?.id);
   const tab = tabs.find((x) => x.id === tabId) ?? tabs[0];
@@ -66,6 +70,13 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
 
   const shortcut = isMac() ? "⌥ =" : "Alt + =";
 
+  /** A button inserts chemistry, plain text, or (most often) a formula. */
+  function press(button: ToolbarButton) {
+    if (button.chem !== undefined) insertChem(button.chem, button.caretBack);
+    else if (button.text !== undefined) insertText(button.text, button.caretBack);
+    else insert(button.latex);
+  }
+
   return (
     <motion.div
       className="overflow-x-clip border-t"
@@ -87,23 +98,27 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
       <Tabs value={tab?.id ?? ""} onValueChange={setTabId} className="mx-auto max-w-5xl gap-0 px-4 sm:px-6">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
           {toolkit.formulas && (
-            <>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onMouseDown={keepFocus}
-                onClick={() => insert("")}
-                className="inline-flex h-9 shrink-0 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-primary-foreground shadow-sm transition-[background-color,transform] duration-150 hover:bg-primary-hover motion-safe:active:scale-[0.97]"
-              >
-                <Sigma className="size-4" aria-hidden="true" />
-                {t("math.insert")}
-                <kbd className="rounded bg-white/20 px-1.5 py-0.5 font-sans text-xs font-medium">{shortcut}</kbd>
-              </button>
-            </TooltipTrigger>
-            <TooltipContent>{`${t("math.insertTooltip")} (${shortcut})`}</TooltipContent>
-          </Tooltip>
-            </>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" onMouseDown={keepFocus} onClick={() => insert("")} className={primaryButton}>
+                  <Sigma className="size-4" aria-hidden="true" />
+                  {t("math.insert")}
+                  <kbd className="rounded bg-white/20 px-1.5 py-0.5 font-sans text-xs font-medium">{shortcut}</kbd>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{`${t("math.insertTooltip")} (${shortcut})`}</TooltipContent>
+            </Tooltip>
+          )}
+          {toolkit.chemistry && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button type="button" onMouseDown={keepFocus} onClick={() => insertChem("")} className={primaryButton} data-insert-chem="">
+                  <FlaskConical className="size-4" aria-hidden="true" />
+                  {t("chem.insert")}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{t("chem.insertTooltip")}</TooltipContent>
+            </Tooltip>
           )}
 
           {/* Tabs (scroll sideways on phones, wrap on bigger screens) */}
@@ -124,7 +139,7 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
 
         {/* Buttons of the chosen tab */}
         <TabsContent value={tab?.id ?? ""} className="flex flex-wrap gap-1 pt-2 pb-2.5" aria-label={tab?.[language]}>
-          {tab?.Widget && <tab.Widget insertText={insertText} />}
+          {tab?.Widget && <tab.Widget insertText={insertText} insertChem={insertChem} />}
           {tab?.styles && (
             <div
               role="group"
@@ -158,7 +173,7 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
                   <button
                     type="button"
                     onMouseDown={keepFocus}
-                    onClick={() => (button.text === undefined ? insert(button.latex) : insertText(button.text, button.caretBack))}
+                    onClick={() => press(button)}
                     aria-label={button[language]}
                     className="flex h-10 min-w-10 items-center justify-center rounded-lg border bg-card px-2 text-foreground shadow-xs transition-[background-color,border-color,transform] duration-150 hover:border-primary-soft-border hover:bg-primary-soft motion-safe:active:scale-95 pointer-coarse:h-11 pointer-coarse:min-w-11"
                   >

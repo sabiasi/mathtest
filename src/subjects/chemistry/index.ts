@@ -1,21 +1,22 @@
 import { FlaskConical } from "lucide-react";
 import { QUESTION_TYPES } from "@/lib/questions";
-import { MATH_TOOLBAR } from "../math/toolbar";
 import type { SubjectToolkit } from "../types";
+import { CHEMISTRY_TOOLBAR } from "./toolbar";
 
 /**
- * Chemistry — PLACEHOLDER. Its own tools (formulas like H₂O, reactions,
- * the periodic table…) come later. Until then it borrows the basic tab
- * from math, so simple formulas already work.
+ * Chemistry: chemical formulas typed like "H2SO4" (mhchem, drawn by
+ * MathLive), reactions with conditions, ions, states, oxidation states, a
+ * periodic table; "balance the equation" questions; structural formulas.
  */
 export const chemistryToolkit: SubjectToolkit = {
   id: "chemistry",
   Icon: FlaskConical,
   colors: { icon: "text-subject-chemistry", chip: "bg-subject-chemistry/12" },
-  status: "placeholder",
+  status: "ready",
   formulas: true,
-  toolbar: MATH_TOOLBAR.filter((tab) => ["basic", "greek"].includes(tab.id)),
-  questionTypes: QUESTION_TYPES,
-  diagrams: [],
+  chemistry: true,
+  toolbar: CHEMISTRY_TOOLBAR,
+  questionTypes: [...QUESTION_TYPES, "balance", "given-find"],
+  diagrams: ["structure"],
   print: { className: "subject-chemistry" },
 };

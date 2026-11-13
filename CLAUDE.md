@@ -28,7 +28,8 @@ Visitors can try everything without an account (guest mode).
    plus units, constants, formulas, Given/Find/Solution problems, circuit and
    force diagrams. History: date/century tools, chronology, timelines,
    sources, maps. Georgian: reading texts with numbered lines, poems,
-   grammar exercises, essays, Georgian typography. Chemistry: placeholder.
+   grammar exercises, essays, Georgian typography. Chemistry: formulas typed
+   like H2SO4, reactions, periodic table, balancing, structural formulas.
 3. **Question types**: common to all subjects — multiple choice, true/false,
    short answer, open answer, matching, fill-in-the-blank; plus each
    subject's own (see the toolkits).
@@ -121,8 +122,20 @@ Visitors can try everything without an account (guest mode).
   … and "(სტრ. )" line references; matching templates ავტორი ↔ ნაწარმოები ↔
   პერსონაჟი (three 2-column ones). Paper uses Georgian typography. No
   literary texts are built in: teachers paste their own.
-- [ ] **Next**: Chemistry toolkit (when asked). Later: backup import/export,
-  templates, own email service (SMTP) and hosting.
+- [x] **Chemistry toolkit**: chemistry formulas = math nodes whose LaTeX is
+  `\ce{…}` (mhchem; MathLive renders it natively — no KaTeX), edited in a
+  plain text box ("H2SO4", "2H2 + O2 -> 2H2O") with a live preview;
+  `fixCharges` turns "Fe3+" into Fe^3+. Toolbar: "ქიმიური ფორმულა" button,
+  tabs Formulas (periodic table popup with Georgian names, states, ↑ ↓,
+  charges, hydrate, common substances), Reactions (arrows, t°, catalyst, hν,
+  "=", arrow-with-conditions tool), Oxidation states (tool: element + state
+  → \overset), plus math basic/algebra/greek. Question type `balance`
+  (teacher types the balanced equation; atoms are counted to verify it;
+  paper shows a box before each substance, key the coefficients).
+  Structural formulas as a diagram (`structure`: atoms on grid dots, bonds
+  1/2/3 on gaps, templates methane … acetic acid). All five subjects ready.
+- [ ] Later: backup import/export, templates, own email service (SMTP) and
+  hosting.
 
 ## Tech decisions
 
@@ -144,7 +157,8 @@ Visitors can try everything without an account (guest mode).
 | Accounts | Supabase Auth via `@supabase/ssr` (sign-in kept in cookies). `src/proxy.ts` refreshes the sign-in and redirects (protected: only /settings; /tests, /editor, /print are open to guests). `/auth/callback` swaps email/Google links for a session. Only the publishable key (`NEXT_PUBLIC_SUPABASE_*` in `.env.local`), never a secret key |
 | Guests | Signed out (or Supabase not configured) = guest: `AuthProvider` starts the repository with `localTestsBackend()` (localStorage key `mathtest:tests:v1`) and `setImageUser(null)` (pictures in IndexedDB store `images`). On sign-in: `stopSync()` → cloud → `moveGuestTestsIntoAccount()` (lib/onboarding.ts): upload pictures, `importTests` (newer local version of an existing id → added as a copy), then after `waitUntilSaved` remove the browser copies. `useAuth().guest`, `useStorageKind()` ("cloud" / "device") |
 | Storage | Supabase Postgres: `profiles`, `tests` (whole test as JSON in `data`, PK user_id+id), Row Level Security on everything (`supabase/schema.sql`). Pictures: Storage bucket `images`, path `<user id>/<picture id>`, plus a browser copy in IndexedDB store `cache` |
-| Diagrams | Stored as DATA inside `QuestionImage.diagram` (with `imageId: ""`), so they reuse picture placement (above/right, size %) and print layout. Drawn as inline SVG by `subjects/physics/diagrams/DiagramView.tsx` (page font → Georgian labels work; black on white). Pure geometry in `geometry.ts`, validation/defaults in `normalize.ts` (called from migrate.ts). Editors open in `DiagramDialog` and work on a draft (Cancel = no change). `diagramSize()` sets width/height (aspect ratio) on save |
+| Chemistry | `lib/chem.ts`: `chemLatex`/`chemSource` (\ce wrapper), `fixCharges`, `parseEquation`, `countAtoms`, `checkBalance`. In `MathNode.ts` a node whose LaTeX starts with `\ce{` gets `chemNodeView` (input[data-chem] + preview) instead of a math-field. `MathEditingContext.insertChem` types into the last focused chemistry box or starts one (`startChem`). Toolbar buttons with `chem: "..."` type mhchem code; toolkit flag `chemistry` shows the button. Elements in `subjects/chemistry/elements.ts` |
+| Diagrams | Stored as DATA inside `QuestionImage.diagram` (with `imageId: ""`), so they reuse picture placement (above/right, size %) and print layout. Kinds: circuit, forces (physics), structure (chemistry, `subjects/chemistry/structure/`). Grid gaps "h:x:y"/"v:x:y" via `lib/gridEdges.ts`. Drawn as inline SVG by `subjects/physics/diagrams/DiagramView.tsx` (the shared entry point) (page font → Georgian labels work; black on white). Pure geometry in `geometry.ts`, validation/defaults in `normalize.ts` (called from migrate.ts). Editors open in `DiagramDialog` and work on a draft (Cancel = no change). `diagramSize()` sets width/height (aspect ratio) on save |
 | Print blocks | `features/print/blocks.ts`: `printBlocks(questions)` = what `paginate` packs. One block per question, except: `passage` → one per paragraph (`id~p0…`), `poem` → one per stanza (`id~s0…`), `essay` → the question + blocks of 10 lines (`id~l0…`). Continuations (`flowsOn`) get `gap: 0` in paginate and are pulled up over the flex gap when not first in a column. `pieces.tsx` `renderBlock` draws a block. Reading-text line numbers: every line has the same height (line-height 1.65 = PASSAGE_LINE_HEIGHT), `usePrintLayout` measures each paragraph's height ÷ line height → `lineStarts`; numbers are positioned at n × 1.65em (on a wrapper with the text's font size) and clipped. Question numbers come from `questionNumbers()` (texts get none); the answer table skips texts; variants shuffle only the questions between texts (`shuffleAroundTexts`) |
 | Typography | `lib/typography.ts` `georgianTypography` („“, —, …) applied at print time when the toolkit has `print.typography: "georgian"`, via `TypographyProvider` / `useTypography()` (RichTextView, header, Georgian blocks). Editors show text as typed |
 | Words | `lib/words.ts`: `tokenize`, clicked words saved as `WordRef { word, occurrence }` (survives edits elsewhere); `WordPicker` in the editor |
@@ -350,6 +364,13 @@ src/
   is inside it.
 - `.answer-table` and print blocks also exist as invisible measuring copies:
   browser tests select `.sheet …`.
+- A `display: none` input can't take focus: show it first (chemistry chips
+  add `.is-editing` in `openChem` before `focus()`).
+- TipTap's `chain().focus()` focuses a frame LATER when the editor isn't
+  focused — it then steals focus from anything focused meanwhile (e.g. a new
+  chemistry box after the periodic-table window). Don't chain `.focus()` there.
+- Toolbar windows (periodic table) carry `data-keep-editing`, or the toolbar
+  would close (and unmount the window) when focus moves into them.
 - This project has no Prettier: don't run `npx prettier` (it downloads one
   and re-wraps whole files at 80 columns). Match the existing ~140-column style.
 - `cleanUpImages(tests)` must only run once tests are loaded (`tests !== null`):

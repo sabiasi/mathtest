@@ -31,10 +31,18 @@ export type ToolbarButton = {
   text?: string;
   /** After inserting `text`, move the cursor this many characters back (e.g. inside „“). */
   caretBack?: number;
+  /**
+   * Chemistry: type this into the chemistry formula (mhchem, e.g. "->",
+   * "(aq)", "^2+") instead of a math formula. `display` is LaTeX for the button.
+   */
+  chem?: string;
 };
 
 /** A small tool shown at the start of a tab (e.g. century → Roman numeral). */
-export type ToolbarWidgetProps = { insertText: (text: string, caretBack?: number) => void };
+export type ToolbarWidgetProps = {
+  insertText: (text: string, caretBack?: number) => void;
+  insertChem: (text: string, caretBack?: number) => void;
+};
 export type ToolbarTab = {
   id: string;
   ka: string;
@@ -66,6 +74,8 @@ export interface SubjectToolkit {
   status: "ready" | "placeholder";
   /** Show the "Σ Formula" button on the toolbar. */
   formulas: boolean;
+  /** Show the "Chemical formula" button (chemistry chips typed like "H2SO4"). */
+  chemistry?: boolean;
   /** The toolbar's tabs while a question box is being edited ([] and no formulas = no toolbar). */
   toolbar: ToolbarTab[];
   /** Question types offered in this subject: the common ones plus any special ones. */

@@ -5,6 +5,8 @@
  * Georgian), so Georgian labels like "F_ხ" look right.
  */
 import type { CircuitDiagram, CircuitElement, CircuitPart, Diagram, ForceDiagram } from "@/lib/storage/types";
+import { structureViewBox } from "@/subjects/chemistry/structure/geometry";
+import { StructureView } from "@/subjects/chemistry/structure/StructureView";
 import {
   BALL_RADIUS,
   BOX,
@@ -25,16 +27,19 @@ const vb = (box: ViewBox) => `${box.x} ${box.y} ${box.width} ${box.height}`;
 
 /** The size (in SVG units) a diagram is drawn at on paper — used for its shape (aspect ratio). */
 export function diagramSize(diagram: Diagram): { width: number; height: number } {
-  const box = diagram.kind === "circuit" ? circuitViewBox(diagram, false) : forceLayout(diagram).viewBox;
+  const box =
+    diagram.kind === "circuit"
+      ? circuitViewBox(diagram, false)
+      : diagram.kind === "structure"
+        ? structureViewBox(diagram, false)
+        : forceLayout(diagram).viewBox;
   return { width: Math.round(box.width), height: Math.round(box.height) };
 }
 
 export function DiagramView({ diagram, className }: { diagram: Diagram; className?: string }) {
-  return diagram.kind === "circuit" ? (
-    <CircuitView circuit={diagram} className={className} />
-  ) : (
-    <ForceView diagram={diagram} className={className} />
-  );
+  if (diagram.kind === "circuit") return <CircuitView circuit={diagram} className={className} />;
+  if (diagram.kind === "structure") return <StructureView structure={diagram} className={className} />;
+  return <ForceView diagram={diagram} className={className} />;
 }
 
 // ---------------------------------------------------------------------------

@@ -9,6 +9,7 @@
  */
 import type { Editor } from "@tiptap/core";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { startChem, typeIntoChem } from "./MathNode";
 import type { MathfieldElement } from "./mathlive";
 
 type MathEditing = {
@@ -20,6 +21,11 @@ type MathEditing = {
   forget: (editor: Editor) => void;
   /** Inserts a LaTeX template at the right place (see below). */
   insert: (latex: string) => void;
+  /**
+   * Chemistry ("->", "(aq)", "Fe"…): typed into the chemistry formula the
+   * cursor is in, or a new chemistry formula is started with it.
+   */
+  insertChem: (text: string, caretBack?: number) => void;
   /** Inserts plain text at the cursor (e.g. "ძვ. წ." from the history toolbar). */
   insertText: (text: string, caretBack?: number) => void;
 };
@@ -30,11 +36,14 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
   // The formula box that had focus last, if the cursor was inside a formula.
   const lastMathfield = useRef<MathfieldElement | null>(null);
+  // The chemistry text box that had focus last (if the cursor was in one).
+  const lastChem = useRef<HTMLInputElement | null>(null);
 
   const reportFocus = useCallback((editor: Editor, target: EventTarget) => {
     setActiveEditor(editor);
     lastMathfield.current =
       target instanceof HTMLElement && target.tagName === "MATH-FIELD" ? (target as MathfieldElement) : null;
+    lastChem.current = target instanceof HTMLInputElement && target.dataset.chem !== undefined ? target : null;
   }, []);
 
   // Clicking or tabbing into anything that isn't a question/answer box (or the
@@ -42,7 +51,8 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const onFocusIn = (event: FocusEvent) => {
       const target = event.target as HTMLElement | null;
-      if (target?.closest?.(".rich-text-input, [data-math-toolbar]")) return;
+      // [data-keep-editing]: windows opened from the toolbar (e.g. the periodic table).
+      if (target?.closest?.(".rich-text-input, [data-math-toolbar], [data-keep-editing]")) return;
       setActiveEditor(null);
     };
     document.addEventListener("focusin", onFocusIn);
@@ -87,9 +97,20 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
     [activeEditor],
   );
 
+  const insertChem = useCallback(
+    (text: string, caretBack = 0) => {
+      const editor = activeEditor;
+      if (!editor || editor.isDestroyed) return;
+      const input = lastChem.current;
+      if (input?.isConnected && editor.view.dom.contains(input)) typeIntoChem(input, text, caretBack);
+      else startChem(editor, text, caretBack);
+    },
+    [activeEditor],
+  );
+
   const value = useMemo(
-    () => ({ activeEditor, reportFocus, forget, insert, insertText }),
-    [activeEditor, reportFocus, forget, insert, insertText],
+    () => ({ activeEditor, reportFocus, forget, insert, insertText, insertChem }),
+    [activeEditor, reportFocus, forget, insert, insertText, insertChem],
   );
   return <MathEditingContext.Provider value={value}>{children}</MathEditingContext.Provider>;
 }

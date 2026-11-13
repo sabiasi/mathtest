@@ -14,9 +14,17 @@
  *   - arrow keys in the text next to a formula move into it,
  *   - Backspace next to a formula first highlights it, a second press deletes it,
  *   - leaving an empty formula removes it.
+ *
+ * Chemistry formulas are the same node with LaTeX "\ce{…}" (mhchem). They
+ * are edited in a plain text box instead ("H2SO4" — subscripts appear by
+ * themselves), with a live preview drawn by MathLive.
  */
-import { Node, type Editor } from "@tiptap/core";
+import { Node, type Editor, type NodeViewRendererProps } from "@tiptap/core";
+import type { Node as ProseMirrorNode } from "@tiptap/pm/model";
+import type { NodeView } from "@tiptap/pm/view";
 import { NodeSelection, TextSelection } from "@tiptap/pm/state";
+import { convertLatexToMarkup } from "mathlive";
+import { chemLatex, chemSource } from "@/lib/chem";
 import { configureMathfield, type MathfieldElement } from "./mathlive";
 
 declare module "@tiptap/core" {
@@ -24,6 +32,8 @@ declare module "@tiptap/core" {
     math: {
       /** Inserts a formula at the cursor and puts the cursor inside it. */
       insertMath: (latex?: string) => ReturnType;
+      /** Inserts an empty chemistry formula (use startChem to also focus and fill it). */
+      insertChem: () => ReturnType;
     };
   }
 }
@@ -34,6 +44,46 @@ export function mathfieldAt(editor: Editor, pos: number): MathfieldElement | nul
   return dom instanceof HTMLElement ? (dom.querySelector("math-field") as MathfieldElement | null) : null;
 }
 
+/** The text box of the chemistry formula that starts at `pos`, if any. */
+function chemInputAt(editor: Editor, pos: number): HTMLInputElement | null {
+  const dom = editor.view.nodeDOM(pos);
+  return dom instanceof HTMLElement ? dom.querySelector<HTMLInputElement>("input[data-chem]") : null;
+}
+
+/**
+ * Focuses a chemistry text box. It's hidden (display: none) until its chip
+ * is "editing", and a hidden box can't take the focus — so show it first.
+ */
+function openChem(input: HTMLInputElement) {
+  input.closest(".chem-node")?.classList.add("is-editing");
+  input.focus();
+}
+
+/**
+ * Starts a new chemistry formula at the cursor and types `text` into it.
+ * Focus happens right away (ProseMirror draws the new chip during the
+ * update), so nothing typed straight after the click goes astray.
+ */
+export function startChem(editor: Editor, text: string, caretBack = 0) {
+  const pos = editor.state.selection.from;
+  // No .focus() here: TipTap focuses the text a frame later, which would pull
+  // the cursor back out of the new formula. The formula's own box takes it.
+  editor.chain().insertChem().run();
+  const input = chemInputAt(editor, pos);
+  if (input) typeIntoChem(input, text, caretBack);
+}
+
+/** Types `text` at the cursor of a chemistry text box (as if typed), then moves the cursor back `caretBack`. */
+export function typeIntoChem(input: HTMLInputElement, text: string, caretBack = 0) {
+  openChem(input);
+  const start = input.selectionStart ?? input.value.length;
+  const end = input.selectionEnd ?? start;
+  input.setRangeText(text, start, end, "end");
+  const caret = (input.selectionEnd ?? input.value.length) - caretBack;
+  input.setSelectionRange(caret, caret);
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 /** Puts the keyboard cursor inside the formula at `pos`. */
 export function focusMathfield(
   editor: Editor,
@@ -42,6 +92,14 @@ export function focusMathfield(
 ) {
   // Wait one frame so the formula box exists on screen before focusing it.
   requestAnimationFrame(() => {
+    // A chemistry formula: its text box.
+    const input = chemInputAt(editor, pos);
+    if (input) {
+      openChem(input);
+      if (where === "start") input.setSelectionRange(0, 0);
+      else if (where === "end") input.setSelectionRange(input.value.length, input.value.length);
+      return;
+    }
     const mf = mathfieldAt(editor, pos);
     if (!mf) return;
     mf.focus();
@@ -129,6 +187,12 @@ export const MathNode = Node.create({
           }
           return true;
         },
+      insertChem:
+        () =>
+        ({ tr, dispatch }) => {
+          if (dispatch) tr.replaceSelectionWith(this.type.create({ latex: chemLatex("") }));
+          return true;
+        },
     };
   },
 
@@ -179,7 +243,13 @@ export const MathNode = Node.create({
   },
 
   addNodeView() {
-    return ({ node, getPos, editor }) => {
+    return (props: NodeViewRendererProps) => (chemSource(props.node.attrs.latex) !== null ? chemNodeView(props) : mathNodeView(props));
+  },
+});
+
+function mathNodeView({ node, getPos, editor }: NodeViewRendererProps): NodeView {
+  {
+    {
       let current = node;
       // Where this formula is in the document right now (null once it's gone).
       const position = () => {
@@ -261,6 +331,108 @@ export const MathNode = Node.create({
         selectNode: () => dom.classList.add("is-selected"),
         deselectNode: () => dom.classList.remove("is-selected"),
       };
-    };
-  },
-});
+    }
+  }
+}
+
+/**
+ * A chemistry formula: shows the drawn formula; click it to type the
+ * chemistry in a small text box ("2H2 + O2 -> 2H2O") with a live preview.
+ */
+function chemNodeView({ node, getPos, editor }: NodeViewRendererProps): NodeView {
+  let current = node;
+  const position = () => {
+    if (editor.isDestroyed) return null;
+    try {
+      const pos = getPos();
+      return typeof pos === "number" ? pos : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const dom = document.createElement("span");
+  dom.className = "math-node chem-node";
+  dom.contentEditable = "false";
+
+  const input = document.createElement("input");
+  input.dataset.chem = "";
+  input.className = "chem-input";
+  input.spellcheck = false;
+  input.autocomplete = "off";
+  input.setAttribute("aria-label", document.documentElement.lang === "en" ? "Chemical formula" : "ქიმიური ფორმულა");
+  input.placeholder = "H2SO4";
+  input.value = chemSource(node.attrs.latex) ?? "";
+
+  const preview = document.createElement("span");
+  preview.className = "chem-preview";
+  const draw = () => {
+    preview.innerHTML = input.value.trim() ? convertLatexToMarkup(chemLatex(input.value)) : "";
+    input.size = Math.max(5, input.value.length + 1);
+  };
+  draw();
+  dom.append(input, preview);
+
+  // Clicking the drawn formula opens the text box.
+  preview.addEventListener("mousedown", (event) => {
+    event.preventDefault();
+    openChem(input);
+    input.setSelectionRange(input.value.length, input.value.length);
+  });
+  input.addEventListener("focus", () => dom.classList.add("is-editing"));
+
+  input.addEventListener("input", () => {
+    draw();
+    const pos = position();
+    const latex = chemLatex(input.value);
+    if (pos === null || latex === current.attrs.latex) return;
+    editor.view.dispatch(editor.state.tr.setNodeAttribute(pos, "latex", latex));
+  });
+
+  input.addEventListener("keydown", (event) => {
+    const pos = position();
+    if (pos === null) return;
+    const atStart = input.selectionStart === 0 && input.selectionEnd === 0;
+    const atEnd = input.selectionStart === input.value.length;
+    if ((event.key === "Backspace" || event.key === "Delete") && input.value === "") {
+      event.preventDefault();
+      deleteMathAt(editor, pos);
+    } else if (event.key === "Escape" || event.key === "Enter" || (event.key === "ArrowRight" && atEnd)) {
+      event.preventDefault();
+      focusText(editor, pos + current.nodeSize);
+    } else if (event.key === "ArrowLeft" && atStart) {
+      event.preventDefault();
+      focusText(editor, pos);
+    }
+  });
+
+  // Leaving: show the drawn formula again; an empty one is removed.
+  input.addEventListener("focusout", () => {
+    dom.classList.remove("is-editing");
+    setTimeout(() => {
+      const pos = position();
+      if (pos !== null && input.value.trim() === "" && document.activeElement !== input) {
+        const n = editor.state.doc.nodeAt(pos);
+        if (n?.type.name === "math") editor.view.dispatch(editor.state.tr.delete(pos, pos + n.nodeSize));
+      }
+    });
+  });
+
+  return {
+    dom,
+    update(updated: ProseMirrorNode) {
+      if (updated.type !== current.type || chemSource(updated.attrs.latex) === null) return false;
+      current = updated;
+      // Don't fight the teacher's typing: only refresh when not editing.
+      if (document.activeElement !== input && chemLatex(input.value) !== updated.attrs.latex) {
+        input.value = chemSource(updated.attrs.latex) ?? "";
+        draw();
+      }
+      return true;
+    },
+    stopEvent: (event: Event) => dom.contains(event.target as globalThis.Node),
+    ignoreMutation: () => true,
+    selectNode: () => dom.classList.add("is-selected"),
+    deselectNode: () => dom.classList.remove("is-selected"),
+  };
+}

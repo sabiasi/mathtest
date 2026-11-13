@@ -313,6 +313,51 @@
   background: var(--math-selected);
   border-color: var(--ring);
 }
+/* Chemistry formulas in the editor: drawn formula; click → a text box (H2SO4) with a live preview */
+.chem-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  margin: 0 0.1em;
+  padding: 0.05em 0.35em;
+  border: 1px solid var(--math-border);
+  border-radius: 0.4em;
+  background: var(--math-bg);
+  vertical-align: middle;
+  cursor: text;
+}
+.chem-node .chem-input {
+  display: none;
+  border: none;
+  background: transparent;
+  font: 0.9em ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--foreground);
+  outline: none;
+}
+.chem-node.is-editing {
+  border-color: var(--ring);
+  background: var(--card);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 20%, transparent);
+}
+.chem-node.is-editing .chem-input {
+  display: inline-block;
+}
+.chem-node.is-editing .chem-preview:not(:empty)::before {
+  content: "→ ";
+  color: var(--muted-foreground);
+}
+.chem-node .chem-preview:empty::after {
+  content: "H₂SO₄";
+  opacity: 0.4;
+}
+.chem-node.is-editing .chem-preview:empty {
+  display: none;
+}
+.chem-node.is-selected {
+  border-color: var(--ring);
+  background: var(--math-selected);
+}
+
 /* MathLive picks its own colours from the COMPUTER's dark setting, not from
    our theme switch — so we hand it our colours explicitly. */
 math-field {
@@ -837,6 +882,27 @@ math-field::part(virtual-keyboard-toggle) {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 3mm 8mm;
+}
+
+/* Chemistry: balance the equation (a box before every substance) */
+.print-equations {
+  display: grid;
+  row-gap: 3mm;
+}
+.print-equation {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5mm 2mm;
+}
+.print-eq-term {
+  display: inline-flex;
+  align-items: center;
+  gap: 1mm;
+}
+.print-eq-box {
+  width: 7mm;
+  height: 7mm;
 }
 
 /* Physics: the "Given / Find / Solution" frame */

@@ -2,6 +2,8 @@
  * Diagram data: limits, starting diagrams, and repairing saved data
  * (like migrate.ts does for tests). Pure functions, no React.
  */
+import { parseEdge } from "@/lib/gridEdges";
+import { normalizeStructure } from "@/subjects/chemistry/structure/normalize";
 import type { CircuitDiagram, CircuitElement, CircuitPart, Diagram, ForceArrow, ForceDiagram } from "@/lib/storage/types";
 
 export const CIRCUIT_PARTS: readonly CircuitPart[] = [
@@ -27,16 +29,7 @@ const clamp = (value: number, min: number, max: number) => Math.min(max, Math.ma
 const int = (v: unknown, fallback: number) => (typeof v === "number" && Number.isFinite(v) ? Math.round(v) : fallback);
 const label = (v: unknown) => (typeof v === "string" ? v.slice(0, MAX_LABEL) : "");
 
-/** "h:2:1" → { dir: "h", x: 2, y: 1 }, or null if it isn't a gap of this grid. */
-export function parseEdge(at: string, cols: number, rows: number): { dir: "h" | "v"; x: number; y: number } | null {
-  const match = /^([hv]):(\d+):(\d+)$/.exec(at);
-  if (!match) return null;
-  const dir = match[1] as "h" | "v";
-  const x = Number(match[2]);
-  const y = Number(match[3]);
-  const ok = dir === "h" ? x < cols && y <= rows : x <= cols && y < rows;
-  return ok ? { dir, x, y } : null;
-}
+export { parseEdge } from "@/lib/gridEdges";
 
 /** Keeps only the parts that are still inside a (smaller) grid. */
 export function fitCircuit(circuit: CircuitDiagram, cols: number, rows: number): CircuitDiagram {
@@ -120,5 +113,6 @@ export function normalizeDiagram(raw: unknown): Diagram | null {
   if (!isObject(raw)) return null;
   if (raw.kind === "circuit") return normalizeCircuit(raw);
   if (raw.kind === "forces") return normalizeForces(raw);
+  if (raw.kind === "structure") return normalizeStructure(raw);
   return null;
 }

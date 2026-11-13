@@ -3,6 +3,7 @@
  * empty questions, multiple choice without enough answers or without the
  * correct one marked, and missing answers (which leave gaps in the key).
  */
+import { checkBalance } from "@/lib/chem";
 import { isTextBlock, visibleOptions } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
 import type { Test } from "@/lib/storage/types";
@@ -19,7 +20,8 @@ export type ProblemKind =
   | "noMarkers"
   | "noSource"
   | "emptyText"
-  | "noGaps";
+  | "noGaps"
+  | "unbalanced";
 
 export type Problem = {
   kind: ProblemKind;
@@ -65,6 +67,12 @@ export function findProblems(test: Test): Problem[] {
       problems.push({ kind: "noAnswer", number, keyOnly: true });
     }
     if (q.type === "grammar-table" && q.rows.filter((row) => row.word.trim()).length === 0) problems.push({ kind: "fewItems", number, keyOnly: false });
+    if (q.type === "balance") {
+      const written = q.equations.filter((e) => e.balanced.trim());
+      if (written.length === 0) problems.push({ kind: "fewItems", number, keyOnly: false });
+      // The key would show wrong coefficients if the "balanced" equation isn't.
+      else if (written.some((e) => checkBalance(e.balanced).status !== "balanced")) problems.push({ kind: "unbalanced", number, keyOnly: true });
+    }
     if (q.type === "sentence-analysis" && (q.parts.length === 0 || !q.sentence.trim())) problems.push({ kind: "fewItems", number, keyOnly: false });
     if (q.type === "map") {
       if (!q.map) problems.push({ kind: "noMap", number, keyOnly: false });

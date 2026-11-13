@@ -16,6 +16,7 @@ import type { Question, Test } from "@/lib/storage/types";
 import { MapPrint, OrderPrint, SourcePrint, TimelinePrint } from "@/subjects/history/HistoryPrint";
 import { GivenFindPrint } from "@/subjects/physics/GivenFindPrint";
 import { EssayPrint, FindMistakePrint, GrammarTablePrint, MarkWordsPrint, SentenceAnalysisPrint } from "@/subjects/georgian/GeorgianPrint";
+import { BalancePrint } from "@/subjects/chemistry/BalancePrint";
 import { FillBlankPrint } from "./FillBlankPrint";
 import { MatchingPrint } from "./MatchingPrint";
 import { useTypography } from "./Typography";
@@ -256,6 +257,9 @@ function QuestionBody({
 
     case "essay":
       return <EssayPrint question={question} />;
+
+    case "balance":
+      return <BalancePrint question={question} answerKey={key} />;
 
     // Reading texts and poems are drawn piece by piece (see pieces.tsx), never here.
     case "passage":

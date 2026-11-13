@@ -7,6 +7,7 @@ import {
   BookOpenText,
   Feather,
   PenLine,
+  Scale,
   SpellCheck,
   Split,
   Table2,
@@ -69,6 +70,7 @@ const TYPE_ICONS: Record<QuestionType, typeof ListChecks> = {
   "find-mistake": SpellCheck,
   "sentence-analysis": Split,
   essay: PenLine,
+  balance: Scale,
 };
 
 /**
@@ -334,7 +336,7 @@ export function EditorSkeleton({ label }: { label: string }) {
  */
 function ToolbarWhenEditing({ toolkit }: { toolkit: SubjectToolkit }) {
   const { activeEditor } = useMathEditing();
-  const show = activeEditor && (toolkit.formulas || toolkit.toolbar.length > 0);
+  const show = activeEditor && (toolkit.formulas || toolkit.chemistry || toolkit.toolbar.length > 0);
   // AnimatePresence lets the toolbar slide closed instead of vanishing.
   // key: switching the subject starts the toolbar fresh (on its first tab).
   return <AnimatePresence initial={false}>{show && <SubjectToolbar key={toolkit.id} toolkit={toolkit} />}</AnimatePresence>;

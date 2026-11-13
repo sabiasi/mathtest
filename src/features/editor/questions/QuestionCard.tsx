@@ -20,6 +20,7 @@ import { OrderEditor } from "@/subjects/history/editors/OrderEditor";
 import { SourceEditor } from "@/subjects/history/editors/SourceEditor";
 import { TimelineEditor } from "@/subjects/history/editors/TimelineEditor";
 import { GivenFindEditor } from "@/subjects/physics/GivenFindEditor";
+import { BalanceEditor } from "@/subjects/chemistry/BalanceEditor";
 import { EssayEditor } from "@/subjects/georgian/editors/EssayEditor";
 import { FindMistakeEditor } from "@/subjects/georgian/editors/FindMistakeEditor";
 import { GrammarTableEditor } from "@/subjects/georgian/editors/GrammarTableEditor";
@@ -30,6 +31,7 @@ import { FillBlankEditor } from "./FillBlankEditor";
 import { MatchingEditor } from "./MatchingEditor";
 import { DiagramDialog } from "@/subjects/physics/diagrams/DiagramDialog";
 import { diagramSize } from "@/subjects/physics/diagrams/DiagramView";
+import { newStructure } from "@/subjects/chemistry/structure/normalize";
 import { newCircuit, newForceDiagram } from "@/subjects/physics/diagrams/normalize";
 import type { SubjectToolkit } from "@/subjects/types";
 import { MultipleChoiceEditor } from "./MultipleChoiceEditor";
@@ -56,6 +58,7 @@ const TEXT_PLACEHOLDERS: Partial<Record<QuestionType, MessageKey>> = {
   "find-mistake": "questions.mistakePlaceholder",
   "sentence-analysis": "questions.analysisPlaceholder",
   essay: "questions.essayPlaceholder",
+  balance: "questions.balancePlaceholder",
 };
 
 export function QuestionCard({
@@ -100,7 +103,9 @@ export function QuestionCard({
     const diagram =
       kind === "circuit"
         ? newCircuit()
-        : newForceDiagram({ gravity: t("forces.preset.gravityLabel"), normal: t("forces.preset.normalLabel") }, newId);
+        : kind === "structure"
+          ? newStructure()
+          : newForceDiagram({ gravity: t("forces.preset.gravityLabel"), normal: t("forces.preset.normalLabel") }, newId);
     setDiagramEdit({ placementId: null, diagram });
   }
 
@@ -291,6 +296,7 @@ export function QuestionCard({
             {question.type === "find-mistake" && <FindMistakeEditor question={question} onChange={onChange} />}
             {question.type === "sentence-analysis" && <SentenceAnalysisEditor question={question} onChange={onChange} />}
             {question.type === "essay" && <EssayEditor question={question} onChange={onChange} />}
+            {question.type === "balance" && <BalanceEditor question={question} onChange={onChange} />}
 
             {!textBlock && (
             <MediaBar

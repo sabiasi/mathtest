@@ -18,6 +18,7 @@ import { isRichTextEmpty } from "@/lib/richText";
 import type { Question, Test } from "@/lib/storage/types";
 import type { Variant } from "@/lib/variants";
 import { orderAnswer } from "@/subjects/history/HistoryPrint";
+import { balanceAnswer } from "@/subjects/chemistry/BalancePrint";
 import { fillBlankAnswers } from "./FillBlankPrint";
 import { matchingAnswers } from "./MatchingPrint";
 import { CONTENT_HEIGHT, CONTENT_WIDTH, PAGE, mmToPx } from "./usePrintLayout";
@@ -39,6 +40,8 @@ function Cell({ question, labelStyle }: { question: Question; labelStyle: Test["
       return <>{matchingAnswers(question, labelStyle).map((letter, i) => `${i + 1}${letter}`).join(" ")}</>;
     case "order":
       return <>{orderAnswer(question, labelStyle).join(" ")}</>;
+    case "balance":
+      return <>{question.equations.filter((e) => e.balanced.trim()).map((e) => balanceAnswer(e.balanced)).join(" | ") || "—"}</>;
     case "fill-blank":
       return <>{fillBlankAnswers(question).join(", ") || "—"}</>;
     case "mark-words":

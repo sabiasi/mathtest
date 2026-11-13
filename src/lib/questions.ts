@@ -68,6 +68,7 @@ export const LIMITS = {
   sentenceParts: 8,
   essayLines: 60,
   guidePoints: 8,
+  equations: 8,
 };
 
 function emptyOptions(count: number): ChoiceOption[] {
@@ -157,6 +158,13 @@ export function createQuestion(
       return { ...base, type, points: keep.points ?? 3, sentence: "", parts: [] };
     case "essay":
       return { ...base, type, points: keep.points ?? 10, lines: 20, guide: [], length: "" };
+    case "balance":
+      return {
+        ...base,
+        type,
+        points: keep.points ?? 2,
+        equations: Array.from({ length: 2 }, () => ({ id: newId(), balanced: "" })),
+      };
     case "given-find":
       return { ...base, type, points: keep.points ?? 3, lines: DEFAULT_GIVEN_FIND_LINES, given: [], find: [], solution: [], answer: [] };
   }

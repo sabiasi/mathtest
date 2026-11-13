@@ -257,6 +257,12 @@ function normalizeQuestion(raw: unknown): Question | null {
         guide: strings(raw.guide, LIMITS.guidePoints, 300),
         length: str(raw.length).slice(0, 100),
       };
+    case "balance":
+      return {
+        ...base,
+        type: "balance",
+        equations: list(raw.equations, LIMITS.equations, (e) => ({ id: e.id, balanced: str(e.balanced).slice(0, 300) })),
+      };
     case "given-find": {
       const lines = clamp(Math.round(num(raw.lines, DEFAULT_GIVEN_FIND_LINES)), MIN_GIVEN_FIND_LINES, MAX_LINES);
       return {
