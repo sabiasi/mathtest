@@ -253,7 +253,11 @@ src/
   only a few per hour: real teachers need custom SMTP (e.g. Resend).
 - Old browser test suites seeded localStorage; tests now live in the cloud,
   so end-to-end browser tests need a Supabase test account.
-- Without `.env.local` values the app still runs: public pages work, and
+- The PUBLIC Supabase URL + publishable key live in the shared, committed
+  `.env` (so collaborators can run the app after `git pull`); `.env.local`
+  (never committed) can override them. `envSafety.test.ts` fails if a
+  secret ever lands in `.env`.
+- Without Supabase values the app still runs: public pages work, and
   account pages show "not connected yet" (SetupGate / SetupNotice).
 
 ## Commands

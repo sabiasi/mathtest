@@ -34,6 +34,8 @@ yarn-error.log*
 .env*
 # …but the example (placeholders only, no real keys) is shared
 !.env.example
+# …and .env, which holds only the PUBLIC Supabase address and publishable key
+!.env
 
 # vercel
 .vercel
