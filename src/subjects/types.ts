@@ -46,6 +46,8 @@ export type ToolbarButton = {
 export type ToolbarWidgetProps = {
   /** `marks`: e.g. ["italic"] for a Latin name (the text after it is plain again). */
   insertText: (text: string, caretBack?: number, marks?: TextMark[]) => void;
+  /** Inserts a formula (LaTeX). */
+  insertMath: (latex: string) => void;
   insertChem: (text: string, caretBack?: number) => void;
 };
 export type ToolbarTab = {

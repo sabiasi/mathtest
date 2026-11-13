@@ -20,6 +20,7 @@ import type { Variant } from "@/lib/variants";
 import { orderAnswer } from "@/subjects/history/HistoryPrint";
 import { balanceAnswer } from "@/subjects/chemistry/BalancePrint";
 import { labelDiagramAnswer } from "@/subjects/biology/LabelDiagramView";
+import { pedigreeAnswer, punnettAnswer } from "@/subjects/biology/GeneticsPrint";
 import { fillBlankAnswers, fillBlankChoiceAnswers } from "./FillBlankPrint";
 import { matchingAnswers } from "./MatchingPrint";
 import { CONTENT_HEIGHT, CONTENT_WIDTH, PAGE, mmToPx } from "./usePrintLayout";
@@ -58,6 +59,10 @@ function Cell({ question, labelStyle }: { question: Question; labelStyle: Test["
       return <>{question.pictures.map((p, i) => `${i + 1} ${p.answer}`).join(", ") || "—"}</>;
     case "label-diagram":
       return <>{labelDiagramAnswer(question, labelStyle) || "—"}</>;
+    case "punnett":
+      return <>{punnettAnswer(question) || "—"}</>;
+    case "pedigree":
+      return pedigreeAnswer(question) ? <>{pedigreeAnswer(question)}</> : <span className="is-open">{t("variants.open")}</span>;
     case "odd-one-out":
       return <>{question.rows.map((r) => (r.odd === null ? "?" : r.words[r.odd])).join(", ") || "—"}</>;
     case "mark-words":

@@ -18,6 +18,7 @@ import {
 import { normalizeDiagram } from "@/subjects/physics/diagrams/normalize";
 import { isBioDrawingId } from "@/subjects/biology/drawingIds";
 import { LABEL_LIMITS } from "@/lib/labelDiagram";
+import { PEDIGREE_LIMITS } from "@/lib/pedigree";
 import { normalizeRichText } from "@/lib/richText";
 import { DEFAULT_SUBJECT, isSubjectId, subjectFromText } from "@/subjects/ids";
 import {
@@ -32,6 +33,7 @@ import {
   type ChoiceOption,
   type LabelStyle,
   type LabelDiagramQuestion,
+  type PedigreePerson,
   type PrintOptions,
   type Question,
   type Test,
@@ -403,6 +405,46 @@ function normalizeQuestion(raw: unknown): Question | null {
         wordBank: raw.wordBank === true,
         extras: strings(raw.extras, 10, 100),
       };
+    }
+    case "punnett": {
+      const traits: Record<string, { dominant: string; recessive: string }> = {};
+      if (isObject(raw.traits)) {
+        for (const [gene, names] of Object.entries(raw.traits).slice(0, 6)) {
+          if (/^[a-z]$/.test(gene) && isObject(names)) traits[gene] = { dominant: str(names.dominant).slice(0, 40), recessive: str(names.recessive).slice(0, 40) };
+        }
+      }
+      return {
+        ...base,
+        type: "punnett",
+        mother: str(raw.mother, "Aa").slice(0, 20),
+        father: str(raw.father, "Aa").slice(0, 20),
+        shown: strings(raw.shown, 64, 5).filter((key) => /^\d:\d$/.test(key)),
+        blankGametes: raw.blankGametes === true,
+        showParents: raw.showParents !== false,
+        askRatios: raw.askRatios !== false,
+        traits,
+      };
+    }
+    case "pedigree": {
+      const people = list(raw.people, PEDIGREE_LIMITS.people, (x): PedigreePerson => ({
+        id: x.id,
+        sex: x.sex === "male" ? "male" : x.sex === "female" ? "female" : "unknown",
+        status: x.status === "affected" ? "affected" : x.status === "carrier" ? "carrier" : "unaffected",
+        gen: clamp(Math.round(num(x.gen, 0)), 0, PEDIGREE_LIMITS.generations - 1),
+        slot: clamp(Math.round(num(x.slot, 0)), 0, PEDIGREE_LIMITS.slots - 1),
+        deceased: x.deceased === true,
+        text: str(x.text).slice(0, 20),
+        ask: x.ask === true,
+        answer: str(x.answer).slice(0, 20),
+      }));
+      const ids = new Set(people.map((x) => x.id));
+      const couples = list(raw.couples, PEDIGREE_LIMITS.people, (c) => ({
+        id: c.id,
+        a: str(c.a),
+        b: str(c.b),
+        children: strings(c.children, PEDIGREE_LIMITS.slots, 64).filter((child) => ids.has(child)),
+      })).filter((c) => ids.has(c.a) && ids.has(c.b) && c.a !== c.b);
+      return { ...base, type: "pedigree", people, couples, legend: raw.legend !== false, numbers: raw.numbers !== false };
     }
     default:
       return null;

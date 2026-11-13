@@ -110,7 +110,10 @@ describe("subject toolkits", () => {
 
   it("biology offers label-the-diagram, Georgian instruction templates, chemistry formulas and its own toolbar", () => {
     const biology = getToolkit("biology");
-    expect(biology.questionTypes).toContain("label-diagram");
+    for (const type of ["label-diagram", "punnett", "pedigree"]) expect(biology.questionTypes).toContain(type);
+    const genetics = biology.toolbar.find((t) => t.id === "genetics")!;
+    expect(genetics.Widget).toBeDefined();
+    expect(genetics.buttons.some((b) => b.latex === "\\mathrm{X}^{A}")).toBe(true);
     expect(biology.chemistry).toBe(true);
     expect(biology.print.typography).toBe("georgian");
     expect(biology.instructionTemplates?.every((i) => i.ka && i.en)).toBe(true);

@@ -18,6 +18,8 @@ import type { Diagram, DiagramKind, LabelStyle, Question, QuestionImage, Questio
 import { cn } from "@/lib/utils";
 import { MapEditor } from "@/subjects/history/editors/MapEditor";
 import { LabelDiagramEditor } from "@/subjects/biology/LabelDiagramEditor";
+import { PedigreeEditor } from "@/subjects/biology/PedigreeEditor";
+import { PunnettEditor } from "@/subjects/biology/PunnettEditor";
 import { OrderEditor } from "@/subjects/history/editors/OrderEditor";
 import { SourceEditor } from "@/subjects/history/editors/SourceEditor";
 import { TimelineEditor } from "@/subjects/history/editors/TimelineEditor";
@@ -66,6 +68,8 @@ const TEXT_PLACEHOLDERS: Partial<Record<QuestionType, MessageKey>> = {
   source: "questions.sourcePlaceholder",
   map: "questions.mapPlaceholder",
   "label-diagram": "questions.labelPlaceholder",
+  punnett: "questions.punnettPlaceholder",
+  pedigree: "questions.pedigreePlaceholder",
   passage: "questions.textBlockPlaceholder",
   poem: "questions.textBlockPlaceholder",
   "fill-blank": "questions.fillPlaceholder",
@@ -361,6 +365,8 @@ export function QuestionCard({
                 onPatch={(patch) => onPatch((q) => (q.type === "label-diagram" ? patch(q) : q))}
               />
             )}
+            {question.type === "punnett" && <PunnettEditor question={question} onChange={onChange} />}
+            {question.type === "pedigree" && <PedigreeEditor question={question} onChange={onChange} />}
             {question.type === "map" && (
               <MapEditor
                 question={question}

@@ -18,6 +18,7 @@ import { GivenFindPrint } from "@/subjects/physics/GivenFindPrint";
 import { EssayPrint, FindMistakePrint, GrammarTablePrint, MarkWordsPrint, SentenceAnalysisPrint } from "@/subjects/georgian/GeorgianPrint";
 import { BalancePrint } from "@/subjects/chemistry/BalancePrint";
 import { LabelDiagramPrint } from "@/subjects/biology/LabelDiagramView";
+import { PedigreePrint, PunnettPrint } from "@/subjects/biology/GeneticsPrint";
 import { FillBlankPrint } from "./FillBlankPrint";
 import {
   CrosswordPrint,
@@ -257,6 +258,12 @@ function QuestionBody({
 
     case "label-diagram":
       return <LabelDiagramPrint question={question} labelStyle={test.labelStyle} answerKey={key} />;
+
+    case "punnett":
+      return <PunnettPrint question={question} answerKey={key} />;
+
+    case "pedigree":
+      return <PedigreePrint question={question} answerKey={key} />;
 
     case "fill-blank":
       return <FillBlankPrint question={question} labelStyle={test.labelStyle} answerKey={key} />;

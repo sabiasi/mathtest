@@ -140,7 +140,7 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
 
         {/* Buttons of the chosen tab */}
         <TabsContent value={tab?.id ?? ""} className="flex flex-wrap gap-1 pt-2 pb-2.5" aria-label={tab?.[language]}>
-          {tab?.Widget && <tab.Widget insertText={insertText} insertChem={insertChem} />}
+          {tab?.Widget && <tab.Widget insertText={insertText} insertChem={insertChem} insertMath={insert} />}
           {tab?.styles && (
             <div
               role="group"

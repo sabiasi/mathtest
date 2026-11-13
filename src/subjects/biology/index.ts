@@ -13,6 +13,17 @@ export const BIOLOGY_INSTRUCTIONS = [
     en: "Match the numbers to the names in the box. Write the correct letter next to each number.",
   },
   { id: "punnett", ka: "შეავსეთ პენეტის მესერი.", en: "Complete the Punnett square." },
+  { id: "punnett-ratios", ka: "შეავსეთ პენეტის მესერი და დაწერეთ გენოტიპებისა და ფენოტიპების თანაფარდობა.", en: "Complete the Punnett square and write the genotype and phenotype ratios." },
+  {
+    id: "probability",
+    ka: "რა არის ალბათობა (%), რომ ამ წყვილის შვილს ნიშანი გამოუვლინდება?",
+    en: "What is the probability (%) that a child of this couple shows the trait?",
+  },
+  {
+    id: "pedigree",
+    ka: "გაანალიზეთ საგვარეულო ხე: დაადგინეთ, დომინანტურია თუ რეცესიული ნიშანი, და ჩაწერეთ აღნიშნული ადამიანების გენოტიპები.",
+    en: "Study the pedigree: decide whether the trait is dominant or recessive, and write the genotypes of the marked people.",
+  },
   { id: "order", ka: "დაალაგეთ სტადიები სწორი თანმიმდევრობით.", en: "Arrange the stages in the correct order." },
   { id: "choose", ka: "აირჩიეთ სწორი პასუხი.", en: "Choose the correct answer." },
   { id: "table", ka: "შეავსეთ ცხრილი.", en: "Complete the table." },
@@ -31,7 +42,8 @@ export const BIOLOGY_INSTRUCTIONS = [
  * Biology: "label the diagram" with built-in drawings (cell, flower, heart…)
  * or the teacher's own pictures; stages in order; a toolbar with ♂ ♀, units,
  * magnification, Latin names in italics and chemical formulas
- * (photosynthesis, respiration). Genetics, ecology and more come next.
+ * (photosynthesis, respiration); genetics: Punnett squares and pedigree
+ * charts, with a genotype tool (XAXa → Xᴬ Xᵃ).
  */
 export const biologyToolkit: SubjectToolkit = {
   id: "biology",
@@ -41,7 +53,7 @@ export const biologyToolkit: SubjectToolkit = {
   formulas: true,
   chemistry: true,
   toolbar: BIOLOGY_TOOLBAR,
-  questionTypes: [...QUESTION_TYPES, "label-diagram", "order"],
+  questionTypes: [...QUESTION_TYPES, "label-diagram", "punnett", "pedigree", "order"],
   diagrams: [],
   instructionTemplates: BIOLOGY_INSTRUCTIONS,
   typeLabels: {

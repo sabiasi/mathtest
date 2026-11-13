@@ -7,7 +7,7 @@
  */
 import { MATH_TOOLBAR } from "../math/toolbar";
 import type { ToolbarButton, ToolbarTab } from "../types";
-import { LatinNameTool } from "./BioTools";
+import { GenotypeTool, LatinNameTool } from "./BioTools";
 
 const text = (value: string, ka: string, en: string, extra: Partial<ToolbarButton> = {}): ToolbarButton => ({ latex: "", display: value, text: value, ka, en, ...extra });
 const math = (latex: string, display: string, ka: string, en: string, extra: Partial<ToolbarButton> = {}): ToolbarButton => ({ latex, display, ka, en, ...extra });
@@ -105,6 +105,35 @@ const CHEMISTRY_TAB: ToolbarTab = {
   ],
 };
 
+const ALLELES = { ka: "ალელები:", en: "Alleles:" };
+const GENERATIONS = { ka: "თაობები:", en: "Generations:" };
+const RATIOS = { ka: "თანაფარდობა:", en: "Ratios:" };
+
+/** Genetics: alleles in italics (the formula default), X and Y upright, P / F₁ / F₂, ratios. */
+const GENETICS_TAB: ToolbarTab = {
+  id: "genetics",
+  ka: "გენეტიკა",
+  en: "Genetics",
+  Widget: GenotypeTool,
+  buttons: [
+    math("\\mathrm{X}^{#?}", "\\mathrm{X}^{\\square}", "X ქრომოსომა ალელით (Xᴬ)", "X chromosome with an allele (Xᴬ)", { group: ALLELES }),
+    math("\\mathrm{X}^{A}", "\\mathrm{X}^{A}", "დომინანტური ალელი X ქრომოსომაზე", "dominant allele on the X chromosome"),
+    math("\\mathrm{X}^{a}", "\\mathrm{X}^{a}", "რეცესიული ალელი X ქრომოსომაზე", "recessive allele on the X chromosome"),
+    math("\\mathrm{Y}", "\\mathrm{Y}", "Y ქრომოსომა", "Y chromosome"),
+    math("I^{A}", "I^{A}", "სისხლის ჯგუფის ალელი Iᴬ", "blood group allele Iᴬ"),
+    math("I^{B}", "I^{B}", "სისხლის ჯგუფის ალელი Iᴮ", "blood group allele Iᴮ"),
+    math("i", "i", "სისხლის ჯგუფის ალელი i", "blood group allele i"),
+    math("\\mathrm{P}", "\\mathrm{P}", "მშობლები (P)", "parents (P)", { group: GENERATIONS }),
+    math("\\mathrm{F}_1", "\\mathrm{F}_1", "პირველი თაობა (F₁)", "first generation (F₁)"),
+    math("\\mathrm{F}_2", "\\mathrm{F}_2", "მეორე თაობა (F₂)", "second generation (F₂)"),
+    math("\\mathrm{G}", "\\mathrm{G}", "გამეტები (G)", "gametes (G)"),
+    math("\\times", "\\times", "შეჯვარება (×)", "cross (×)"),
+    math("#?:#?", "a:b", "თანაფარდობა (3:1)", "ratio (3:1)", { group: RATIOS }),
+    math("#?:#?:#?", "a:b:c", "თანაფარდობა (1:2:1)", "ratio (1:2:1)"),
+    math("9:3:3:1", "9:3:3:1", "დიჰიბრიდული შეჯვარება: 9:3:3:1", "dihybrid cross: 9:3:3:1"),
+  ],
+};
+
 const mathTab = (id: string) => MATH_TOOLBAR.find((tab) => tab.id === id)!;
 
-export const BIOLOGY_TOOLBAR: ToolbarTab[] = [BIOLOGY_TAB, CHEMISTRY_TAB, mathTab("basic")];
+export const BIOLOGY_TOOLBAR: ToolbarTab[] = [BIOLOGY_TAB, GENETICS_TAB, CHEMISTRY_TAB, mathTab("basic")];

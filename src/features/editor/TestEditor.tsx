@@ -17,6 +17,8 @@ import {
   Repeat,
   Search,
   Tags,
+  Grid3x3,
+  Network,
   WholeWord,
   type LucideIcon,
   SpellCheck,
@@ -92,6 +94,8 @@ const TYPE_ICONS: Record<QuestionType, typeof ListChecks> = {
   crossword: Grid2x2,
   "word-search": Search,
   "label-diagram": Tags,
+  punnett: Grid3x3,
+  pedigree: Network,
 };
 
 /** One "add a question" button. */

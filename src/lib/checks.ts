@@ -4,6 +4,7 @@
  * correct one marked, and missing answers (which leave gaps in the key).
  */
 import { checkBalance } from "@/lib/chem";
+import { cross } from "@/lib/genetics";
 import { buildCrossword, buildWordSearch } from "@/lib/puzzles";
 import { isTextBlock, visibleOptions } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
@@ -20,6 +21,7 @@ export type ProblemKind =
   | "noMap"
   | "noMarkers"
   | "noPicture"
+  | "badGenotype"
   | "noLabels"
   | "noSource"
   | "emptyText"
@@ -96,6 +98,11 @@ export function findProblems(test: Test): Problem[] {
       else if (buildWordSearch(q.words, q.size, q.allDirections, q.seed).unplaced.length > 0) problems.push({ kind: "puzzleUnplaced", number, keyOnly: false });
     }
     if (q.type === "sentence-analysis" && (q.parts.length === 0 || !q.sentence.trim())) problems.push({ kind: "fewItems", number, keyOnly: false });
+    if (q.type === "punnett" && !cross(q.mother, q.father).ok) problems.push({ kind: "badGenotype", number, keyOnly: false });
+    if (q.type === "pedigree") {
+      if (q.people.length === 0) problems.push({ kind: "fewItems", number, keyOnly: false });
+      else if (q.people.some((p) => p.ask && !p.answer.trim())) problems.push({ kind: "noAnswer", number, keyOnly: true });
+    }
     if (q.type === "label-diagram") {
       if (!q.picture) problems.push({ kind: "noPicture", number, keyOnly: false });
       else if (q.labels.length === 0) problems.push({ kind: "noLabels", number, keyOnly: false });

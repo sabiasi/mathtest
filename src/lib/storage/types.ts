@@ -477,6 +477,61 @@ export interface LabelDiagramQuestion extends QuestionBase {
   shownBank?: string[];
 }
 
+/**
+ * Biology: a Punnett square. The parents are typed like "Aa", "AaBb" or
+ * "XᴬXᵃ" (lib/genetics.ts builds the grid). `shown` = the cells students
+ * get filled in ("row:col"); all the others are empty boxes to complete.
+ */
+export interface PunnettQuestion extends QuestionBase {
+  type: "punnett";
+  mother: string;
+  father: string;
+  shown: string[];
+  /** Students also write the gametes (the row and column headings are empty). */
+  blankGametes: boolean;
+  /** Print "Parents: ♀ Aa × ♂ Aa" above the square. */
+  showParents: boolean;
+  /** Ask for the genotype and phenotype ratios (lines below; the key fills them in). */
+  askRatios: boolean;
+  /** Names for the forms of each trait, by gene letter ("a": yellow / green). */
+  traits: Record<string, { dominant: string; recessive: string }>;
+}
+
+/** One person in a pedigree chart. `slot` = place in the generation's row (0 = leftmost). */
+export interface PedigreePerson {
+  id: string;
+  sex: "male" | "female" | "unknown";
+  status: "unaffected" | "affected" | "carrier";
+  /** 0 = generation I. */
+  gen: number;
+  slot: number;
+  deceased: boolean;
+  /** Printed under the symbol (e.g. a genotype "Aa"). */
+  text: string;
+  /** Students write this person's genotype in a box under the symbol. */
+  ask: boolean;
+  /** For the answer key. */
+  answer: string;
+}
+
+export interface PedigreeCouple {
+  id: string;
+  a: string;
+  b: string;
+  children: string[];
+}
+
+/** Biology: a family tree with the standard symbols (□ ○, filled = affected, half-filled = carrier). */
+export interface PedigreeQuestion extends QuestionBase {
+  type: "pedigree";
+  people: PedigreePerson[];
+  couples: PedigreeCouple[];
+  /** Print the symbols' meaning under the chart. */
+  legend: boolean;
+  /** Print "1, 2, 3…" under each person (with I, II, III on the left: "II-3"). */
+  numbers: boolean;
+}
+
 /** Odd one out: rows of words; students circle the one that doesn't belong. */
 export interface OddOneOutQuestion extends QuestionBase {
   type: "odd-one-out";
@@ -534,7 +589,9 @@ export type Question =
   | OddOneOutQuestion
   | CrosswordQuestion
   | WordSearchQuestion
-  | LabelDiagramQuestion;
+  | LabelDiagramQuestion
+  | PunnettQuestion
+  | PedigreeQuestion;
 
 export type QuestionType = Question["type"];
 

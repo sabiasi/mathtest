@@ -3,6 +3,7 @@
 import { useState, type MouseEvent } from "react";
 import { useT } from "@/i18n/language";
 import type { ToolbarWidgetProps } from "../types";
+import { genotypeLatex, genotypeText, parseGenotype } from "@/lib/genetics";
 import { formatLatinName } from "./latin";
 
 const keepFocus = (event: MouseEvent) => event.preventDefault();
@@ -48,6 +49,52 @@ export function LatinNameTool({ insertText }: ToolbarWidgetProps) {
       >
         {name ? <i>{name}</i> : t("bio.latinInsert")}
       </button>
+    </div>
+  );
+}
+
+/** "Genotype: [XAXa] → Xᴬ Xᵃ" — typed quickly, inserted as a formula (italic alleles, X and Y upright). */
+export function GenotypeTool({ insertMath }: ToolbarWidgetProps) {
+  const t = useT();
+  const [value, setValue] = useState("");
+  const parsed = value.trim() ? parseGenotype(value) : null;
+  const insert = () => {
+    if (!parsed?.ok) return;
+    insertMath(genotypeLatex(parsed.genotype));
+    setValue("");
+  };
+  return (
+    <div className="mr-2 flex flex-wrap items-center gap-1.5 rounded-lg bg-muted px-2 py-1" data-genotype-tool="">
+      <label className="flex items-center gap-1.5 text-sm text-soft-foreground">
+        {t("genetics.tool")}
+        <input
+          lang="en"
+          spellCheck={false}
+          value={value}
+          maxLength={20}
+          onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter") return;
+            e.preventDefault();
+            insert();
+          }}
+          placeholder="XAXa"
+          aria-label={t("genetics.tool")}
+          className="h-8 w-28 rounded-md border border-input bg-card px-2 font-mono outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        />
+      </label>
+      <button
+        type="button"
+        className="h-10 rounded-lg border bg-card px-2.5 text-sm font-semibold text-foreground shadow-xs transition-colors hover:border-primary-soft-border hover:bg-primary-soft disabled:opacity-40 pointer-coarse:h-11"
+        disabled={!parsed?.ok}
+        onMouseDown={keepFocus}
+        onClick={insert}
+        title={t("genetics.toolInsert")}
+        data-genotype-insert=""
+      >
+        {parsed?.ok ? genotypeText(parsed.genotype) : t("genetics.toolInsert")}
+      </button>
+      {parsed && !parsed.ok && <span className="text-xs text-muted-foreground">{t("genetics.toolHelp")}</span>}
     </div>
   );
 }

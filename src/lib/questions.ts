@@ -4,6 +4,7 @@
  * Pure functions are the easiest code to test and to reason about.
  */
 import { newId } from "@/lib/ids";
+import { samplePedigree } from "@/lib/pedigree";
 import { isRichTextEmpty } from "@/lib/richText";
 import type {
   ChoiceOption,
@@ -226,6 +227,10 @@ export function createQuestion(
       return { ...base, type, points: keep.points ?? 3, lines: DEFAULT_GIVEN_FIND_LINES, given: [], find: [], solution: [], answer: [] };
     case "label-diagram":
       return { ...base, type, points: keep.points ?? 4, picture: null, pictureWidth: 100, labels: [], mode: "boxes", wordBank: false, extras: [] };
+    case "punnett":
+      return { ...base, type, points: keep.points ?? 3, mother: "Aa", father: "Aa", shown: [], blankGametes: false, showParents: true, askRatios: true, traits: {} };
+    case "pedigree":
+      return { ...base, type, points: keep.points ?? 3, ...samplePedigree(newId), legend: true, numbers: true };
   }
 }
 

@@ -169,10 +169,20 @@ Visitors can try everything without an account (guest mode).
     *Homo sapiens*), chemistry tab (H₂O, CO₂, O₂, C₆H₁₂O₆, ATP,
     photosynthesis/respiration equations as mhchem), math basic. Georgian
     instruction templates; `order` offered as "stages in order".
-  - [ ] **B2 — genetics**: Punnett square (mono/dihybrid, sex-linked; blank
-    cells; key with genotype/phenotype ratios), genotype notation buttons
-    (italic alleles, Xᴬ Xᵃ Y), pedigree builder (□ ○, filled = affected,
-    half-filled = carrier, marriage/offspring lines, generations I II III).
+  - [x] **B2 — genetics**: `lib/genetics.ts` reads genotypes typed like
+    Aa, AaBb, XAXa / XᴬXᵃ / X^AX^a, XaY (≤ 3 genes, one gene on X, complete
+    dominance only), makes gametes (with counts, AA → "A" ×2), the square
+    (rows = ♀ gametes, columns = ♂), genotype / phenotype ratios (reduced;
+    "A_"/"aa" or the teacher's trait names; sex-linked labels with ♀/♂).
+    Question `punnett` (mother, father, `shown` = cells given to students,
+    blankGametes, showParents, askRatios, traits). Question `pedigree`
+    (`lib/pedigree.ts`: people with gen + slot, couples with children;
+    addPartner / addChild / movePerson / removePerson / tidy; layout with
+    marriage, drop and sibling lines; numbers "II-3"); symbols □ ○ ◇, filled
+    = affected, left half filled = carrier, slash = deceased; a box under a
+    person for the student's genotype (key fills it); legend of the symbols
+    used. Toolbar tab "გენეტიკა": genotype tool (XAXa → \mathrm{X}^{A}…),
+    Xᴬ Xᵃ Y, Iᴬ Iᴮ i, P F₁ F₂ G, ×, ratios.
   - [ ] **B3 — molecular, ecology, classification**: DNA/RNA sequence tasks
     (complementary strand, mRNA, translation; key computed), printable codon
     table (3-letter amino acids + Georgian legend), food chain/web, ecological
@@ -499,6 +509,10 @@ src/
   toolkits (English) also fill `instructionKa`.
 - Toolbar widgets can insert formatted text: `insertText(text, caretBack,
   ["italic"])` adds a plain space after it, so typing continues unformatted.
+- SVG text (pedigree) must get the `font-sans` class: with only
+  `font-family: inherit` Latin letters fell back to a serif font.
+- Genetics letters: one letter can't name an autosomal gene and the gene on
+  the X at once ("AaXᴬXᵃ" → error "sameLetter"); use AaXᴮXᵇ.
 - Built-in biology drawings and their part names live in
   `subjects/biology/drawings.ts` (content data, like `elements.ts`), not in
   the dictionaries. Drawings have no words on them; keep them black/grey on
