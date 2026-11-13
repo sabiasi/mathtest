@@ -2,10 +2,12 @@
 
 # MathTest
 
-A web app for school teachers in Georgia (the country) to create math tests,
-quizzes and exams, then print them or export them as PDF to hand out in class.
-Today teachers use Microsoft Word, where typing math is painful. MathTest must
-make it fast and easy.
+A web app for school teachers in Georgia (the country) to create tests,
+quizzes and exams in **any subject** (Mathematics, Physics, Chemistry, History,
+Georgian Language & Literature; more later), then print them or export them as
+PDF to hand out in class. Today teachers use Microsoft Word, where typing math
+(and other special content) is painful. MathTest must make it fast and easy.
+Visitors can try everything without an account (guest mode).
 
 ## Users
 
@@ -19,9 +21,11 @@ make it fast and easy.
 ## Core features (built step by step)
 
 1. **Test editor**: title, subject, grade, date, instructions, list of questions.
-2. **Visual math toolbar**: buttons for fractions, powers, roots, sin/cos/tan,
-   log, π, ≤ ≥ ≠ ±, × ÷, integrals, limits, matrices, Greek letters… Teachers
-   click a button and type into the slots. No LaTeX knowledge needed.
+2. **Subject toolkits**: each subject has its own tools. Mathematics: a visual
+   toolbar with fractions, powers, roots, sin/cos/tan, log, π, ≤ ≥ ≠ ±, × ÷,
+   integrals, limits, matrices, Greek letters… Teachers click a button and
+   type into the slots. No LaTeX knowledge needed. Other subjects: placeholders
+   for now, built one by one.
 3. **Question types**: multiple choice (A/B/C/D, correct one marked),
    true/false, short answer, open/long answer (blank lines for working),
    fill-in-the-blank, matching.
@@ -68,8 +72,22 @@ make it fast and easy.
   school, default subject, language, theme), protected pages (proxy.ts),
   tests + pictures in the cloud with Row Level Security, one-time import of
   old browser tests, cloud autosave indicator. Logo → /about.
-  Needs the owner's Supabase project (supabase/schema.sql, .env.local).
-- [ ] **Next**: remaining question types: fill-in-the-blank and matching.
+  Needs the owner's Supabase project (supabase/schema.sql, .env / .env.local).
+- [x] **Guest mode**: "Try without signing up" (landing) → /tests, editor,
+  print and PDF work without an account; tests in localStorage, pictures in
+  IndexedDB; a small dismissible banner (never a popup); on sign-up/sign-in
+  guest tests + pictures move into the account automatically and are removed
+  from the browser once saved. PDF route rate-limited (see Tech decisions).
+- [x] **Multi-subject platform**: `subjectId` on every test (old tests: guessed
+  from the printed name, else math); subject toolkits in `src/subjects/`
+  (toolbar, question types, print class/CSS); "Which subject?" dialog when
+  creating a test; subject picker in the test header and as Settings default;
+  subject icons on cards; landing page for all subjects. Math = the full
+  toolbar; physics/chemistry borrow some math tabs; history/Georgian have no
+  formula toolbar. Placeholders say "special tools coming soon".
+- [ ] **Next**: remaining question types: fill-in-the-blank and matching
+  (common to every subject: add them to `QUESTION_TYPES`). Then each
+  subject's own tools, one by one.
 - [ ] Later: backup import/export, templates, own email service (SMTP) and
   hosting.
 
@@ -79,19 +97,21 @@ make it fast and easy.
 | --- | --- |
 | Framework | Next.js 16 (App Router) + React 19 + TypeScript |
 | Styling | Tailwind CSS v4 (configured in `src/app/globals.css`, no tailwind.config). Design tokens (colours, radius, shadows) are CSS variables there, light in `:root`, dark in `.dark` |
-| UI components | shadcn/ui (Radix) copied into `src/components/ui/` (button, alert-dialog, dropdown-menu, input, textarea, tabs, tooltip, sonner, skeleton) + our `icon-button`, `form` (Field, SegmentedControl). `cn()` in `lib/utils.ts` |
+| UI components | shadcn/ui (Radix) copied into `src/components/ui/` (button, alert-dialog, dialog, dropdown-menu, input, textarea, tabs, tooltip, sonner, skeleton) + our `icon-button`, `form` (Field, SegmentedControl). `cn()` in `lib/utils.ts` |
 | Theme | next-themes, `attribute="class"`, storage key `mathtest:theme`, default "system". Switch cross-fades with the View Transitions API |
 | Animation | Motion (`motion/react`, the new name of Framer Motion) inside `MotionConfig reducedMotion="user"`; Radix pieces use tw-animate-css classes; global reduce-motion CSS rule |
 | Toasts | sonner (`toast(...)`), only after real actions; autosave stays quiet |
 | Font | Noto Sans Georgian via `next/font/google` (self-hosted at build time). Must also be used in print/PDF output. |
 | Icons | lucide-react |
 | Rich text | TipTap v3 (ProseMirror) with a custom inline `math` node (`src/features/math/MathNode.ts`) |
-| Math input | MathLive `<math-field>` inside that node; our own toolbar (MathLive's keyboard and menu are hidden) |
+| Math input | MathLive `<math-field>` inside that node; our own toolbar (MathLive's keyboard and menu are hidden). The formula node is shared by all subjects; which toolbar shows comes from the subject toolkit |
+| Subjects | `src/subjects/`: `ids.ts` (SUBJECT_IDS, subjectFromText; plain data, no React), `types.ts` (SubjectToolkit: Icon, colours, status ready/placeholder, formulas, toolbar tabs, questionTypes, print.className), one folder per subject (`index.ts` + `print.css`, imported in globals.css), `registry.ts` (getToolkit, SUBJECTS; steps for adding a subject are at its top). Colours: `--subject-<id>` tokens. Profile `default_subject` stores a subject id |
 | Math rendering | MathLive `convertLatexToMarkup` (same engine as input). Fonts/styles: `mathlive/fonts.css` + `mathlive/static.css` imported in `layout.tsx`, bundled and self-hosted; `MathfieldElement.fontsDirectory = null` |
-| Accounts | Supabase Auth via `@supabase/ssr` (sign-in kept in cookies). `src/proxy.ts` refreshes the sign-in and redirects (protected: /tests, /editor, /print, /settings). `/auth/callback` swaps email/Google links for a session. Only the publishable key (`NEXT_PUBLIC_SUPABASE_*` in `.env.local`), never a secret key |
+| Accounts | Supabase Auth via `@supabase/ssr` (sign-in kept in cookies). `src/proxy.ts` refreshes the sign-in and redirects (protected: only /settings; /tests, /editor, /print are open to guests). `/auth/callback` swaps email/Google links for a session. Only the publishable key (`NEXT_PUBLIC_SUPABASE_*` in `.env.local`), never a secret key |
+| Guests | Signed out (or Supabase not configured) = guest: `AuthProvider` starts the repository with `localTestsBackend()` (localStorage key `mathtest:tests:v1`) and `setImageUser(null)` (pictures in IndexedDB store `images`). On sign-in: `stopSync()` → cloud → `moveGuestTestsIntoAccount()` (lib/onboarding.ts): upload pictures, `importTests` (newer local version of an existing id → added as a copy), then after `waitUntilSaved` remove the browser copies. `useAuth().guest`, `useStorageKind()` ("cloud" / "device") |
 | Storage | Supabase Postgres: `profiles`, `tests` (whole test as JSON in `data`, PK user_id+id), Row Level Security on everything (`supabase/schema.sql`). Pictures: Storage bucket `images`, path `<user id>/<picture id>`, plus a browser copy in IndexedDB store `cache` |
 | Print | Our own pagination (`src/lib/paginate.ts` + `usePrintLayout`) into fixed 210×297mm `.sheet`s; `@page { size: A4; margin: 0 }` |
-| PDF | `POST /api/pdf` (signed-in teachers only) → puppeteer-core opens the same `/print` page with the test injected as `window.__MATHTEST_PRINT__` and header `x-mathtest-pdf: 1` (no sign-in cookies are passed) → `page.pdf()`. Chrome found by `findChrome()` / `CHROME_PATH`; hosting will need e.g. @sparticuz/chromium. No Chrome → 501 → client falls back to `window.print()` |
+| PDF | `POST /api/pdf` (guests too) → puppeteer-core opens the same `/print` page with the test injected as `window.__MATHTEST_PRINT__` (no sign-in cookies are passed) → `page.pdf()`. Limits (`lib/server/rateLimit.ts`, in memory): 10 PDFs / 10 min per guest IP, 200 / 10 min for all guests together, 40 / 10 min per signed-in teacher, at most 3 PDFs at once (503), body ≤ 25 MB, ≤ 300 questions (413). 429 has `Retry-After`; the print page explains it. With several servers / serverless, move the counters to a shared store (e.g. Upstash Redis). Chrome found by `findChrome()` / `CHROME_PATH`; hosting will need e.g. @sparticuz/chromium. No Chrome → 501 → client falls back to `window.print()` |
 | Fonts | Noto Sans Georgian + Noto Sans (backup for №, Cyrillic…), both via next/font; math fonts from MathLive CSS. PDFs must embed only these. |
 | Drag and drop | @dnd-kit (core + sortable), handle-only, keyboard accessible |
 | Tests | Vitest + jsdom (`npm test`) |
@@ -110,21 +130,24 @@ using unfamiliar APIs):
 ```
 src/
   app/                  Routes only, kept tiny (page.tsx renders a feature view)
-    page.tsx            /              → features/landing/LandingGate (landing, or → /tests if started)
-    tests/page.tsx      /tests         → features/home/HomeView ("My tests")
+    page.tsx            /              → features/landing/LandingView (signed in → /tests via proxy)
+    tests/page.tsx      /tests         → features/home/HomeView ("My tests", guests too)
     about/page.tsx      /about         → features/landing/LandingView (always)
     editor/[id]/page.tsx /editor/:id   → features/editor/EditorView
   features/<name>/      Page-level UI for one feature
-  features/math/        RichTextInput (TipTap box), MathNode, MathToolbar + toolbarData,
-                        MathEditingContext (which box is active), RichTextView (static), mathlive.ts
+  features/math/        RichTextInput (TipTap box), MathNode, MathEditingContext (which box
+                        is active), RichTextView (static), mathlive.ts — shared by all subjects
+  subjects/             Subject toolkits: ids, types, registry, <id>/index.ts + print.css,
+                        math/toolbar.ts (the 7 math tabs)
+  features/subjects/    SubjectPicker + SubjectIcon, NewTestDialog ("which subject?")
   components/           Shared UI: AppHeader/HeaderNav/AppFooter, Providers (theme, motion,
                         tooltips, confirm, toaster), ThemeSwitcher, PageTransition,
-                        EmptyState, ConfirmDialog, DateField, ui/ (shadcn)
-  features/landing/     LandingGate + LandingView (hero, paper preview, features)
-  lib/onboarding.ts     Flags: sample-added, started (skip landing)
+                        EmptyState, ConfirmDialog, DateField, GuestBanner, ui/ (shadcn)
+  features/landing/     LandingView (hero, try button, subjects, paper preview, features)
+  lib/onboarding.ts     guestTestCount, moveGuestTestsIntoAccount (guest → account)
   i18n/                 dictionaries.ts (ka + en text), language.ts (useT, useLanguage)
   features/editor/      EditorView → TestEditor (state + autosave), TestHeaderForm,
-                        questions/ (QuestionList with dnd-kit, QuestionCard, one editor per type)
+                        SubjectToolbar (tabs from the toolkit), questions/ (QuestionList with dnd-kit, QuestionCard, one editor per type)
   features/print/       PrintView (controls + sheets), PrintBlocks (header, questions),
                         usePrintLayout (measure → paginate), downloadPdf
   app/api/pdf/route.ts  PDF generation; lib/server/chrome.ts finds/launches Chrome
@@ -136,11 +159,13 @@ src/
   lib/variants.ts       buildVariants(test) → [A (original), B…]; seededRandom + shuffle
   lib/richText.ts       RichText = [{type:"text"} | {type:"math", latex}] + conversions to/from TipTap docs
   lib/questions.ts      Pure helpers: create/duplicate/change type, totals, labels
-  lib/storage/          types.ts, migrate.ts (normalizeTest), testsRepository.ts (memory + cloud
-                        send queue + readLocalTests for the import), supabaseTests.ts, useTests.ts
+  lib/storage/          types.ts, migrate.ts (normalizeTest), testsRepository.ts (memory + send
+                        queue to a backend), supabaseTests.ts (cloud), localTests.ts (guests),
+                        useTests.ts
   lib/supabase/         config (env), client (browser), server (route handlers)
   lib/auth/             routes (protected paths, safeNext), errors (→ Georgian messages), profile
-  features/auth/        AuthProvider (useAuth, starts cloud sync), AuthParts, SignIn/SignUp/
+  lib/server/           chrome.ts (PDF Chrome), rateLimit.ts (limits for /api/pdf)
+  features/auth/        AuthProvider (useAuth, guest or cloud sync), AuthParts, SignIn/SignUp/
                         ForgotPassword/ResetPassword views
   features/settings/    SettingsView
   src/proxy.ts          sign-in refresh + redirects (Next 16's "middleware")
@@ -167,8 +192,16 @@ src/
   service_role / secret key in this app.
 - Question text, options and short answers are `RichText` (our own format, not
   TipTap JSON). Formulas are stored as LaTeX. Use `RichTextInput` to edit and
-  `RichTextView` to display. Exception to the dictionary rule: math toolbar
-  tooltips live in `toolbarData.ts` (ka + en per button).
+  `RichTextView` to display. Exception to the dictionary rule: toolbar
+  tooltips live in the toolkit's toolbar file, e.g. `src/subjects/math/toolbar.ts`
+  (ka + en per button). Subject names are in the dictionaries (`subject.<id>`).
+- **Never check a subject by name in shared code** (no `if (subjectId === "math")`
+  in the editor/print): put the difference in the toolkit and read it via
+  `getToolkit(test.subjectId)`.
+- **Guests are first-class**: anything on /tests, /editor, /print must work
+  with `useStorageKind() === "device"` (no user id, no profile). Only pages
+  that really need an account go in `PROTECTED_PREFIXES`. Anything new that
+  costs the server work must get a rate limit (lib/server/rateLimit.ts).
 - Georgian schools write tg / ctg (not tan / cot) and ";" in intervals.
 - Chrome has no Georgian `Intl` date data: use `src/lib/format.ts`, never
   `toLocaleDateString("ka-GE")`.
@@ -251,8 +284,14 @@ src/
   our message boxes with `[role=alert].rounded-xl`.
 - Supabase's built-in email only sends to the project team's addresses and
   only a few per hour: real teachers need custom SMTP (e.g. Resend).
-- Old browser test suites seeded localStorage; tests now live in the cloud,
-  so end-to-end browser tests need a Supabase test account.
+- Browser tests can run as a guest (fresh browser = empty localStorage);
+  only the account parts (sign-in, moving guest tests) need a Supabase test
+  account.
+- `cleanUpImages(tests)` must only run once tests are loaded (`tests !== null`):
+  while loading the list is empty and every picture looks unused.
+- Placeholder subject colours: `bg-subject-<id>/12` (the opacity modifier works
+  on our colour tokens); class names are written out in full in each toolkit
+  so Tailwind finds them.
 - The PUBLIC Supabase URL + publishable key live in the shared, committed
   `.env` (so collaborators can run the app after `git pull`); `.env.local`
   (never committed) can override them. `envSafety.test.ts` fails if a

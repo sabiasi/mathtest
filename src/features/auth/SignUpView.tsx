@@ -104,6 +104,7 @@ export function SignUpView() {
 
   return (
     <AuthCard
+      guestNote
       title={t("auth.signUpTitle")}
       subtitle={t("auth.signUpSubtitle")}
       footer={

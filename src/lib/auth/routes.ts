@@ -3,8 +3,12 @@
  * signing in" addresses. Used by proxy.ts (server) and the auth pages.
  */
 
-/** Pages that need an account. Everything else (landing, about, sign-in…) is public. */
-export const PROTECTED_PREFIXES = ["/tests", "/editor", "/print", "/settings"];
+/**
+ * Pages that need an account. Everything else is public — including My
+ * tests, the editor and print, which guests use with tests saved in their
+ * browser ("try without signing up").
+ */
+export const PROTECTED_PREFIXES = ["/settings"];
 
 /** Pages that make no sense once signed in (they send you to My tests). */
 export const SIGNED_OUT_ONLY = ["/", "/signin", "/signup"];

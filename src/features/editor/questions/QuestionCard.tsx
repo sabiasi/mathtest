@@ -11,7 +11,7 @@ import { RichTextInput } from "@/features/math/RichTextInput";
 import { useT } from "@/i18n/language";
 import { newId } from "@/lib/ids";
 import { UnsupportedImageError, addImage } from "@/lib/images/imageStore";
-import { QUESTION_TYPES, changeQuestionType } from "@/lib/questions";
+import { changeQuestionType } from "@/lib/questions";
 import type { LabelStyle, Question, QuestionImage, QuestionType } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
 import { MultipleChoiceEditor } from "./MultipleChoiceEditor";
@@ -25,6 +25,7 @@ export function QuestionCard({
   question,
   number,
   labelStyle,
+  questionTypes,
   autoFocus,
   onChange,
   onPatch,
@@ -34,6 +35,7 @@ export function QuestionCard({
   question: Question;
   number: number;
   labelStyle: LabelStyle;
+  questionTypes: readonly QuestionType[];
   autoFocus: boolean;
   onChange: (question: Question) => void;
   onPatch: (patch: (question: Question) => Question) => void;
@@ -146,7 +148,8 @@ export function QuestionCard({
               onChange={(e) => onChange(changeQuestionType(question, e.target.value as QuestionType))}
               className={cn(inputClasses, "h-9 w-auto py-0 pr-8 pl-2.5 text-sm font-medium text-soft-foreground")}
             >
-              {QUESTION_TYPES.map((type) => (
+              {/* The subject's types — plus this question's own, if the subject doesn't offer it. */}
+              {(questionTypes.includes(question.type) ? questionTypes : [...questionTypes, question.type]).map((type) => (
                 <option key={type} value={type}>
                   {t(`type.${type}`)}
                 </option>

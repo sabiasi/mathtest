@@ -11,25 +11,28 @@
  *   that writes it to the cloud in the background. If the internet drops,
  *   the queue keeps the newest version and retries a few seconds later.
  *
- * The cloud part is a "backend" object (see supabaseTests.ts). Unit tests
- * give it a fake backend, so they run without internet.
- *
- * Old tests that were saved in this browser's localStorage (before
- * accounts) can still be read with readLocalTests(), for the import.
+ * Where the tests go is a "backend" object:
+ * - signed-in teachers: the cloud (supabaseTests.ts)
+ * - guests (no account): this browser's localStorage (localTests.ts)
+ * Unit tests give it a fake backend, so they run without internet.
  */
 import { newId } from "@/lib/ids";
+import { DEFAULT_SUBJECT } from "@/subjects/ids";
 import { duplicateQuestion } from "@/lib/questions";
 import { normalizeTest, seedFromString } from "./migrate";
 import { DEFAULT_PRINT_OPTIONS, DEFAULT_VARIANTS, type Test } from "./types";
 
-/** What the repository needs from the cloud. */
+/** What the repository needs from where tests are kept. */
 export type TestsBackend = {
+  /** "cloud" = the teacher's account; "device" = this browser only (guests). */
+  kind: StorageKind;
   list(): Promise<Test[]>;
   upsert(test: Test): Promise<void>;
   remove(id: string): Promise<void>;
 };
 
 export type SaveState = "saved" | "saving" | "error";
+export type StorageKind = "cloud" | "device";
 
 declare global {
   interface Window {
@@ -78,10 +81,13 @@ if (typeof window !== "undefined" && window.__MATHTEST_PRINT__) {
 }
 
 // ---------------------------------------------------------------------------
-// Starting and stopping (called when a teacher signs in / out)
+// Starting and stopping (called on sign-in / sign-out, see AuthProvider)
 // ---------------------------------------------------------------------------
 
-/** Loads the signed-in teacher's tests and starts sending changes to `cloud`. */
+/**
+ * Loads the tests from `cloud` (the account, or this browser for guests)
+ * and sends every change there from now on.
+ */
 export async function startSync(cloud: TestsBackend): Promise<void> {
   if (typeof window !== "undefined" && window.__MATHTEST_PRINT__) return;
   const myGeneration = ++generation;
@@ -141,6 +147,11 @@ export function getLoadStatus(): Status {
   return status;
 }
 
+/** Where tests are being saved right now (null while nobody is known yet). */
+export function getStorageKind(): StorageKind | null {
+  return backend?.kind ?? null;
+}
+
 export function getTest(id: string): Test | undefined {
   return tests.find((test) => test.id === id);
 }
@@ -157,7 +168,7 @@ function enqueue(id: string, write: Write) {
 
 /**
  * Creates a new test, saves it, and returns it. `defaults` lets the page
- * pre-fill fields, e.g. { subject: "მათემატიკა" }.
+ * pre-fill fields, e.g. { subjectId: "physics", subject: "ფიზიკა" }.
  */
 export function createTest(defaults: Partial<Omit<Test, "id">> = {}): Test {
   const now = new Date().toISOString();
@@ -165,6 +176,7 @@ export function createTest(defaults: Partial<Omit<Test, "id">> = {}): Test {
   const test: Test = {
     schoolName: "",
     title: "",
+    subjectId: DEFAULT_SUBJECT,
     subject: "",
     grade: "",
     date: "",
@@ -222,13 +234,23 @@ export function restoreTest(test: Test): void {
   enqueue(test.id, { kind: "upsert", test });
 }
 
-/** Adds tests from elsewhere (the localStorage import), skipping ones already here. */
-export function importTests(incoming: Test[]): number {
-  const fresh = incoming.filter((test) => !getTest(test.id));
-  if (fresh.length === 0) return 0;
-  setTests([...tests, ...fresh]);
-  for (const test of fresh) enqueue(test.id, { kind: "upsert", test });
-  return fresh.length;
+/**
+ * Adds tests from elsewhere (a guest's tests, when they sign in) and returns
+ * the ones actually added. A test that's already here is skipped — unless
+ * the incoming one was changed later, then it's added as a copy, so neither
+ * version is lost.
+ */
+export function importTests(incoming: Test[]): Test[] {
+  const added: Test[] = [];
+  for (const test of incoming) {
+    const existing = getTest(test.id) ?? added.find((t) => t.id === test.id);
+    if (!existing) added.push(test);
+    else if (test.updatedAt > existing.updatedAt) added.push({ ...test, id: newId() });
+  }
+  if (added.length === 0) return [];
+  setTests([...tests, ...added]);
+  for (const test of added) enqueue(test.id, { kind: "upsert", test });
+  return added;
 }
 
 // ---------------------------------------------------------------------------
@@ -285,6 +307,26 @@ export function getSaveState(id: string): SaveState {
   return "saved";
 }
 
+/**
+ * Resolves true once all these tests have been saved, or false if the
+ * session ends first (sign-out). While offline it simply keeps waiting.
+ */
+export function waitUntilSaved(ids: string[]): Promise<boolean> {
+  const myGeneration = generation;
+  return new Promise((resolve) => {
+    const check = () => {
+      if (myGeneration !== generation) return finish(false);
+      if (ids.every((id) => getSaveState(id) === "saved")) finish(true);
+    };
+    const finish = (result: boolean) => {
+      stop();
+      resolve(result);
+    };
+    const stop = subscribe(check);
+    check();
+  });
+}
+
 /** True while anything still has to reach the cloud (used to warn before closing the tab). */
 export function hasUnsavedChanges(): boolean {
   return queue.size > 0 || sending.size > 0;
@@ -299,24 +341,4 @@ export function subscribe(listener: () => void): () => void {
   return () => {
     listeners.delete(listener);
   };
-}
-
-// ---------------------------------------------------------------------------
-// Tests saved in this browser before accounts existed (for the import)
-// ---------------------------------------------------------------------------
-
-/** The old localStorage key. The "v1" let us change the data format safely. */
-export const STORAGE_KEY = "mathtest:tests:v1";
-
-/** The tests saved in this browser before accounts existed (they are never changed). */
-export function readLocalTests(): Test[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const data: unknown = JSON.parse(raw);
-    if (!Array.isArray(data)) return [];
-    return data.map(normalizeTest).filter((test): test is Test => test !== null);
-  } catch {
-    return []; // unreadable or blocked storage: nothing to import
-  }
 }

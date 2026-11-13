@@ -5,18 +5,19 @@ import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useConfirm } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import { GuestBanner } from "@/components/GuestBanner";
 import { PageTransition } from "@/components/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { NewTestDialog } from "@/features/subjects/NewTestDialog";
 import { useLanguage, useT } from "@/i18n/language";
 import { cleanUpImages } from "@/lib/images/imageStore";
-import { importLocalTestsIntoAccount, importWasHandled, localTestCount, markImportHandled } from "@/lib/onboarding";
 import { createSampleTest } from "@/lib/sample";
-import { createTest, listTests, retryLoad } from "@/lib/storage/testsRepository";
+import { createTest, retryLoad } from "@/lib/storage/testsRepository";
 import { useLoadStatus, useTests } from "@/lib/storage/useTests";
+import { subjectFromText, type SubjectId } from "@/subjects/ids";
 import { TestCard } from "./TestCard";
 
 /** The "My tests" page (/tests). */
@@ -26,43 +27,19 @@ export function HomeView() {
   const router = useRouter();
   const tests = useTests();
   const loadStatus = useLoadStatus();
-  const confirm = useConfirm();
-  const { user, profile, updateProfile } = useAuth();
+  const { user, profile, guest, updateProfile } = useAuth();
   const [openingSample, setOpeningSample] = useState(false);
+  const [choosingSubject, setChoosingSubject] = useState(false);
+  // From Settings: the subject marked "Default" in the "which subject?" window.
+  const defaultSubject = subjectFromText(profile?.default_subject ?? "");
 
   // Tidy up: delete stored pictures that no test uses any more (e.g. from
   // deleted tests or removed images). Runs quietly in the background.
+  // Only once the tests are loaded — while loading the list is empty, and
+  // every picture would look unused!
   useEffect(() => {
-    void cleanUpImages(listTests());
+    if (tests) void cleanUpImages(tests);
   }, [tests]);
-
-  // First sign-in in a browser that has tests from before accounts:
-  // offer to bring them into the account (once per account and browser).
-  const askedImport = useRef(false);
-  useEffect(() => {
-    if (tests === null || !user || askedImport.current) return;
-    const count = localTestCount();
-    if (count === 0 || importWasHandled(user.id)) return;
-    askedImport.current = true;
-    void (async () => {
-      const yes = await confirm({
-        title: t("import.title"),
-        message: t("import.text", { count }),
-        confirmLabel: t("import.confirm"),
-        cancelLabel: t("import.decline"),
-      });
-      markImportHandled(user.id);
-      if (!yes) return;
-      const id = toast.loading(t("import.working"));
-      try {
-        const added = await importLocalTestsIntoAccount();
-        if (added > 0) void updateProfile({ sample_added: true }); // they have real tests now
-        toast.success(added > 0 ? t("import.done", { count: added }) : t("import.nothing"), { id });
-      } catch {
-        toast.error(t("import.failed"), { id });
-      }
-    })();
-  }, [tests, user, confirm, t, updateProfile]);
 
   // A brand-new account: add the sample test once, so the page isn't empty
   // and the teacher can see what a finished test looks like.
@@ -74,16 +51,17 @@ export function HomeView() {
       void updateProfile({ sample_added: true });
       return;
     }
-    if (localTestCount() > 0 && !importWasHandled(user.id)) return; // the import question comes first
     addingSample.current = true;
     void updateProfile({ sample_added: true }).then(() => createSampleTest(language));
   }, [tests, user, profile, language, updateProfile]);
 
-  function handleCreate() {
+  function handleCreate(subjectId: SubjectId) {
+    setChoosingSubject(false);
     const test = createTest({
-      // From Settings: the teacher's school and main subject.
+      // From Settings: the teacher's school.
       schoolName: profile?.school_name ?? "",
-      subject: profile?.default_subject || t("test.defaultSubject"),
+      subjectId,
+      subject: t(`subject.${subjectId}`),
       // Georgian interface → ა, ბ, გ, დ; English interface → A, B, C, D
       labelStyle: language === "en" ? "latin" : "georgian",
     });
@@ -98,7 +76,7 @@ export function HomeView() {
   }
 
   const createButton = (
-    <Button onClick={handleCreate}>
+    <Button onClick={() => setChoosingSubject(true)}>
       <Plus className="size-5" aria-hidden="true" />
       {t("home.createNew")}
     </Button>
@@ -124,6 +102,8 @@ export function HomeView() {
           </div>
         )}
       </div>
+
+      <GuestBanner className="mt-6" />
 
       {/* A short guide while the teacher is just starting out. */}
       {tests && tests.length <= 1 && <HowItWorks />}
@@ -178,8 +158,15 @@ export function HomeView() {
 
       <p className="mt-10 flex items-start gap-2 text-sm text-muted-foreground">
         <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-        {t("home.storageNote")}
+        {t(guest ? "guest.storageNote" : "home.storageNote")}
       </p>
+
+      <NewTestDialog
+        open={choosingSubject}
+        onOpenChange={setChoosingSubject}
+        defaultSubject={defaultSubject}
+        onPick={handleCreate}
+      />
     </PageTransition>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Clock, Copy, FileText, ListOrdered, MoreHorizontal, Pencil, Printer, Star, Trash2 } from "lucide-react";
+import { Clock, Copy, ListOrdered, MoreHorizontal, Pencil, Printer, Star, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { SubjectIcon } from "@/features/subjects/SubjectPicker";
 import { useLanguage, useT } from "@/i18n/language";
 import { formatDateTime } from "@/lib/format";
 import { formatPoints, totalPoints } from "@/lib/questions";
@@ -29,7 +30,7 @@ export function TestCard({ test }: { test: Test }) {
   const title = test.title || t("test.untitled");
   const editUrl = `/editor/${test.id}`;
   const printUrl = `/print/${test.id}`;
-  const tags = [test.subject, test.grade].filter(Boolean);
+  const tags = [test.subject || t(`subject.${test.subjectId}`), test.grade].filter(Boolean);
 
   function handleDuplicate() {
     duplicateTest(test.id, test.title ? t("test.copyTitle", { title: test.title }) : "");
@@ -54,8 +55,10 @@ export function TestCard({ test }: { test: Test }) {
     <article className="group relative flex h-full flex-col rounded-2xl border bg-card shadow-sm transition-[border-color,box-shadow,translate] duration-200 ease-out-soft hover:border-primary-soft-border hover:shadow-md motion-safe:hover:-translate-y-0.5">
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start gap-3">
-          <span className="rounded-xl bg-primary-soft p-2.5 text-brand transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
-            <FileText className="size-5" aria-hidden="true" />
+          {/* The subject's icon; its name is read out for screen readers. */}
+          <span title={t(`subject.${test.subjectId}`)}>
+            <SubjectIcon id={test.subjectId} className="p-2.5" />
+            <span className="sr-only">{t(`subject.${test.subjectId}`)}</span>
           </span>
           <div className="min-w-0 flex-1 pt-0.5">
             <h2 className="text-[17px] leading-snug font-semibold text-foreground">

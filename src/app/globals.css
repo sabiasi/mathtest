@@ -1,6 +1,12 @@
 @import "tailwindcss";
 /* Ready-made CSS animations used by the shadcn/ui pieces (fade / zoom in). */
 @import "tw-animate-css";
+/* Each subject toolkit's print styles (src/subjects/<id>/print.css). */
+@import "../subjects/math/print.css";
+@import "../subjects/physics/print.css";
+@import "../subjects/chemistry/print.css";
+@import "../subjects/history/print.css";
+@import "../subjects/georgian/print.css";
 
 /* `dark:` classes apply when <html class="dark"> (set by next-themes). */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -55,6 +61,12 @@
   --color-warning-soft: var(--warning-soft);
   --color-warning-border: var(--warning-border);
   --color-warning-text: var(--warning-text);
+  /* One colour per school subject (icons, chips). Soft shades: e.g. bg-subject-math/12 */
+  --color-subject-math: var(--subject-math);
+  --color-subject-physics: var(--subject-physics);
+  --color-subject-chemistry: var(--subject-chemistry);
+  --color-subject-history: var(--subject-history);
+  --color-subject-georgian: var(--subject-georgian);
   /* "Paper": previews of what gets printed are white in BOTH themes. */
   --color-paper: #ffffff;
   --color-paper-foreground: #111111;
@@ -112,6 +124,13 @@
   --warning-border: oklch(0.87 0.13 90);
   --warning-text: oklch(0.42 0.11 48);
 
+  /* Subjects */
+  --subject-math: oklch(0.5 0.2 277);
+  --subject-physics: oklch(0.52 0.15 240);
+  --subject-chemistry: oklch(0.5 0.11 170);
+  --subject-history: oklch(0.52 0.13 55);
+  --subject-georgian: oklch(0.52 0.19 15);
+
   /* Formula chips in the editor */
   --math-bg: oklch(0.955 0.022 274);
   --math-border: oklch(0.86 0.06 274);
@@ -159,6 +178,12 @@
   --warning-soft: oklch(0.26 0.045 75);
   --warning-border: oklch(0.5 0.1 75);
   --warning-text: oklch(0.89 0.11 88);
+
+  --subject-math: oklch(0.78 0.12 277);
+  --subject-physics: oklch(0.78 0.11 240);
+  --subject-chemistry: oklch(0.8 0.11 170);
+  --subject-history: oklch(0.8 0.11 65);
+  --subject-georgian: oklch(0.78 0.12 15);
 
   --math-bg: oklch(0.29 0.05 277);
   --math-border: oklch(0.45 0.09 277);

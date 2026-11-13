@@ -122,6 +122,7 @@ export async function createSampleTest(language: Language): Promise<Test> {
   return createTest({
     title: x.title,
     schoolName: x.school,
+    subjectId: "math",
     subject: x.subject,
     grade: x.grade,
     date: `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`,

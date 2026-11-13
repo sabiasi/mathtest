@@ -1,9 +1,9 @@
 "use client";
 
-import { KeyRound, LogOut, Monitor, Moon, Sun, Upload } from "lucide-react";
+import { KeyRound, LogOut, Monitor, Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { useState, type FormEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { PageTransition } from "@/components/PageTransition";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -11,12 +11,11 @@ import { Field, FieldLabel, SegmentedControl } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { SubjectPicker } from "@/features/subjects/SubjectPicker";
 import { LANGUAGES, LANGUAGE_NAMES, type Language } from "@/i18n/dictionaries";
 import { setLanguage, useLanguage, useT } from "@/i18n/language";
 import type { Profile, ProfileChanges, ThemeChoice } from "@/lib/auth/profile";
-import { importLocalTestsIntoAccount, localTestCount, markImportHandled } from "@/lib/onboarding";
-
-const noSubscription = () => () => {};
+import { DEFAULT_SUBJECT, subjectFromText } from "@/subjects/ids";
 
 /** /settings — name, school, default subject, language, theme; account actions. */
 export function SettingsView() {
@@ -24,9 +23,6 @@ export function SettingsView() {
   const { user, profile, updateProfile, signOut } = useAuth();
   const language = useLanguage();
   const { theme, setTheme } = useTheme();
-
-  const [importing, setImporting] = useState(false);
-  const localCount = useSyncExternalStore(noSubscription, localTestCount, () => 0);
 
   function changeLanguage(next: Language) {
     setLanguage(next);
@@ -36,19 +32,6 @@ export function SettingsView() {
   function changeTheme(next: ThemeChoice) {
     setTheme(next);
     void updateProfile({ theme: next });
-  }
-
-  async function handleImport() {
-    setImporting(true);
-    const id = toast.loading(t("import.working"));
-    try {
-      const count = await importLocalTestsIntoAccount();
-      if (user) markImportHandled(user.id);
-      toast.success(count > 0 ? t("import.done", { count }) : t("import.nothing"), { id });
-    } catch {
-      toast.error(t("import.failed"), { id });
-    }
-    setImporting(false);
   }
 
   return (
@@ -102,12 +85,6 @@ export function SettingsView() {
             <KeyRound aria-hidden="true" />
             {t("settings.changePassword")}
           </Link>
-          {localCount > 0 && (
-            <Button variant="outline" onClick={handleImport} disabled={importing}>
-              <Upload aria-hidden="true" />
-              {t("settings.importLocal", { count: localCount })}
-            </Button>
-          )}
           <Button variant="ghost" onClick={() => void signOut()} className="text-destructive-text hover:bg-destructive-soft hover:text-destructive-text">
             <LogOut aria-hidden="true" />
             {t("user.signOut")}
@@ -133,7 +110,8 @@ function ProfileForm({
   const [form, setForm] = useState({
     full_name: profile.full_name,
     school_name: profile.school_name,
-    default_subject: profile.default_subject,
+    // Saved as a subject id ("math"); older profiles may have free text.
+    default_subject: subjectFromText(profile.default_subject) ?? DEFAULT_SUBJECT,
   });
   const [saving, setSaving] = useState(false);
 
@@ -143,7 +121,7 @@ function ProfileForm({
     const ok = await onSave({
       full_name: form.full_name.trim(),
       school_name: form.school_name.trim(),
-      default_subject: form.default_subject.trim(),
+      default_subject: form.default_subject,
     });
     setSaving(false);
     if (ok) toast.success(t("settings.saved"));
@@ -166,13 +144,14 @@ function ProfileForm({
           onChange={(e) => setForm({ ...form, school_name: e.target.value })}
         />
       </Field>
-      <Field label={t("settings.subject")} hint={t("settings.subjectHint")}>
-        <Input
+      <div>
+        <FieldLabel hint={t("settings.subjectHint")}>{t("settings.subject")}</FieldLabel>
+        <SubjectPicker
           value={form.default_subject}
-          placeholder={t("test.defaultSubject")}
-          onChange={(e) => setForm({ ...form, default_subject: e.target.value })}
+          onChange={(default_subject) => setForm({ ...form, default_subject })}
+          label={t("settings.subject")}
         />
-      </Field>
+      </div>
       <Button type="submit" disabled={saving}>
         {t("settings.save")}
       </Button>

@@ -6,12 +6,15 @@
  * /print page, wait until the pages are laid out, and ask Chrome to "print
  * to PDF". Chrome embeds the fonts (Noto Sans Georgian, the math fonts).
  *
- * Only signed-in teachers may use it. The invisible Chrome itself is NOT
- * signed in: it gets the test handed over, so no sign-in cookie ever leaves
- * the teacher's browser.
+ * Guests (no account) may use it too, so they can try everything. Because
+ * every PDF costs the server real work, there are limits (see rateLimit.ts):
+ * per visitor per 10 minutes, for all guests together, and how many PDFs are
+ * made at the same time. The invisible Chrome itself is NOT signed in: it
+ * gets the test handed over, so no sign-in cookie ever leaves the browser.
  */
 import { LANGUAGES, type Language } from "@/i18n/dictionaries";
 import { getBrowser } from "@/lib/server/chrome";
+import { clientIp, createConcurrencyLimit, createRateLimiter, type LimitResult } from "@/lib/server/rateLimit";
 import { normalizeTest } from "@/lib/storage/migrate";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServer } from "@/lib/supabase/server";
@@ -19,19 +22,56 @@ import { createSupabaseServer } from "@/lib/supabase/server";
 const LANGUAGE_KEY = "mathtest:language";
 const THEME_KEY = "mathtest:theme"; // same as THEME_STORAGE_KEY in components/Providers.tsx
 
+const TEN_MINUTES = 10 * 60 * 1000;
+/** Each guest (by IP address): 10 PDFs per 10 minutes. */
+const perGuest = createRateLimiter({ limit: 10, windowMs: TEN_MINUTES });
+/** All guests together — in case someone fakes many different addresses. */
+const allGuests = createRateLimiter({ limit: 200, windowMs: TEN_MINUTES });
+/** Each signed-in teacher: 40 PDFs per 10 minutes (plenty for real work). */
+const perTeacher = createRateLimiter({ limit: 40, windowMs: TEN_MINUTES });
+/** Every PDF opens a Chrome tab; more at once would slow everyone down. */
+const parallel = createConcurrencyLimit(3);
+
+/** A test with pictures is a few MB at most; refuse anything far bigger. */
+const MAX_BODY_BYTES = 25 * 1024 * 1024;
+const MAX_QUESTIONS = 300;
+
+const refuse = (status: number, error: string, retryAfterSeconds?: number) =>
+  Response.json({ error }, { status, headers: retryAfterSeconds ? { "Retry-After": String(retryAfterSeconds) } : undefined });
+
 export async function POST(request: Request) {
+  // ---- Who is asking, and have they asked too often? ----
+  let userId: string | null = null;
   if (supabaseConfigured) {
     const supabase = await createSupabaseServer();
     const { data } = await supabase.auth.getClaims();
-    if (!data?.claims?.sub) return Response.json({ error: "sign in first" }, { status: 401 });
+    userId = data?.claims?.sub ?? null;
   }
-  const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
+  let limit: LimitResult;
+  if (userId) limit = perTeacher.check(`user:${userId}`);
+  else {
+    limit = perGuest.check(`ip:${clientIp(request.headers)}`);
+    if (limit.ok) limit = allGuests.check("all");
+  }
+  if (!limit.ok) return refuse(429, "too many requests", limit.retryAfterSeconds);
+
+  // ---- Read and check what was sent ----
+  if (Number(request.headers.get("content-length") ?? 0) > MAX_BODY_BYTES) return refuse(413, "too big");
+  const text = await request.text().catch(() => "");
+  if (text.length > MAX_BODY_BYTES) return refuse(413, "too big");
+  let body: Record<string, unknown> | null = null;
+  try {
+    body = JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    body = null;
+  }
   const test = normalizeTest(body?.test);
   const version = body?.version === "key" ? "key" : "student";
   // "A"…"F" or "all" — anything else falls back to "A".
   const variant = typeof body?.variant === "string" && /^([A-F]|all)$/.test(body.variant) ? body.variant : "A";
   const language: Language = LANGUAGES.includes(body?.language as Language) ? (body!.language as Language) : "ka";
-  if (!test) return Response.json({ error: "invalid test" }, { status: 400 });
+  if (!test) return refuse(400, "invalid test");
+  if (test.questions.length > MAX_QUESTIONS) return refuse(413, "too many questions");
   // Pictures: { imageId: "data:image/png;base64,…" }. Only image data URLs are accepted.
   const images: Record<string, string> = {};
   if (body?.images && typeof body.images === "object") {
@@ -40,12 +80,30 @@ export async function POST(request: Request) {
     }
   }
 
+  // ---- Make the PDF (only a few at a time) ----
+  const done = parallel.tryStart();
+  if (!done) return refuse(503, "busy", 5);
+  try {
+    return await makePdf(request, test, version, variant, language, images);
+  } finally {
+    done();
+  }
+}
+
+async function makePdf(
+  request: Request,
+  test: NonNullable<ReturnType<typeof normalizeTest>>,
+  version: string,
+  variant: string,
+  language: Language,
+  images: Record<string, string>,
+): Promise<Response> {
   let browser;
   try {
     browser = await getBrowser();
   } catch {
     // No Chrome on this machine: the page falls back to the print dialog.
-    return Response.json({ error: "chrome not available" }, { status: 501 });
+    return refuse(501, "chrome not available");
   }
 
   const page = await browser.newPage();
@@ -54,8 +112,6 @@ export async function POST(request: Request) {
     await page.setViewport({ width: 1280, height: 1000 });
     // Paper is always white: open the page in light mode, whatever the teacher uses.
     await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]);
-    // Lets this request past the "please sign in" redirect in proxy.ts.
-    await page.setExtraHTTPHeaders({ "x-mathtest-pdf": "1" });
     // Runs before the page's own code: give this browser the test and language.
     await page.evaluateOnNewDocument(
       (testJson, languageKey, lang, themeKey, pictures) => {
@@ -92,7 +148,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("PDF generation failed", error);
-    return Response.json({ error: "pdf failed" }, { status: 500 });
+    return refuse(500, "pdf failed");
   } finally {
     await page.close();
   }

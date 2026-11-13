@@ -1,0 +1,8 @@
+/*
+ * Print styles that only apply to physics tests.
+ * Every printed sheet sits inside an element with the class "subject-physics",
+ * so rules written as ".subject-physics .something" change only this subject's
+ * paper. Keep the paper white and text black (see CLAUDE.md).
+ *
+ * Empty for now: this subject prints with the shared styles.
+ */

@@ -22,7 +22,8 @@ export const DEFAULT_LINES = 5;
 export const GRID_LIMITS = { minCols: 4, maxCols: 34, minRows: 2, maxRows: 40 };
 export const DEFAULT_GRID = { cols: 20, rows: 12 };
 
-export const QUESTION_TYPES: QuestionType[] = [
+/** The common question types: every subject offers these (see src/subjects). */
+export const QUESTION_TYPES: readonly QuestionType[] = [
   "multiple-choice",
   "true-false",
   "short-answer",

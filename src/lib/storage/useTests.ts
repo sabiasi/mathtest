@@ -5,7 +5,7 @@
  * automatically whenever the tests (or their save state) change.
  */
 import { useSyncExternalStore } from "react";
-import { getLoadStatus, getSaveState, getTestsSnapshot, subscribe, type SaveState } from "./testsRepository";
+import { getLoadStatus, getSaveState, getStorageKind, getTestsSnapshot, subscribe, type SaveState } from "./testsRepository";
 import type { Test } from "./types";
 
 // The server never has the teacher's tests. So on the server — and until
@@ -20,6 +20,11 @@ export function useTests(): Test[] | null {
 /** "idle" | "loading" | "ready" | "error" — e.g. to show "couldn't load, try again". */
 export function useLoadStatus() {
   return useSyncExternalStore(subscribe, getLoadStatus, () => "idle" as const);
+}
+
+/** "cloud" (account) or "device" (guest, this browser only); null while unknown. */
+export function useStorageKind() {
+  return useSyncExternalStore(subscribe, getStorageKind, () => null);
 }
 
 /** Whether one test's latest changes have reached the cloud. */

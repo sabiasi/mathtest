@@ -6,7 +6,11 @@ import { useAuth } from "@/features/auth/AuthProvider";
 import { useT } from "@/i18n/language";
 import { EmptyState } from "./EmptyState";
 
-/** Until .env.local has the Supabase keys, pages that need an account explain that instead of loading forever. */
+/**
+ * Until Supabase is connected (.env / .env.local), pages that need an
+ * account (settings) explain that instead of loading forever. Everything
+ * else works in guest mode.
+ */
 export function SetupGate({ children }: { children: ReactNode }) {
   const t = useT();
   const { status } = useAuth();

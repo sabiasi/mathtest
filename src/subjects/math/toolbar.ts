@@ -1,8 +1,9 @@
 /**
- * Everything on the math toolbar, as plain data.
+ * The Mathematics toolkit's toolbar, as plain data.
  *
- * The toolbar component just loops over this list, so adding a button is
- * adding one line here — no other code changes needed.
+ * The toolbar component (features/editor/SubjectToolbar.tsx) just loops over
+ * this list, so adding a button is adding one line here — no other code
+ * changes needed.
  *
  *   latex    what gets inserted. Special MathLive markers:
  *              #?  an empty box the teacher clicks into and fills in
@@ -14,8 +15,7 @@
  * Note: Georgian schools write tg / ctg (not tan / cot), so we use those.
  */
 
-export type ToolbarButton = { latex: string; display: string; ka: string; en: string };
-export type ToolbarTab = { id: string; ka: string; en: string; buttons: ToolbarButton[] };
+import type { ToolbarButton, ToolbarTab } from "../types";
 
 const b = (latex: string, display: string, ka: string, en: string): ToolbarButton => ({ latex, display, ka, en });
 /** A simple symbol: inserted exactly as shown. */
@@ -23,7 +23,7 @@ const sym = (latex: string, ka: string, en: string) => b(latex, latex, ka, en);
 
 const SQ = "\\square";
 
-export const TOOLBAR_TABS: ToolbarTab[] = [
+export const MATH_TOOLBAR: ToolbarTab[] = [
   {
     id: "basic",
     ka: "ძირითადი",

@@ -7,6 +7,7 @@
  */
 
 import type { RichText } from "@/lib/richText";
+import type { SubjectId } from "@/subjects/ids";
 
 /** How multiple-choice options are labelled: A, B, C… or ა, ბ, გ… */
 export type LabelStyle = "latin" | "georgian";
@@ -130,6 +131,9 @@ export interface Test {
   id: string;
   schoolName: string;
   title: string;
+  /** Which subject toolkit the editor uses (toolbar, question types, print styles). */
+  subjectId: SubjectId;
+  /** The subject's name as printed on the paper (teachers may write e.g. "ალგებრა"). */
   subject: string;
   grade: string;
   /** Exam date as "YYYY-MM-DD", or "" when not set. */

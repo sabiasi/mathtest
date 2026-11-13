@@ -22,7 +22,18 @@ describe("normalizeTest", () => {
       labelStyle: "georgian",
       questions: [],
       printOptions: { fontSize: "normal", showPoints: true, columns: 1 },
+      subjectId: "math", // every test before subjects existed was a math test
     });
+  });
+
+  it("finds the subject of tests saved before subjects existed", () => {
+    expect(normalizeTest({ id: "a", subject: "ფიზიკა" })?.subjectId).toBe("physics");
+    expect(normalizeTest({ id: "b", subject: " Chemistry " })?.subjectId).toBe("chemistry");
+    expect(normalizeTest({ id: "c", subject: "ალგებრა" })?.subjectId).toBe("math");
+    expect(normalizeTest({ id: "d", subject: "ხელოვნება" })?.subjectId).toBe("math");
+    // A saved subjectId wins; an unknown one is repaired.
+    expect(normalizeTest({ id: "e", subject: "ფიზიკა", subjectId: "history" })?.subjectId).toBe("history");
+    expect(normalizeTest({ id: "f", subjectId: "astrology" })?.subjectId).toBe("math");
   });
 
   it("drops broken questions and repairs the rest", () => {

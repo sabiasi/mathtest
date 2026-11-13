@@ -6,8 +6,9 @@
  *    and are renewed with a "refresh token"; doing that here means every
  *    page sees an up-to-date sign-in cookie.
  * 2. Send people to the right place:
- *    - signed out + a page that needs an account  → /signin?next=…
- *    - signed in + landing / sign-in / sign-up    → /tests
+ *    - signed out + a page that needs an account (settings) → /signin?next=…
+ *    - signed in + landing / sign-in / sign-up              → /tests
+ *    Guests may use My tests, the editor and print (tests stay in their browser).
  *
  * This is about convenience. The real protection of the data is Row Level
  * Security in the database: without a valid sign-in it returns nothing.
@@ -16,9 +17,6 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { SIGNED_OUT_ONLY, isProtectedPath } from "@/lib/auth/routes";
 import { SUPABASE_KEY, SUPABASE_URL, supabaseConfigured } from "@/lib/supabase/config";
-
-/** Header the PDF server's invisible Chrome sends (it gets the test handed over, not a sign-in). */
-const PDF_RENDER_HEADER = "x-mathtest-pdf";
 
 export async function proxy(request: NextRequest) {
   // Before .env.local is filled in, the pages show setup help instead.
@@ -53,8 +51,7 @@ export async function proxy(request: NextRequest) {
     return res;
   };
 
-  const pdfRender = pathname.startsWith("/print/") && request.headers.get(PDF_RENDER_HEADER) === "1";
-  if (!signedIn && isProtectedPath(pathname) && !pdfRender) {
+  if (!signedIn && isProtectedPath(pathname)) {
     return redirect("/signin", { next: pathname + search });
   }
   if (signedIn && SIGNED_OUT_ONLY.includes(pathname)) {

@@ -17,8 +17,10 @@ import { saveTest } from "@/lib/storage/testsRepository";
 import type { PrintOptions, Test, VariantSettings } from "@/lib/storage/types";
 import { useTest } from "@/lib/storage/useTests";
 import { MAX_VARIANTS, buildVariants, newSeed, type Variant } from "@/lib/variants";
+import { getToolkit } from "@/subjects/registry";
 import { AnswerTable } from "./AnswerTable";
-import { downloadPdf, pdfFileName, waitForImages } from "./downloadPdf";
+import { GuestBanner } from "@/components/GuestBanner";
+import { PdfError, downloadPdf, pdfFileName, waitForImages } from "./downloadPdf";
 import { PrintHeader, PrintQuestion, type PrintVersion } from "./PrintBlocks";
 import { BLOCK_GAP, COLUMN_GAP, HEADER_GAP, PAGE, usePrintLayout } from "./usePrintLayout";
 
@@ -143,10 +145,21 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
       const variant = showAll ? "all" : current.label;
       await downloadPdf(test, version, variant, language, pdfFileName(testTitle, suffix));
       toast.success(t("toast.pdfReady"));
-    } catch {
-      // No Chrome on the server (or another problem): use the print dialog instead.
-      setNotice(t("print.pdfFallback"));
-      window.print();
+    } catch (error) {
+      const status = error instanceof PdfError ? error.status : 0;
+      if (status === 429) {
+        // Too many PDFs in a short time (protection against abuse): say how long to wait.
+        const minutes = Math.max(1, Math.ceil(((error as PdfError).retryAfterSeconds ?? 60) / 60));
+        setNotice(t("print.pdfTooMany", { minutes }));
+      } else if (status === 503) {
+        setNotice(t("print.pdfBusy"));
+      } else if (status === 413) {
+        setNotice(t("print.pdfTooBig"));
+      } else {
+        // No Chrome on the server (or another problem): use the print dialog instead.
+        setNotice(t("print.pdfFallback"));
+        window.print();
+      }
     } finally {
       setPdfBusy(false);
     }
@@ -301,10 +314,14 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
         </div>
       </div>
 
+      <GuestBanner className="mx-auto mt-4 max-w-5xl px-4 sm:px-6" />
       <ProblemsBanner test={test} />
 
-      {/* ---- The A4 sheets ---- */}
-      <div className="print-sheets" style={{ zoom }}>
+      {/* ---- The A4 sheets ----
+          The subject's class (e.g. "subject-math") lets src/subjects/<id>/print.css
+          style its paper. The invisible measuring copies sit inside too, so
+          pages are measured with the same styles they're printed with. */}
+      <div className={`print-sheets ${getToolkit(test.subjectId).print.className}`} style={{ zoom }}>
         {withTable && <AnswerTable variants={variants} test={test} blankAfter={test.variants.duplex} onReady={reportTableReady} />}
         {shown.map((variant, i) => (
           <PrintedVariant

@@ -18,7 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { AnimatePresence } from "motion/react";
 import { useT } from "@/i18n/language";
-import type { LabelStyle, Question } from "@/lib/storage/types";
+import type { LabelStyle, Question, QuestionType } from "@/lib/storage/types";
 import { QuestionCard } from "./QuestionCard";
 
 /**
@@ -32,6 +32,7 @@ import { QuestionCard } from "./QuestionCard";
 export function QuestionList({
   questions,
   labelStyle,
+  questionTypes,
   focusId,
   onReorder,
   onChange,
@@ -41,6 +42,8 @@ export function QuestionList({
 }: {
   questions: Question[];
   labelStyle: LabelStyle;
+  /** The types the subject offers (for each card's type dropdown). */
+  questionTypes: readonly QuestionType[];
   focusId: string | null;
   onReorder: (questions: Question[]) => void;
   onChange: (question: Question) => void;
@@ -93,6 +96,7 @@ export function QuestionList({
               question={question}
               number={index + 1}
               labelStyle={labelStyle}
+              questionTypes={questionTypes}
               autoFocus={question.id === focusId}
               onChange={onChange}
               onPatch={(patch) => onPatch(question.id, patch)}

@@ -5,16 +5,32 @@
  * layout, a password box with a show/hide eye, the Google button, and
  * the coloured message boxes.
  */
-import { CircleAlert, CircleCheck, Eye, EyeOff, LoaderCircle, Lock } from "lucide-react";
-import { useId, useState, type ComponentProps, type ReactNode } from "react";
+import { CircleAlert, CircleCheck, CloudUpload, Eye, EyeOff, LoaderCircle, Lock } from "lucide-react";
+import { useId, useState, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
 import { LogoMark } from "@/components/Logo";
 import { PageTransition } from "@/components/PageTransition";
 import { Button } from "@/components/ui/button";
 import { FieldLabel } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useT } from "@/i18n/language";
+import { guestTestCount } from "@/lib/onboarding";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { cn } from "@/lib/utils";
+
+const noSubscription = () => () => {};
+
+/** "The tests you made on this device will move into your account" — only if there are some. */
+function GuestTestsNote() {
+  const t = useT();
+  const count = useSyncExternalStore(noSubscription, guestTestCount, () => 0);
+  if (count === 0) return null;
+  return (
+    <p className="mt-4 flex items-start gap-2 rounded-xl bg-primary-soft/60 px-3 py-2.5 text-left text-sm text-soft-foreground" data-guest-note="">
+      <CloudUpload className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
+      {t("guest.willMove", { count })}
+    </p>
+  );
+}
 
 /** The centred card every auth page uses. */
 export function AuthCard({
@@ -22,11 +38,14 @@ export function AuthCard({
   subtitle,
   children,
   footer,
+  guestNote = false,
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
   footer?: ReactNode;
+  /** Mention that a guest's tests will move into the account (sign-in / sign-up). */
+  guestNote?: boolean;
 }) {
   const t = useT();
   return (
@@ -42,6 +61,7 @@ export function AuthCard({
             <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">{title}</h1>
             {subtitle && <p className="mt-2 text-[15px] leading-relaxed text-muted-foreground">{subtitle}</p>}
           </div>
+          {guestNote && supabaseConfigured && <GuestTestsNote />}
           <div className="mt-7">{supabaseConfigured ? children : <SetupNotice />}</div>
         </div>
         {footer && <div className="mt-5 text-center text-[15px] text-muted-foreground">{footer}</div>}

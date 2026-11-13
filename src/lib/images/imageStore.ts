@@ -9,8 +9,9 @@
  * - In the browser: a copy in IndexedDB (the browser's built-in database for
  *   bigger things), so pictures show instantly and uploads can be retried if
  *   the internet drops. Store "cache", key "<user id>/<picture id>".
- * - Store "images" holds pictures from before accounts existed. We only read
- *   it, to import old tests.
+ * - Guests (no account): store "images" in IndexedDB is the ONLY copy (it
+ *   also holds pictures from before accounts existed). When the guest signs
+ *   in, the pictures their tests use are uploaded and removed from there.
  *
  * Tests only keep the picture's id. IndexedDB's own API is old-fashioned
  * (events instead of promises), so the helpers below wrap it in promises.
@@ -22,10 +23,11 @@ import { getSupabase } from "@/lib/supabase/client";
 import { ACCEPTED_TYPES, outputType, targetSize, unusedImageIds, usedImageIds } from "./imageMath";
 
 const DB_NAME = "mathtest";
-const LEGACY_STORE = "images";
+/** Guests' pictures (and pictures from before accounts). */
+const DEVICE_STORE = "images";
 const CACHE_STORE = "cache";
 
-type LegacyImage = { id: string; blob: Blob; width: number; height: number; createdAt: number };
+type DeviceImage = { id: string; blob: Blob; width: number; height: number; createdAt: number };
 type CachedImage = { key: string; userId: string; id: string; blob: Blob; uploaded: boolean; createdAt: number };
 
 declare global {
@@ -47,7 +49,7 @@ function openDb(): Promise<IDBDatabase> {
     const request = indexedDB.open(DB_NAME, 2);
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(LEGACY_STORE)) db.createObjectStore(LEGACY_STORE, { keyPath: "id" });
+      if (!db.objectStoreNames.contains(DEVICE_STORE)) db.createObjectStore(DEVICE_STORE, { keyPath: "id" });
       if (!db.objectStoreNames.contains(CACHE_STORE)) db.createObjectStore(CACHE_STORE, { keyPath: "key" });
     };
     request.onsuccess = () => resolve(request.result);
@@ -74,7 +76,7 @@ const cacheKey = (userId: string, id: string) => `${userId}/${id}`;
 
 let currentUserId: string | null = null;
 
-/** Called on sign-in (with the user id) and sign-out (null). */
+/** Called on sign-in (with the user id) and for guests (null). */
 export function setImageUser(userId: string | null): void {
   currentUserId = userId;
   urlCache.clear();
@@ -84,6 +86,12 @@ export function setImageUser(userId: string | null): void {
 function requireUser(): string {
   if (!currentUserId) throw new Error("not signed in");
   return currentUserId;
+}
+
+/** Guest: keep the picture in this browser only. */
+async function storeOnDevice(id: string, blob: Blob, width: number, height: number): Promise<void> {
+  const entry: DeviceImage = { id, blob, width, height, createdAt: Date.now() };
+  await run(DEVICE_STORE, "readwrite", (store) => store.put(entry));
 }
 
 // ---------------------------------------------------------------------------
@@ -151,7 +159,6 @@ export class UnsupportedImageError extends Error {}
  * because they stay sharp at any size.
  */
 export async function addImage(file: Blob): Promise<{ imageId: string; width: number; height: number }> {
-  const userId = requireUser();
   if (!ACCEPTED_TYPES.includes(file.type)) throw new UnsupportedImageError(file.type);
 
   let blob: Blob = file;
@@ -178,7 +185,8 @@ export async function addImage(file: Blob): Promise<{ imageId: string; width: nu
   }
 
   const id = newId();
-  await storeAndUpload(userId, id, blob);
+  if (currentUserId) await storeAndUpload(currentUserId, id, blob);
+  else await storeOnDevice(id, blob, width, height);
   return { imageId: id, width, height };
 }
 
@@ -189,7 +197,10 @@ export async function addImage(file: Blob): Promise<{ imageId: string; width: nu
 /** The picture's data: from the browser copy, or downloaded from the cloud (and then kept). */
 async function getBlob(id: string): Promise<Blob | null> {
   const userId = currentUserId;
-  if (!userId) return null;
+  if (!userId) {
+    const own = await run<DeviceImage | undefined>(DEVICE_STORE, "readonly", (store) => store.get(id)).catch(() => undefined);
+    return own?.blob ?? null;
+  }
   const cached = await run<CachedImage | undefined>(CACHE_STORE, "readonly", (store) => store.get(cacheKey(userId, id))).catch(
     () => undefined,
   );
@@ -239,15 +250,26 @@ export async function imagesForTest(test: Test): Promise<Record<string, string>>
 }
 
 // ---------------------------------------------------------------------------
-// Old pictures (before accounts) → the cloud
+// A guest signs in: their pictures → the cloud
 // ---------------------------------------------------------------------------
 
-/** Uploads the pictures used by `tests` from the old browser store to the teacher's cloud folder. */
-export async function importLocalImages(tests: Test[]): Promise<void> {
+/**
+ * Copies the pictures used by `tests` from this browser's guest store to the
+ * teacher's cloud folder (and the browser copy of it). If the internet is
+ * down, they wait in the browser copy and are uploaded later.
+ */
+export async function moveDeviceImagesToAccount(tests: Test[]): Promise<void> {
   const userId = requireUser();
   for (const id of usedImageIds(tests)) {
-    const old = await run<LegacyImage | undefined>(LEGACY_STORE, "readonly", (store) => store.get(id)).catch(() => undefined);
-    if (old) await storeAndUpload(userId, id, old.blob);
+    const own = await run<DeviceImage | undefined>(DEVICE_STORE, "readonly", (store) => store.get(id)).catch(() => undefined);
+    if (own) await storeAndUpload(userId, id, own.blob);
+  }
+}
+
+/** Removes the guest copies of these tests' pictures (after they were moved). */
+export async function removeDeviceImages(tests: Test[]): Promise<void> {
+  for (const id of usedImageIds(tests)) {
+    await run(DEVICE_STORE, "readwrite", (store) => store.delete(id)).catch(() => undefined);
   }
 }
 
@@ -265,8 +287,9 @@ let lastCleanUp = 0;
  */
 export async function cleanUpImages(tests: Test[]): Promise<number> {
   const userId = currentUserId;
-  if (!userId || Date.now() - lastCleanUp < 10 * 60 * 1000) return 0;
+  if (Date.now() - lastCleanUp < 10 * 60 * 1000) return 0;
   lastCleanUp = Date.now();
+  if (!userId) return cleanUpDeviceImages(tests);
   try {
     const { data, error } = await getSupabase().storage.from(IMAGE_BUCKET).list(userId, { limit: 1000 });
     if (error || !data) return 0;
@@ -280,6 +303,21 @@ export async function cleanUpImages(tests: Test[]): Promise<number> {
         await run(CACHE_STORE, "readwrite", (store) => store.delete(cacheKey(userId, id))).catch(() => undefined);
         urlCache.delete(id);
       }
+    }
+    return unused.length;
+  } catch {
+    return 0;
+  }
+}
+
+/** The same for a guest's pictures in this browser. */
+async function cleanUpDeviceImages(tests: Test[]): Promise<number> {
+  try {
+    const all = await run<DeviceImage[]>(DEVICE_STORE, "readonly", (store) => store.getAll());
+    const unused = unusedImageIds(all, tests, Date.now());
+    for (const id of unused) {
+      await run(DEVICE_STORE, "readwrite", (store) => store.delete(id));
+      urlCache.delete(id);
     }
     return unused.length;
   } catch {

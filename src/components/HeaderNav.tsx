@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useT } from "@/i18n/language";
+import { useTests } from "@/lib/storage/useTests";
 import { cn } from "@/lib/utils";
 
 function NavLink({ active }: { active: boolean }) {
@@ -24,11 +25,16 @@ function NavLink({ active }: { active: boolean }) {
   );
 }
 
-/** "My tests" in the header, highlighted while you are on that page. */
+/**
+ * "My tests" in the header, highlighted while you are on that page. Shown to
+ * signed-in teachers, and to guests once they have made a test.
+ */
 export function HeaderNav() {
   const pathname = usePathname();
-  const { status } = useAuth();
-  if (status !== "signed-in") return null;
+  const { status, guest } = useAuth();
+  const tests = useTests();
+  const show = status === "signed-in" || (guest && (tests?.length ?? 0) > 0);
+  if (!show) return null;
   return (
     <nav className="ml-1 sm:ml-3">
       <NavLink active={pathname === "/tests"} />

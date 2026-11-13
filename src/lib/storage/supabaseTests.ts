@@ -13,6 +13,7 @@ import type { Test } from "./types";
 
 export function supabaseTestsBackend(supabase: SupabaseClient, userId: string): TestsBackend {
   return {
+    kind: "cloud",
     async list() {
       const { data, error } = await supabase.from("tests").select("data").order("updated_at", { ascending: false });
       if (error) throw error;

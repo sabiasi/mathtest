@@ -6,9 +6,9 @@ import { motion } from "motion/react";
 import { useMemo, useState, type MouseEvent } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useMathEditing } from "@/features/math/MathEditingContext";
 import { useLanguage, useT } from "@/i18n/language";
-import { useMathEditing } from "./MathEditingContext";
-import { TOOLBAR_TABS } from "./toolbarData";
+import type { SubjectToolkit } from "@/subjects/types";
 
 // Clicking a toolbar button must NOT move the keyboard focus away from the
 // text box — otherwise we'd lose track of where the cursor was.
@@ -18,16 +18,22 @@ const keepFocus = (event: MouseEvent) => event.preventDefault();
 
 const isMac = () => typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent);
 
-export function MathToolbar() {
+/**
+ * The toolbar shown while a question box is being edited. What's on it
+ * comes from the test's subject toolkit (src/subjects): math gets 7 tabs of
+ * formula buttons, physics a few, history none (then this isn't shown).
+ */
+export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
   const t = useT();
   const language = useLanguage();
   const { insert } = useMathEditing();
-  const [tabId, setTabId] = useState(TOOLBAR_TABS[0].id);
-  const tab = TOOLBAR_TABS.find((x) => x.id === tabId) ?? TOOLBAR_TABS[0];
+  const tabs = toolkit.toolbar;
+  const [tabId, setTabId] = useState(tabs[0]?.id);
+  const tab = tabs.find((x) => x.id === tabId) ?? tabs[0];
 
   // Turn each button's LaTeX into the HTML of a little formula (once per tab).
   const buttons = useMemo(
-    () => tab.buttons.map((button) => ({ ...button, html: convertLatexToMarkup(button.display) })),
+    () => (tab?.buttons ?? []).map((button) => ({ ...button, html: convertLatexToMarkup(button.display) })),
     [tab],
   );
 
@@ -39,6 +45,7 @@ export function MathToolbar() {
       role="toolbar"
       aria-label={t("math.toolbarLabel")}
       data-math-toolbar=""
+      data-subject-toolbar={toolkit.id}
       // Slides open quickly. Only opacity + height, so nothing jumps sideways.
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
@@ -50,7 +57,7 @@ export function MathToolbar() {
         (document.activeElement as HTMLElement | null)?.scrollIntoView?.({ block: "nearest" })
       }
     >
-      <Tabs value={tab.id} onValueChange={setTabId} className="mx-auto max-w-3xl gap-0 px-4 sm:px-6">
+      <Tabs value={tab?.id ?? ""} onValueChange={setTabId} className="mx-auto max-w-3xl gap-0 px-4 sm:px-6">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -70,7 +77,7 @@ export function MathToolbar() {
 
           {/* Tabs (scroll sideways on phones, wrap on bigger screens) */}
           <TabsList className="h-auto! max-w-full justify-start gap-0.5 overflow-x-auto bg-transparent p-0 sm:flex-wrap sm:overflow-visible">
-            {TOOLBAR_TABS.map((x) => (
+            {tabs.map((x) => (
               <TabsTrigger
                 key={x.id}
                 value={x.id}
@@ -85,7 +92,7 @@ export function MathToolbar() {
         </div>
 
         {/* Buttons of the chosen tab */}
-        <TabsContent value={tab.id} className="flex flex-wrap gap-1 pt-2 pb-2.5" aria-label={tab[language]}>
+        <TabsContent value={tab?.id ?? ""} className="flex flex-wrap gap-1 pt-2 pb-2.5" aria-label={tab?.[language]}>
           {buttons.map((button) => (
             <Tooltip key={button.latex + button.display}>
               <TooltipTrigger asChild>

@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import { isProtectedPath, safeNext } from "./routes";
 
 describe("isProtectedPath", () => {
-  it("protects My tests, the editor, print and settings", () => {
-    for (const path of ["/tests", "/editor/abc", "/print/abc", "/settings"]) expect(isProtectedPath(path)).toBe(true);
+  it("protects settings", () => {
+    for (const path of ["/settings", "/settings/x"]) expect(isProtectedPath(path)).toBe(true);
   });
-  it("leaves public pages open", () => {
-    for (const path of ["/", "/about", "/signin", "/signup", "/forgot-password", "/testsuite"]) expect(isProtectedPath(path)).toBe(false);
+  it("leaves everything else open — guests can make tests without an account", () => {
+    for (const path of ["/", "/about", "/signin", "/signup", "/forgot-password", "/tests", "/editor/abc", "/print/abc", "/settingsx"]) {
+      expect(isProtectedPath(path)).toBe(false);
+    }
   });
 });
 

@@ -1,41 +1,34 @@
 /**
- * Moving tests saved in this browser (before accounts existed) into the
- * teacher's account. The browser copies are never changed or deleted.
+ * Guests → accounts. Someone who tried MathTest without an account has
+ * tests (and pictures) saved only in this browser. When they sign up or
+ * sign in, those move into their account automatically: added to the
+ * account, then removed from the browser once the account has them.
  */
-import { importLocalImages } from "./images/imageStore";
-import { importTests, readLocalTests } from "./storage/testsRepository";
+import { moveDeviceImagesToAccount, removeDeviceImages } from "./images/imageStore";
+import { readLocalTests, removeLocalTests } from "./storage/localTests";
+import { importTests, waitUntilSaved } from "./storage/testsRepository";
 
-/** Remembers, per account, that we already offered the import in this browser. */
-const handledKey = (userId: string) => `mathtest:import-handled:${userId}`;
-
-export function importWasHandled(userId: string): boolean {
-  try {
-    return localStorage.getItem(handledKey(userId)) !== null;
-  } catch {
-    return true; // storage blocked: don't keep asking
-  }
-}
-
-export function markImportHandled(userId: string): void {
-  try {
-    localStorage.setItem(handledKey(userId), "1");
-  } catch {
-    // ignore
-  }
-}
-
-/** How many old tests this browser has. */
-export function localTestCount(): number {
+/** How many guest tests this browser has. */
+export function guestTestCount(): number {
   return readLocalTests().length;
 }
 
 /**
- * Uploads the old tests' pictures, then adds the tests to the account
- * (skipping any that are already there). Returns how many were added.
+ * Call right after the account's tests were loaded. Returns how many tests
+ * were added to the account (0 if there were none to move).
  */
-export async function importLocalTestsIntoAccount(): Promise<number> {
-  const local = readLocalTests();
-  if (local.length === 0) return 0;
-  await importLocalImages(local);
-  return importTests(local);
+export async function moveGuestTestsIntoAccount(): Promise<number> {
+  const guestTests = readLocalTests();
+  if (guestTests.length === 0) return 0;
+  // Pictures first, so the moved tests show them straight away.
+  await moveDeviceImagesToAccount(guestTests);
+  const added = importTests(guestTests);
+  // Only remove the browser copies once the account really has the tests.
+  // (Offline? Then they stay, and the next sign-in tries again.)
+  void waitUntilSaved(added.map((test) => test.id)).then(async (saved) => {
+    if (!saved) return;
+    removeLocalTests(guestTests);
+    await removeDeviceImages(guestTests);
+  });
+  return added.length;
 }

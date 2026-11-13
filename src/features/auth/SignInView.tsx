@@ -72,6 +72,7 @@ export function SignInView() {
 
   return (
     <AuthCard
+      guestNote
       title={t("auth.signInTitle")}
       subtitle={t("auth.signInSubtitle")}
       footer={

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { STORAGE_KEY, localTestsBackend, readLocalTests, removeLocalTests } from "./localTests";
 import {
-  STORAGE_KEY,
   createTest,
   deleteTest,
   duplicateTest,
@@ -10,12 +10,12 @@ import {
   hasUnsavedChanges,
   importTests,
   listTests,
-  readLocalTests,
   restoreTest,
   saveTest,
   startSync,
   stopSync,
   subscribe,
+  waitUntilSaved,
   type TestsBackend,
 } from "./testsRepository";
 import type { Test } from "./types";
@@ -26,6 +26,7 @@ function fakeCloud(initial: Test[] = []) {
   const calls: string[] = [];
   let failNext = 0;
   const backend: TestsBackend = {
+    kind: "cloud",
     list: async () => [...rows.values()],
     upsert: async (test) => {
       calls.push(`upsert ${test.id} ${test.title}`);
@@ -149,9 +150,32 @@ describe("testsRepository (cloud)", () => {
   it("imports only tests that aren't there yet", async () => {
     const cloud = fakeCloud([createTestShape("same")]);
     await startSync(cloud.backend);
-    expect(importTests([createTestShape("same"), createTestShape("new")])).toBe(1);
+    expect(importTests([createTestShape("same"), createTestShape("new")])).toHaveLength(1);
     await settle();
     expect([...cloud.rows.keys()].sort()).toEqual(["new", "same"]);
+  });
+
+  it("imports a newer version of an existing test as a copy (nothing is lost)", async () => {
+    const cloud = fakeCloud([{ ...createTestShape("same"), title: "ანგარიშში" }]);
+    await startSync(cloud.backend);
+    const newer = { ...createTestShape("same"), title: "მოწყობილობაზე", updatedAt: "2026-11-13T09:00:00.000Z" };
+    const [copy] = importTests([newer]);
+    expect(copy.id).not.toBe("same");
+    expect(copy.title).toBe("მოწყობილობაზე");
+    expect(getTest("same")?.title).toBe("ანგარიშში");
+  });
+
+  it("waitUntilSaved resolves once the tests reached the cloud, false on sign-out", async () => {
+    const cloud = fakeCloud();
+    await startSync(cloud.backend);
+    const test = createTest();
+    expect(await waitUntilSaved([test.id])).toBe(true);
+    expect(cloud.rows.has(test.id)).toBe(true);
+
+    cloud.fail(1);
+    const pending = waitUntilSaved([createTest().id]);
+    stopSync();
+    expect(await pending).toBe(false);
   });
 
   it("forgets everything on sign-out", async () => {
@@ -172,7 +196,28 @@ describe("testsRepository (cloud)", () => {
   });
 });
 
-describe("readLocalTests (tests saved in the browser before accounts)", () => {
+describe("guest tests in this browser (localStorage)", () => {
+  it("the device backend saves, changes and deletes tests", async () => {
+    await startSync(localTestsBackend());
+    const test = createTest({ title: "სტუმარი" });
+    await settle();
+    expect(readLocalTests().map((t) => t.title)).toEqual(["სტუმარი"]);
+    saveTest({ ...test, title: "შეცვლილი" });
+    await settle();
+    expect(readLocalTests()[0].title).toBe("შეცვლილი");
+    deleteTest(test.id);
+    await settle();
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
+  it("removeLocalTests keeps a test that was changed after it was moved", () => {
+    const a = createTestShape("a");
+    const b = createTestShape("b");
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([a, { ...b, updatedAt: "2026-11-13T10:00:00.000Z" }]));
+    removeLocalTests([a, b]);
+    expect(readLocalTests().map((t) => t.id)).toEqual(["b"]);
+  });
+
   it("reads and upgrades them", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([{ id: "old", title: "ძველი", questions: [] }]));
     const [test] = readLocalTests();
@@ -193,6 +238,7 @@ function createTestShape(id: string): Test {
     id,
     schoolName: "",
     title: "",
+    subjectId: "math",
     subject: "",
     grade: "",
     date: "",

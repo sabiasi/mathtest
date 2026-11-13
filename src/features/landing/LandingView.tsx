@@ -4,11 +4,11 @@ import {
   ArrowRight,
   Grid3x3,
   KeyRound,
+  Layers,
   ListChecks,
-  LogIn,
+  MousePointerClick,
   Printer,
   Shuffle,
-  Sigma,
   type LucideIcon,
 } from "lucide-react";
 import { convertLatexToMarkup } from "mathlive";
@@ -18,26 +18,39 @@ import type { ReactNode } from "react";
 import { LogoMark } from "@/components/Logo";
 import { buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { SubjectIcon } from "@/features/subjects/SubjectPicker";
 import { useLanguage, useT } from "@/i18n/language";
 import { optionLabel } from "@/lib/questions";
+import { SUBJECTS } from "@/subjects/registry";
 
-/** The landing page: what MathTest does, and a big "Get started" button. */
+/**
+ * The landing page: what MathTest does, "Get started" (sign up) and
+ * "Try without signing up" (guest mode: tests stay in the browser).
+ */
 export function LandingView() {
   const t = useT();
   const { status } = useAuth();
   const signedIn = status === "signed-in";
+  // Accounts not set up yet (no Supabase): trying is the only way in.
+  const accounts = status !== "unconfigured";
 
-  // Signed-out visitors start by creating an account; signed-in teachers go to their tests.
-  const startHref = signedIn ? "/tests" : "/signup";
+  // Signed-in teachers go to their tests; visitors sign up — or just try it.
+  const startHref = signedIn ? "/tests" : accounts ? "/signup" : "/tests";
   const startButton = (
     <Link href={startHref} className={buttonVariants({ size: "lg", className: "group" })}>
-      {signedIn ? t("home.title") : t("landing.start")}
+      {signedIn ? t("home.title") : accounts ? t("landing.start") : t("landing.try")}
       <ArrowRight className="size-5 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
+    </Link>
+  );
+  const tryButton = (
+    <Link href="/tests" className={buttonVariants({ size: "lg", variant: "outline" })} data-try-button="">
+      <MousePointerClick className="size-5" aria-hidden="true" />
+      {t("landing.try")}
     </Link>
   );
 
   const features: { Icon: LucideIcon; n: 1 | 2 | 3 | 4 | 5 | 6 }[] = [
-    { Icon: Sigma, n: 1 },
+    { Icon: Layers, n: 1 },
     { Icon: ListChecks, n: 2 },
     { Icon: Printer, n: 3 },
     { Icon: KeyRound, n: 4 },
@@ -69,18 +82,37 @@ export function LandingView() {
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">{t("landing.lead")}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             {startButton}
-            {!signedIn && (
-              <Link href="/signin" className={buttonVariants({ size: "lg", variant: "outline" })}>
-                <LogIn className="size-5" aria-hidden="true" />
-                {t("landing.signIn")}
-              </Link>
-            )}
+            {!signedIn && accounts && tryButton}
           </div>
           <p className="mt-4 text-sm text-muted-foreground">{t("landing.note")}</p>
+          {!signedIn && accounts && (
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              {t("landing.haveAccount")}{" "}
+              <Link href="/signin" className="font-medium text-brand underline-offset-4 hover:underline">
+                {t("landing.signIn")}
+              </Link>
+            </p>
+          )}
         </Reveal>
 
         <Reveal delay={0.08}>
           <PaperPreview />
+        </Reveal>
+      </section>
+
+      {/* ---- Subjects ---- */}
+      <section className="mx-auto max-w-6xl px-4 pb-14 sm:px-6" data-landing-subjects="">
+        <Reveal>
+          <h2 className="text-center text-lg font-semibold text-foreground">{t("landing.subjectsTitle")}</h2>
+          <ul className="mt-5 flex flex-wrap justify-center gap-3">
+            {SUBJECTS.map(({ id }) => (
+              <li key={id} className="flex items-center gap-2.5 rounded-xl border bg-card py-2 pr-4 pl-2 shadow-xs">
+                <SubjectIcon id={id} />
+                <span className="font-medium text-foreground">{t(`subject.${id}`)}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-center text-sm text-muted-foreground">{t("landing.subjectsMore")}</p>
         </Reveal>
       </section>
 
@@ -134,10 +166,17 @@ export function LandingView() {
             <h2 className="text-2xl font-bold tracking-tight">{t("landing.ctaTitle")}</h2>
             <p className="mt-2 text-[17px] text-white/80">{t("landing.ctaText")}</p>
           </div>
-          <Link href={startHref} className={buttonVariants({ size: "lg", className: "group bg-white text-[#3730a3] hover:bg-white/90" })}>
-            {signedIn ? t("home.title") : t("landing.start")}
-            <ArrowRight className="size-5 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link href={startHref} className={buttonVariants({ size: "lg", className: "group bg-white text-[#3730a3] hover:bg-white/90" })}>
+              {signedIn ? t("home.title") : accounts ? t("landing.start") : t("landing.try")}
+              <ArrowRight className="size-5 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
+            </Link>
+            {!signedIn && accounts && (
+              <Link href="/tests" className={buttonVariants({ size: "lg", variant: "ghost", className: "text-white hover:bg-white/15 hover:text-white" })}>
+                {t("landing.try")}
+              </Link>
+            )}
+          </div>
         </Reveal>
       </section>
     </div>

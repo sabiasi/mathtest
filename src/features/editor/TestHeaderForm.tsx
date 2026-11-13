@@ -1,11 +1,16 @@
 "use client";
 
+import { Sparkles } from "lucide-react";
 import { DateField } from "@/components/DateField";
 import { Field, FieldLabel, SegmentedControl } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { SubjectPicker } from "@/features/subjects/SubjectPicker";
+import { dictionaries } from "@/i18n/dictionaries";
 import { useT } from "@/i18n/language";
 import type { LabelStyle, Test } from "@/lib/storage/types";
+import type { SubjectId } from "@/subjects/ids";
+import { getToolkit } from "@/subjects/registry";
 
 /** The top part of the test: school, title, subject, grade, date, time, instructions. */
 export function TestHeaderForm({
@@ -16,6 +21,15 @@ export function TestHeaderForm({
   onChange: (changes: Partial<Test>) => void;
 }) {
   const t = useT();
+  const toolkit = getToolkit(test.subjectId);
+
+  function changeSubject(subjectId: SubjectId) {
+    // The printed name follows the subject — unless the teacher wrote their
+    // own (e.g. "ალგებრა"), which we keep.
+    const oldNames = [dictionaries.ka[`subject.${test.subjectId}`], dictionaries.en[`subject.${test.subjectId}`]];
+    const ownName = test.subject.trim() !== "" && !oldNames.includes(test.subject.trim());
+    onChange(ownName ? { subjectId } : { subjectId, subject: t(`subject.${subjectId}`) });
+  }
 
   return (
     <section className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
@@ -39,9 +53,21 @@ export function TestHeaderForm({
           />
         </Field>
 
-        <Field label={t("header.subject")}>
+        <div className="sm:col-span-2">
+          <FieldLabel>{t("header.subject")}</FieldLabel>
+          <SubjectPicker compact value={test.subjectId} onChange={changeSubject} label={t("header.subject")} />
+          {toolkit.status === "placeholder" && (
+            <p className="mt-2.5 flex items-start gap-2 text-sm text-muted-foreground" data-coming-soon="">
+              <Sparkles className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
+              {t("subjects.comingSoon", { subject: t(`subject.${test.subjectId}`) })}
+            </p>
+          )}
+        </div>
+
+        <Field label={t("header.subjectName")} hint={t("header.subjectNameHint")}>
           <Input
             value={test.subject}
+            placeholder={t(`subject.${test.subjectId}`)}
             onChange={(e) => onChange({ subject: e.target.value })}
           />
         </Field>

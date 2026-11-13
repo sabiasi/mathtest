@@ -35,7 +35,7 @@ const georgianOnly = notoSansGeorgian.style.fontFamily.split(",")[0];
 
 export const metadata: Metadata = {
   title: "MathTest — ტესტების შემდგენელი",
-  description: "ტესტების, ქვიზებისა და საკონტროლო წერების შექმნა მათემატიკაში, ბეჭდვა და PDF.",
+  description: "ტესტების, ქვიზებისა და საკონტროლო წერების შექმნა ყველა საგანში — მათემატიკა, ფიზიკა, ქიმია, ისტორია, ქართული. ბეჭდვა და PDF.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   CloudAlert,
   CloudCheck,
+  HardDrive,
   ListChecks,
   ListPlus,
   LoaderCircle,
@@ -17,26 +18,30 @@ import { AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { GuestBanner } from "@/components/GuestBanner";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MathEditingProvider, useMathEditing, useMathLiveReady } from "@/features/math/MathEditingContext";
-import { MathToolbar } from "@/features/math/MathToolbar";
 import { useT } from "@/i18n/language";
 import { createQuestion, duplicateQuestion, formatPoints, totalPoints } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
-import { useSaveState } from "@/lib/storage/useTests";
+import { useSaveState, useStorageKind } from "@/lib/storage/useTests";
 import type { Question, QuestionType, Test } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
+import { getToolkit } from "@/subjects/registry";
+import type { SubjectToolkit } from "@/subjects/types";
 import { QuestionList } from "./questions/QuestionList";
+import { SubjectToolbar } from "./SubjectToolbar";
 import { TestHeaderForm } from "./TestHeaderForm";
 import { useAutosave } from "./useAutosave";
 
-const ADD_BUTTONS: { type: QuestionType; Icon: typeof ListChecks }[] = [
-  { type: "multiple-choice", Icon: ListChecks },
-  { type: "true-false", Icon: ToggleRight },
-  { type: "short-answer", Icon: TextCursorInput },
-  { type: "open-answer", Icon: NotebookPen },
-];
+/** The icon on each "add a question" button. */
+const TYPE_ICONS: Record<QuestionType, typeof ListChecks> = {
+  "multiple-choice": ListChecks,
+  "true-false": ToggleRight,
+  "short-answer": TextCursorInput,
+  "open-answer": NotebookPen,
+};
 
 /**
  * The editor for one test. It keeps its own copy of the test in React
@@ -69,6 +74,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
   useAutosave(test, dirty, markSaved);
   // "dirty" = typed but not handed to the repository yet; cloudState = on its way to the cloud.
   const cloudState = useSaveState(test.id);
+  const onDevice = useStorageKind() === "device"; // a guest: saved in this browser only
   const saveState = cloudState === "error" ? "error" : dirty || cloudState === "saving" ? "saving" : "saved";
 
   // Tell the teacher once when the cloud can't be reached (the indicator keeps showing it).
@@ -76,10 +82,10 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
   useEffect(() => {
     if (saveState === "error" && !warned.current) {
       warned.current = true;
-      toast.error(t("toast.saveError"));
+      toast.error(t(onDevice ? "toast.saveErrorDevice" : "toast.saveError"));
     }
     if (saveState === "saved") warned.current = false;
-  }, [saveState, t]);
+  }, [saveState, onDevice, t]);
 
   function update(changes: Partial<Test>) {
     setTest((prev) => ({ ...prev, ...changes }));
@@ -132,6 +138,8 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
   }
 
   const total = formatPoints(totalPoints(test.questions));
+  // The subject's toolkit decides the toolbar and which question types are offered.
+  const toolkit = getToolkit(test.subjectId);
 
   return (
     <MathEditingProvider>
@@ -172,8 +180,12 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                 </>
               ) : (
                 <>
-                  <CloudCheck className="size-4 text-success" aria-hidden="true" />
-                  <span className="max-sm:sr-only">{t("editor.saved")}</span>
+                  {onDevice ? (
+                    <HardDrive className="size-4 text-success" aria-hidden="true" />
+                  ) : (
+                    <CloudCheck className="size-4 text-success" aria-hidden="true" />
+                  )}
+                  <span className="max-sm:sr-only">{t(onDevice ? "editor.savedDevice" : "editor.saved")}</span>
                 </>
               )}
             </span>
@@ -181,13 +193,14 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
               {t("editor.total", { points: total })}
             </span>
           </div>
-          {mathReady && <ToolbarWhenEditing />}
+          {mathReady && <ToolbarWhenEditing toolkit={toolkit} />}
         </div>
 
         {!mathReady ? (
           <EditorSkeleton label={t("editor.loading")} />
         ) : (
           <div className="mx-auto max-w-3xl space-y-8 px-4 pt-8 sm:px-6">
+            <GuestBanner />
             <TestHeaderForm test={test} onChange={update} />
 
             <section>
@@ -208,6 +221,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                 <QuestionList
                   questions={test.questions}
                   labelStyle={test.labelStyle}
+                  questionTypes={toolkit.questionTypes}
                   focusId={focusId}
                   onReorder={(questions) => update({ questions })}
                   onChange={(changed) =>
@@ -224,7 +238,9 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
               <div className="mt-2 rounded-2xl border bg-card p-4 shadow-sm">
                 <p className="mb-3 text-sm font-medium text-soft-foreground">{t("questions.add")}:</p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {ADD_BUTTONS.map(({ type, Icon }) => (
+                  {toolkit.questionTypes.map((type) => {
+                    const Icon = TYPE_ICONS[type];
+                    return (
                     <button
                       key={type}
                       type="button"
@@ -239,7 +255,8 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                         <span className="block text-sm font-normal text-muted-foreground">{t(`typeHint.${type}`)}</span>
                       </span>
                     </button>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </section>
@@ -279,9 +296,14 @@ export function EditorSkeleton({ label }: { label: string }) {
   );
 }
 
-/** The math toolbar, shown only while a question or answer box is being edited. */
-function ToolbarWhenEditing() {
+/**
+ * The subject's toolbar, shown only while a question or answer box is being
+ * edited. Subjects without formulas (history…) have none.
+ */
+function ToolbarWhenEditing({ toolkit }: { toolkit: SubjectToolkit }) {
   const { activeEditor } = useMathEditing();
+  const show = activeEditor && toolkit.formulas;
   // AnimatePresence lets the toolbar slide closed instead of vanishing.
-  return <AnimatePresence initial={false}>{activeEditor && <MathToolbar key="toolbar" />}</AnimatePresence>;
+  // key: switching the subject starts the toolbar fresh (on its first tab).
+  return <AnimatePresence initial={false}>{show && <SubjectToolbar key={toolkit.id} toolkit={toolkit} />}</AnimatePresence>;
 }

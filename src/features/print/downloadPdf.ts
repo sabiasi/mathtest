@@ -5,6 +5,16 @@ import { imagesForTest } from "@/lib/images/imageStore";
 import type { Test } from "@/lib/storage/types";
 import type { PrintVersion } from "./PrintBlocks";
 
+/** The server said no: `status` 429 = too many PDFs (wait `retryAfterSeconds`), 503 = busy, 413 = too big… */
+export class PdfError extends Error {
+  constructor(
+    readonly status: number,
+    readonly retryAfterSeconds: number | null,
+  ) {
+    super(`PDF failed: ${status}`);
+  }
+}
+
 /**
  * Asks our server (/api/pdf) to turn the print page into a PDF, then saves
  * the file. The server opens THIS SAME page in an invisible Chrome, so the
@@ -24,7 +34,10 @@ export async function downloadPdf(
     // Pictures live in this browser's IndexedDB, so they travel with the request.
     body: JSON.stringify({ test, version, variant, language, images: await imagesForTest(test) }),
   });
-  if (!response.ok) throw new Error(`PDF failed: ${response.status}`);
+  if (!response.ok) {
+    const retryAfter = Number(response.headers.get("Retry-After"));
+    throw new PdfError(response.status, retryAfter > 0 ? retryAfter : null);
+  }
 
   const blob = await response.blob();
   // Make a temporary link to the file and "click" it to start the download.

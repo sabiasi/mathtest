@@ -8,6 +8,7 @@
  */
 import { DEFAULT_LINES, GRID_LIMITS, MAX_LINES, MAX_OPTIONS } from "@/lib/questions";
 import { normalizeRichText } from "@/lib/richText";
+import { DEFAULT_SUBJECT, isSubjectId, subjectFromText } from "@/subjects/ids";
 import {
   type AnswerGrid,
   type QuestionImage,
@@ -140,6 +141,8 @@ export function normalizeTest(raw: unknown): Test | null {
     id: raw.id,
     schoolName: str(raw.schoolName),
     title: str(raw.title),
+    // Tests from before subjects existed: guess from the printed name, else math.
+    subjectId: isSubjectId(raw.subjectId) ? raw.subjectId : (subjectFromText(str(raw.subject)) ?? DEFAULT_SUBJECT),
     subject: str(raw.subject),
     grade: str(raw.grade),
     date: str(raw.date),
