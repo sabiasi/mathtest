@@ -13,6 +13,7 @@ import { normalizeTest } from "@/lib/storage/migrate";
 import { STORAGE_KEY } from "@/lib/storage/testsRepository";
 
 const LANGUAGE_KEY = "mathtest:language";
+const THEME_KEY = "mathtest:theme"; // same as THEME_STORAGE_KEY in components/Providers.tsx
 
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
@@ -42,17 +43,21 @@ export async function POST(request: Request) {
   try {
     // Wide enough that the preview isn't shrunk to fit.
     await page.setViewport({ width: 1280, height: 1000 });
+    // Paper is always white: open the page in light mode, whatever the teacher uses.
+    await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]);
     // Runs before the page's own code: give this browser the test and language.
     await page.evaluateOnNewDocument(
-      (storageKey, testsJson, languageKey, lang, pictures) => {
+      (storageKey, testsJson, languageKey, lang, themeKey, pictures) => {
         localStorage.setItem(storageKey, testsJson);
         localStorage.setItem(languageKey, lang);
+        localStorage.setItem(themeKey, "light");
         window.__MATHTEST_IMAGES__ = pictures;
       },
       STORAGE_KEY,
       JSON.stringify([test]),
       LANGUAGE_KEY,
       language,
+      THEME_KEY,
       images,
     );
 

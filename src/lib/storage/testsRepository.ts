@@ -116,6 +116,12 @@ export function deleteTest(id: string): void {
   writeAll(listTests().filter((test) => test.id !== id));
 }
 
+/** Puts a just-deleted test back, unchanged ("Undo"). */
+export function restoreTest(test: Test): void {
+  if (getTest(test.id)) return;
+  writeAll([...listTests(), test]); // listTests() sorts it back into place
+}
+
 /**
  * Calls `listener` whenever the saved tests change — in this tab, or in
  * another tab of the same browser (that's what the "storage" event is for).

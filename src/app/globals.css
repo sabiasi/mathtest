@@ -1,19 +1,229 @@
 @import "tailwindcss";
+/* Ready-made CSS animations used by the shadcn/ui pieces (fade / zoom in). */
+@import "tw-animate-css";
+
+/* `dark:` classes apply when <html class="dark"> (set by next-themes). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ==================================================================== */
+/* DESIGN SYSTEM                                                         */
+/*                                                                       */
+/* Every colour, shadow and corner size of the app is a "token" below.   */
+/* Components never use raw colours (like "slate-500"); they use the     */
+/* token's meaning ("muted-foreground"), so light and dark mode — and    */
+/* any future re-colouring — only need changes in this one place.        */
+/*                                                                       */
+/* Spacing uses Tailwind's 4px scale (p-1 = 4px, p-4 = 16px, …).         */
+/* Type scale: text-sm 14px (hints), 15px (form text), text-base 16px,   */
+/* text-lg 18px (section titles), text-2xl/3xl (page titles).            */
+/* ==================================================================== */
 
 @theme inline {
   /* Fonts come from layout.tsx: Georgian first, then Noto Sans for anything
      the Georgian font lacks (№, Cyrillic…), then the system's fonts. */
   --font-sans: var(--font-georgian-only), var(--font-fallback), ui-sans-serif, system-ui, sans-serif;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-soft-foreground: var(--soft-foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+  --color-primary-soft-border: var(--primary-soft-border);
+  --color-brand: var(--brand);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-soft: var(--destructive-soft);
+  --color-destructive-text: var(--destructive-text);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-border: var(--success-border);
+  --color-success-text: var(--success-text);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-border: var(--warning-border);
+  --color-warning-text: var(--warning-text);
+  /* "Paper": previews of what gets printed are white in BOTH themes. */
+  --color-paper: #ffffff;
+  --color-paper-foreground: #111111;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+
+  --shadow-xs: var(--elevation-xs);
+  --shadow-sm: var(--elevation-sm);
+  --shadow-md: var(--elevation-md);
+  --shadow-lg: var(--elevation-lg);
+  --shadow-xl: var(--elevation-xl);
+
+  --ease-out-soft: cubic-bezier(0.2, 0, 0, 1);
 }
 
-:root {
+/* Light theme (also used for the printed sheets, whatever the theme). */
+:root,
+.sheet,
+.paper {
+  --radius: 0.625rem;
+
+  --background: oklch(0.984 0.003 264);
+  --foreground: oklch(0.21 0.034 265);
+  --soft-foreground: oklch(0.37 0.04 260);
+  --muted-foreground: oklch(0.5 0.035 258);
+  --card: oklch(1 0 0);
+  --popover: oklch(1 0 0);
+
+  --primary: oklch(0.511 0.23 277);
+  --primary-hover: oklch(0.457 0.215 277);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-soft: oklch(0.965 0.017 274);
+  --primary-soft-border: oklch(0.91 0.04 274);
+  --brand: oklch(0.47 0.2 277);
+
+  --secondary: oklch(0.966 0.005 264);
+  --muted: oklch(0.966 0.005 264);
+  --accent: oklch(0.953 0.008 264);
+  --border: oklch(0.918 0.009 264);
+  --input: oklch(0.86 0.016 260);
+  --ring: oklch(0.585 0.2 277);
+
+  --destructive: oklch(0.56 0.22 27);
+  --destructive-soft: oklch(0.97 0.014 17);
+  --destructive-text: oklch(0.5 0.2 27);
+  --success: oklch(0.54 0.13 163);
+  --success-soft: oklch(0.975 0.022 166);
+  --success-border: oklch(0.7 0.15 163);
+  --success-text: oklch(0.47 0.11 165);
+  --warning-soft: oklch(0.985 0.024 95);
+  --warning-border: oklch(0.87 0.13 90);
+  --warning-text: oklch(0.42 0.11 48);
+
+  /* Formula chips in the editor */
+  --math-bg: oklch(0.955 0.022 274);
+  --math-border: oklch(0.86 0.06 274);
+  --math-selected: oklch(0.87 0.065 274);
+
+  --elevation-xs: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+  --elevation-sm: 0 1px 2px 0 rgb(15 23 42 / 0.04), 0 1px 3px 0 rgb(15 23 42 / 0.06);
+  --elevation-md: 0 1px 3px -1px rgb(15 23 42 / 0.06), 0 6px 16px -4px rgb(15 23 42 / 0.1);
+  --elevation-lg: 0 2px 6px -2px rgb(15 23 42 / 0.06), 0 16px 32px -8px rgb(15 23 42 / 0.16);
+  --elevation-xl: 0 4px 10px -4px rgb(15 23 42 / 0.1), 0 28px 56px -12px rgb(15 23 42 / 0.28);
+
   color-scheme: light;
+}
+
+/* Dark theme: a calm blue-grey, not pure black; text slightly off-white. */
+.dark {
+  --background: oklch(0.165 0.012 266);
+  --foreground: oklch(0.955 0.006 264);
+  --soft-foreground: oklch(0.86 0.012 264);
+  --muted-foreground: oklch(0.72 0.018 264);
+  --card: oklch(0.205 0.014 266);
+  --popover: oklch(0.23 0.016 266);
+
+  --primary: oklch(0.56 0.2 277);
+  --primary-hover: oklch(0.62 0.19 277);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-soft: oklch(0.27 0.055 277);
+  --primary-soft-border: oklch(0.36 0.08 277);
+  --brand: oklch(0.8 0.1 277);
+
+  --secondary: oklch(0.25 0.014 266);
+  --muted: oklch(0.25 0.014 266);
+  --accent: oklch(0.275 0.016 266);
+  --border: oklch(0.295 0.015 266);
+  --input: oklch(0.38 0.018 266);
+  --ring: oklch(0.68 0.15 277);
+
+  --destructive: oklch(0.58 0.19 25);
+  --destructive-soft: oklch(0.27 0.06 25);
+  --destructive-text: oklch(0.8 0.12 22);
+  --success: oklch(0.53 0.11 164);
+  --success-soft: oklch(0.255 0.04 164);
+  --success-border: oklch(0.6 0.12 164);
+  --success-text: oklch(0.82 0.12 164);
+  --warning-soft: oklch(0.26 0.045 75);
+  --warning-border: oklch(0.5 0.1 75);
+  --warning-text: oklch(0.89 0.11 88);
+
+  --math-bg: oklch(0.29 0.05 277);
+  --math-border: oklch(0.45 0.09 277);
+  --math-selected: oklch(0.4 0.1 277);
+
+  --elevation-xs: 0 1px 2px 0 rgb(0 0 0 / 0.3);
+  --elevation-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3), 0 1px 3px 0 rgb(0 0 0 / 0.25);
+  --elevation-md: 0 2px 4px -1px rgb(0 0 0 / 0.35), 0 8px 18px -4px rgb(0 0 0 / 0.4);
+  --elevation-lg: 0 4px 8px -2px rgb(0 0 0 / 0.4), 0 18px 36px -8px rgb(0 0 0 / 0.5);
+  --elevation-xl: 0 6px 12px -4px rgb(0 0 0 / 0.45), 0 30px 60px -12px rgb(0 0 0 / 0.6);
+
+  color-scheme: dark;
+}
+
+/* The printed sheets and "paper" previews keep the light look even when the
+   app is dark (their light tokens are set above), with black-ish text. */
+.sheet,
+.paper {
+  color-scheme: light;
+}
+.paper {
+  background-color: #fff;
+  color: #111;
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
 }
 
 /* A clear keyboard-focus ring everywhere (helps people who use Tab). */
 :focus-visible {
-  outline: 2px solid #6366f1;
+  outline: 2px solid var(--ring);
   outline-offset: 2px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Motion                                                              */
+/* ------------------------------------------------------------------ */
+
+/* Switching light/dark: the whole page cross-fades (View Transitions API). */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: var(--ease-out-soft);
+}
+
+/* "Reduce motion" in the computer's settings: no movement anywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after,
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* ------------------------------------------------------------------ */
@@ -21,10 +231,10 @@
 /* ------------------------------------------------------------------ */
 
 .rich-text-input {
-  @apply w-full cursor-text rounded-lg border border-slate-300 bg-white px-3 py-2 text-[15px] leading-7 text-slate-900 transition-colors hover:border-slate-400;
+  @apply w-full cursor-text rounded-lg border border-input bg-card px-3 py-2 text-[15px] leading-7 text-foreground shadow-xs transition-[border-color,box-shadow] duration-150 hover:border-muted-foreground/50;
 }
 .rich-text-input:focus-within {
-  @apply border-indigo-500 ring-2 ring-indigo-500/20;
+  @apply border-ring ring-3 ring-ring/20;
 }
 .rich-text-input .rich-text-editor {
   min-height: 1.75rem;
@@ -41,7 +251,7 @@
   float: left;
   height: 0;
   pointer-events: none;
-  color: #64748b;
+  color: var(--muted-foreground);
 }
 
 /* A formula inside the text. */
@@ -56,22 +266,37 @@
   padding: 0 0.3em;
   border: 1px solid transparent;
   border-radius: 0.375rem;
-  background: #eef2ff;
+  background: var(--math-bg);
+  color: var(--foreground);
   font-size: 1.1em;
   outline: none;
+  transition:
+    background-color 150ms,
+    border-color 150ms,
+    box-shadow 150ms;
 }
 .math-node math-field:hover {
-  border-color: #c7d2fe;
+  border-color: var(--math-border);
 }
 .math-node math-field:focus-within {
-  border-color: #818cf8;
-  background: #fff;
-  box-shadow: 0 0 0 3px rgb(99 102 241 / 0.15);
+  border-color: var(--ring);
+  background: var(--card);
+  box-shadow: 0 0 0 3px color-mix(in oklch, var(--ring) 20%, transparent);
 }
 /* Highlighted after one Backspace: the next Backspace deletes it. */
 .math-node.is-selected math-field {
-  background: #c7d2fe;
-  border-color: #6366f1;
+  background: var(--math-selected);
+  border-color: var(--ring);
+}
+/* MathLive picks its own colours from the COMPUTER's dark setting, not from
+   our theme switch — so we hand it our colours explicitly. */
+math-field {
+  --caret-color: var(--brand);
+  --selection-background-color: color-mix(in oklch, var(--ring) 30%, transparent);
+  --selection-color: var(--foreground);
+  --contains-highlight-background-color: color-mix(in oklch, var(--ring) 12%, transparent);
+  --placeholder-color: var(--brand);
+  --smart-fence-color: var(--muted-foreground);
 }
 /* Hide MathLive's own menu and keyboard buttons — we have our own toolbar. */
 math-field::part(menu-toggle),
@@ -295,9 +520,17 @@ math-field::part(virtual-keyboard-toggle) {
 
 /* What happens when printing (also used by the PDF) */
 @media print {
+  /* Paper is always white with black text, whatever theme the app shows. */
   html,
   body {
     background: #fff !important;
+    color: #000 !important;
+    color-scheme: light !important;
+  }
+  /* Page fade-in animation: never print a half-faded page. */
+  [data-page-transition] {
+    opacity: 1 !important;
+    transform: none !important;
   }
   .print-sheets {
     zoom: 1 !important;

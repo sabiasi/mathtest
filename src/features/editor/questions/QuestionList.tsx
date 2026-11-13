@@ -16,6 +16,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { AnimatePresence } from "motion/react";
 import { useT } from "@/i18n/language";
 import type { LabelStyle, Question } from "@/lib/storage/types";
 import { QuestionCard } from "./QuestionCard";
@@ -82,8 +83,11 @@ export function QuestionList({
       }}
     >
       <SortableContext items={questions.map((q) => q.id)} strategy={verticalListSortingStrategy}>
-        <ol className="space-y-4">
-          {questions.map((question, index) => (
+        <ol>
+          {/* AnimatePresence keeps a deleted card on screen until its exit
+              animation has finished. initial={false}: no animation on page load. */}
+          <AnimatePresence initial={false}>
+            {questions.map((question, index) => (
             <QuestionCard
               key={question.id}
               question={question}
@@ -95,7 +99,8 @@ export function QuestionList({
               onDuplicate={() => onDuplicate(question)}
               onDelete={() => onDelete(question, index + 1)}
             />
-          ))}
+            ))}
+          </AnimatePresence>
         </ol>
       </SortableContext>
     </DndContext>

@@ -58,6 +58,11 @@ make it fast and easy.
   first visit + button), welcome guide, Georgian confirm dialogs, day/month/
   year date picker, toolbar only while editing a question, print-page
   warnings, readability and tablet fixes.
+- [x] **Redesign**: design tokens (light + dark) in globals.css, shadcn/ui
+  components, theme switcher (Light / Dark / Like my computer, next-themes),
+  Motion animations, landing page (`/`, `/about`), "My tests" moved to
+  `/tests` with new cards and a "…" menu, skeleton loading states, toasts
+  (sonner) with Undo for deleted tests/questions. Paper stays white.
 - [ ] **Next**: remaining question types: fill-in-the-blank and matching.
 - [ ] Later: duplicate tests, backup import/export, templates, then accounts
   and cloud storage.
@@ -67,7 +72,11 @@ make it fast and easy.
 | Area | Decision |
 | --- | --- |
 | Framework | Next.js 16 (App Router) + React 19 + TypeScript |
-| Styling | Tailwind CSS v4 (configured in `src/app/globals.css`, no tailwind.config) |
+| Styling | Tailwind CSS v4 (configured in `src/app/globals.css`, no tailwind.config). Design tokens (colours, radius, shadows) are CSS variables there, light in `:root`, dark in `.dark` |
+| UI components | shadcn/ui (Radix) copied into `src/components/ui/` (button, alert-dialog, dropdown-menu, input, textarea, tabs, tooltip, sonner, skeleton) + our `icon-button`, `form` (Field, SegmentedControl). `cn()` in `lib/utils.ts` |
+| Theme | next-themes, `attribute="class"`, storage key `mathtest:theme`, default "system". Switch cross-fades with the View Transitions API |
+| Animation | Motion (`motion/react`, the new name of Framer Motion) inside `MotionConfig reducedMotion="user"`; Radix pieces use tw-animate-css classes; global reduce-motion CSS rule |
+| Toasts | sonner (`toast(...)`), only after real actions; autosave stays quiet |
 | Font | Noto Sans Georgian via `next/font/google` (self-hosted at build time). Must also be used in print/PDF output. |
 | Icons | lucide-react |
 | Rich text | TipTap v3 (ProseMirror) with a custom inline `math` node (`src/features/math/MathNode.ts`) |
@@ -94,12 +103,18 @@ using unfamiliar APIs):
 ```
 src/
   app/                  Routes only, kept tiny (page.tsx renders a feature view)
-    page.tsx            /              → features/home/HomeView
+    page.tsx            /              → features/landing/LandingGate (landing, or → /tests if started)
+    tests/page.tsx      /tests         → features/home/HomeView ("My tests")
+    about/page.tsx      /about         → features/landing/LandingView (always)
     editor/[id]/page.tsx /editor/:id   → features/editor/EditorView
   features/<name>/      Page-level UI for one feature
   features/math/        RichTextInput (TipTap box), MathNode, MathToolbar + toolbarData,
                         MathEditingContext (which box is active), RichTextView (static), mathlive.ts
-  components/           Shared UI (header, logo, language switch, ui/button)
+  components/           Shared UI: AppHeader/HeaderNav/AppFooter, Providers (theme, motion,
+                        tooltips, confirm, toaster), ThemeSwitcher, PageTransition,
+                        EmptyState, ConfirmDialog, DateField, ui/ (shadcn)
+  features/landing/     LandingGate + LandingView (hero, paper preview, features)
+  lib/onboarding.ts     Flags: sample-added, started (skip landing)
   i18n/                 dictionaries.ts (ka + en text), language.ts (useT, useLanguage)
   features/editor/      EditorView → TestEditor (state + autosave), TestHeaderForm,
                         questions/ (QuestionList with dnd-kit, QuestionCard, one editor per type)
@@ -118,6 +133,13 @@ src/
   lib/format.ts         Date formatting (Georgian by hand)
 ```
 
+- **Never use raw Tailwind colours** (slate-500, indigo-600…): use tokens
+  (`bg-card`, `text-muted-foreground`, `text-brand`, `bg-primary-soft`,
+  `border-input`, `text-destructive-text`, `bg-success`…), so dark mode works.
+  Exceptions: things on white paper (`.sheet`, `.paper`) use neutral/black.
+- **Paper is always white**: `.sheet` and `.paper` re-declare the light tokens;
+  picture, grid and line previews in the editor sit on `.paper`. The PDF route
+  forces light mode. Never use `dark:` classes inside print components.
 - **All user-visible text goes in `src/i18n/dictionaries.ts`** (Georgian first,
   English with the same keys). Never hard-code UI text in components.
 - **Only `src/lib/storage/testsRepository.ts` touches localStorage for tests.**
@@ -184,6 +206,25 @@ src/
 - PDFs are slow on `npm run dev` (30–45 s for all variants) because the dev
   server compiles on demand; production takes about 1 s. Measure speed on
   `next build && next start`.
+
+- A client file's exports are all a server component can use: a property
+  hung on an exported function (`HeaderNav.Fallback`) is `undefined` on the
+  server ("Element type is invalid"). Export it as its own function.
+- Hidden (Activity) pages stay in the DOM: in browser tests `ol > li` also
+  matches the hidden "My tests" guide. Use `ol:has([data-question-card]) > li`.
+- Opening a dialog from a Radix dropdown item: give the menu `modal={false}`,
+  or the page can stay unclickable.
+- Radix Tabs switch on mouse-down; the math toolbar prevents mouse-down (to
+  keep focus in the box) and switches tabs in onClick instead.
+- MathLive takes colours from the computer's dark setting, not our switch:
+  globals.css sets `--caret-color`, `--selection-background-color`, … on
+  `math-field` from our tokens.
+- `shadcn add` imported `cn` from an npm package named `cn` (shadcn's new
+  helper); we use `@/lib/utils` instead. After adding a component, replace
+  `from "cn"` with `from "@/lib/utils"`.
+- Question cards: the outer `motion.li` is moved by dnd-kit (transform) and
+  grown/shrunk by Motion (height/opacity); the visual card is the inner
+  `[data-question-card]` div (also the paste/drop target).
 
 ## Commands
 

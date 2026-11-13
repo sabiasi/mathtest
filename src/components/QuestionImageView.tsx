@@ -31,6 +31,6 @@ export function QuestionImageView({ image, className = "" }: { image: QuestionIm
     // eslint-disable-next-line @next/next/no-img-element -- stored pictures (blob:/data: URLs), not site assets
     <img src={url} alt="" className={`block h-auto w-full ${className}`} style={style} draggable={false} />
   ) : (
-    <div className={`w-full bg-slate-100 ${className}`} style={style} aria-hidden="true" />
+    <div className={`w-full bg-muted ${className}`} style={style} aria-hidden="true" />
   );
 }

@@ -9,7 +9,9 @@
  */
 import { useState } from "react";
 import { useLanguage, useT } from "@/i18n/language";
+import { cn } from "@/lib/utils";
 import { monthNames } from "@/lib/format";
+import { inputClasses } from "./ui/form";
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const daysInMonth = (year: number, month: number) => new Date(year, month, 0).getDate();
@@ -54,8 +56,7 @@ export function DateField({
     update({ year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() });
   }
 
-  const select =
-    "rounded-lg border border-slate-300 bg-white px-2 py-2 text-[15px] text-slate-900 hover:border-slate-400 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/20";
+  const select = cn(inputClasses, "w-auto px-2");
   const number = (v: string) => (v === "" ? undefined : Number(v));
 
   return (
@@ -84,7 +85,7 @@ export function DateField({
           </option>
         ))}
       </select>
-      <button type="button" onClick={today} className="rounded-lg px-2 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50">
+      <button type="button" onClick={today} className="h-10 rounded-lg px-2.5 text-sm font-semibold text-brand transition-colors hover:bg-primary-soft">
         {t("date.today")}
       </button>
     </div>

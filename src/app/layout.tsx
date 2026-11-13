@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Noto_Sans, Noto_Sans_Georgian } from "next/font/google";
+import { AppFooter } from "@/components/AppFooter";
 import { AppHeader } from "@/components/AppHeader";
-import { ConfirmProvider } from "@/components/ConfirmDialog";
+import { Providers } from "@/components/Providers";
 import { HtmlLang } from "@/i18n/HtmlLang";
 // MathLive's math fonts and the styles for read-only formulas.
 import "mathlive/fonts.css";
@@ -39,17 +40,21 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
+    // suppressHydrationWarning: next-themes sets class="dark"/"light" on <html>
+    // before React starts, so the server's HTML and the browser's differ there.
     <html
       lang="ka"
+      suppressHydrationWarning
       className={`${notoSansGeorgian.variable} ${notoSans.variable} h-full`}
       style={{ "--font-georgian-only": georgianOnly } as React.CSSProperties}
     >
-      <body className="flex min-h-full flex-col bg-slate-50 font-sans text-slate-900 antialiased">
+      <body className="flex min-h-full flex-col bg-background font-sans text-foreground antialiased">
         <HtmlLang />
-        <ConfirmProvider>
+        <Providers>
           <AppHeader />
           <main className="flex-1">{children}</main>
-        </ConfirmProvider>
+          <AppFooter />
+        </Providers>
       </body>
     </html>
   );

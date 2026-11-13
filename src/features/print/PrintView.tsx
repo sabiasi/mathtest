@@ -1,11 +1,15 @@
 "use client";
 
 import { ArrowLeft, Download, LoaderCircle, Printer, SearchX, Shuffle, TriangleAlert } from "lucide-react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { buttonClasses } from "@/components/ui/button";
+import { EmptyState } from "@/components/EmptyState";
+import { PageTransition } from "@/components/PageTransition";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { SegmentedControl } from "@/components/ui/form";
 import { useLanguage, useT } from "@/i18n/language";
 import { findProblems } from "@/lib/checks";
@@ -27,20 +31,46 @@ export function PrintView() {
   const variant = params.get("variant") ?? "A";
   const lookup = useTest(id);
 
-  if (lookup.status === "loading") return <div className="h-72" aria-busy="true" />;
+  if (lookup.status === "loading") return <PrintSkeleton />;
   if (lookup.status === "missing") {
     return (
-      <div className="mx-auto flex max-w-md flex-col items-center px-4 py-16 text-center">
-        <SearchX className="size-10 text-slate-400" aria-hidden="true" />
-        <h1 className="mt-4 text-xl font-semibold">{t("editor.notFoundTitle")}</h1>
-        <p className="mt-2 text-slate-600">{t("editor.notFoundText")}</p>
-        <Link href="/" className={buttonClasses("secondary", "mt-6")}>
-          {t("editor.backHome")}
-        </Link>
-      </div>
+      <PageTransition className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+        <EmptyState
+          Icon={SearchX}
+          title={t("editor.notFoundTitle")}
+          text={t("editor.notFoundText")}
+          actions={
+            <Link href="/tests" className={buttonVariants({ variant: "outline" })}>
+              {t("editor.backHome")}
+            </Link>
+          }
+        />
+      </PageTransition>
     );
   }
-  return <PrintDocument test={lookup.test} version={version} variantParam={variant} />;
+  return (
+    <PageTransition>
+      <PrintDocument test={lookup.test} version={version} variantParam={variant} />
+    </PageTransition>
+  );
+}
+
+/** The print page's layout in grey shapes, while the test loads. */
+export function PrintSkeleton() {
+  return (
+    <div aria-busy="true">
+      <div className="border-b bg-card">
+        <div className="mx-auto flex max-w-5xl items-center gap-4 px-4 py-3 sm:px-6">
+          <Skeleton className="h-5 w-40" />
+          <Skeleton className="ml-auto h-10 w-28" />
+          <Skeleton className="h-10 w-44" />
+        </div>
+      </div>
+      <div className="mx-auto mt-6 max-w-[210mm] px-3">
+        <Skeleton className="aspect-[210/297] w-full rounded-sm" />
+      </div>
+    </div>
+  );
 }
 
 function PrintDocument({ test, version, variantParam }: { test: Test; version: PrintVersion; variantParam: string }) {
@@ -101,7 +131,9 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
       message: t("variants.reshuffleConfirm"),
       confirmLabel: t("dialog.continue"),
     });
-    if (ok) setVariants({ seed: newSeed() });
+    if (!ok) return;
+    setVariants({ seed: newSeed() });
+    toast.success(t("toast.reshuffled"));
   }
 
   async function handlePdf() {
@@ -110,6 +142,7 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
     try {
       const variant = showAll ? "all" : current.label;
       await downloadPdf(test, version, variant, language, pdfFileName(testTitle, suffix));
+      toast.success(t("toast.pdfReady"));
     } catch {
       // No Chrome on the server (or another problem): use the print dialog instead.
       setNotice(t("print.pdfFallback"));
@@ -122,40 +155,39 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
   return (
     <div data-print-ready={ready ? "true" : "false"}>
       {/* ---- Top bar: stays visible while scrolling (screen only) ---- */}
-      <div className="sticky top-0 z-20 border-b border-slate-200 bg-white shadow-sm print:hidden">
+      <div className="sticky top-0 z-20 border-b bg-card/85 shadow-sm backdrop-blur-md print:hidden">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-5 gap-y-3 px-4 py-3 sm:px-6">
           <Link
             href={`/editor/${test.id}`}
-            className="inline-flex items-center gap-1.5 rounded text-sm font-medium text-slate-600 hover:text-slate-900"
+            className="inline-flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
             {t("print.back")}
           </Link>
           <div className="ml-auto flex gap-2">
-            <button
-              type="button"
-              onClick={() => waitForImages().then(() => window.print())}
-              className={buttonClasses("secondary")}
-              disabled={!ready}
-            >
+            <Button variant="outline" onClick={() => waitForImages().then(() => window.print())} disabled={!ready}>
               <Printer className="size-4" aria-hidden="true" />
               {t("print.print")}
-            </button>
-            <button type="button" onClick={handlePdf} className={buttonClasses("primary")} disabled={!ready || pdfBusy}>
+            </Button>
+            <Button onClick={handlePdf} disabled={!ready || pdfBusy}>
               {pdfBusy ? (
                 <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
               ) : (
                 <Download className="size-4" aria-hidden="true" />
               )}
               {t(pdfBusy ? "print.pdfWorking" : "print.pdf")}
-            </button>
+            </Button>
           </div>
-          {notice && <p className="w-full rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{notice}</p>}
+          {notice && (
+            <p className="w-full rounded-lg border border-warning-border bg-warning-soft px-3 py-2 text-sm text-warning-text">
+              {notice}
+            </p>
+          )}
         </div>
       </div>
 
       {/* ---- Options: scroll away with the page, so they don't cover the paper ---- */}
-      <div className="border-b border-slate-200 bg-white print:hidden">
+      <div className="border-b bg-card print:hidden">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-5 gap-y-3 px-4 py-3 sm:px-6">
           {/* Paper options */}
           <div className="flex w-full flex-wrap items-center gap-x-6 gap-y-2 text-sm">
@@ -206,7 +238,7 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
           </div>
 
           {/* Variants */}
-          <div className="flex w-full flex-wrap items-center gap-x-6 gap-y-2 border-t border-slate-100 pt-3 text-sm">
+          <div className="flex w-full flex-wrap items-center gap-x-6 gap-y-2 border-t pt-3 text-sm">
             <Option label={t("variants.label")}>
               <SegmentedControl
                 label={t("variants.count")}
@@ -233,12 +265,12 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
                 <button
                   type="button"
                   onClick={reshuffle}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 font-medium text-indigo-700 hover:bg-indigo-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 font-semibold text-brand transition-colors hover:bg-primary-soft"
                 >
                   <Shuffle className="size-4" aria-hidden="true" />
                   {t("variants.reshuffle")}
                 </button>
-                <span className="text-slate-500">{t("variants.countHint")}</span>
+                <span className="text-muted-foreground">{t("variants.countHint")}</span>
               </>
             )}
           </div>
@@ -340,7 +372,10 @@ function PrintedVariant({
     <>
       {measurer}
       {!pages ? (
-        <p className="py-16 text-center text-slate-500 print:hidden">{t("print.preparing")}</p>
+        <p className="flex items-center justify-center gap-2 py-16 text-muted-foreground print:hidden">
+          <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
+          {t("print.preparing")}
+        </p>
       ) : (
         pages.map((page, pageIndex) => (
           <section
@@ -353,7 +388,7 @@ function PrintedVariant({
                 <PrintHeader test={test} version={version} variant={label} />
               </div>
             )}
-            {test.questions.length === 0 && <p className="text-center text-slate-500">{t("print.empty")}</p>}
+            {test.questions.length === 0 && <p className="text-center text-neutral-500">{t("print.empty")}</p>}
             <div
               className="sheet-columns"
               style={{
@@ -387,7 +422,7 @@ function ProblemsBanner({ test }: { test: Test }) {
   if (problems.length === 0) return null;
   return (
     <div className="mx-auto mt-4 max-w-5xl px-4 sm:px-6 print:hidden">
-      <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
+      <div className="rounded-xl border border-warning-border bg-warning-soft px-4 py-3 text-warning-text">
         <p className="flex items-center gap-2 font-semibold">
           <TriangleAlert className="size-5 shrink-0" aria-hidden="true" />
           {t("checks.title")}
@@ -398,7 +433,7 @@ function ProblemsBanner({ test }: { test: Test }) {
           ))}
           {problems.length > 8 && <li>…</li>}
         </ul>
-        <Link href={`/editor/${test.id}`} className="mt-2 ml-9 inline-block font-semibold text-amber-900 underline underline-offset-2">
+        <Link href={`/editor/${test.id}`} className="mt-2 ml-9 inline-block font-semibold underline underline-offset-2">
           {t("checks.fix")}
         </Link>
       </div>
@@ -409,7 +444,7 @@ function ProblemsBanner({ test }: { test: Test }) {
 function Option({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="text-slate-500">{label}:</span>
+      <span className="text-muted-foreground">{label}:</span>
       {children}
     </div>
   );
@@ -417,12 +452,12 @@ function Option({ label, children }: { label: string; children: ReactNode }) {
 
 function Checkbox({ checked, onChange, label }: { checked: boolean; onChange: (checked: boolean) => void; label: string }) {
   return (
-    <label className="inline-flex cursor-pointer items-center gap-2 text-slate-700">
+    <label className="inline-flex cursor-pointer items-center gap-2 text-soft-foreground">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="size-4 accent-indigo-600"
+        className="size-4 accent-primary"
       />
       {label}
     </label>

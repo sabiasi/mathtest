@@ -2,17 +2,17 @@
 
 import { LANGUAGES, LANGUAGE_NAMES } from "@/i18n/dictionaries";
 import { setLanguage, useLanguage, useT } from "@/i18n/language";
+import { cn } from "@/lib/utils";
+
+/** Short names for small screens. */
+const SHORT: Record<string, string> = { ka: "ქა", en: "EN" };
 
 export function LanguageSwitcher() {
   const t = useT();
   const current = useLanguage();
 
   return (
-    <div
-      role="group"
-      aria-label={t("language.label")}
-      className="inline-flex rounded-lg border border-slate-200 bg-slate-50 p-0.5 text-sm"
-    >
+    <div role="group" aria-label={t("language.label")} className="inline-flex rounded-lg bg-muted p-0.5 text-sm">
       {LANGUAGES.map((language) => {
         const active = language === current;
         return (
@@ -22,11 +22,15 @@ export function LanguageSwitcher() {
             lang={language}
             aria-pressed={active}
             onClick={() => setLanguage(language)}
-            className={`rounded-md px-3 py-1.5 font-medium transition-colors ${
-              active ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
-            }`}
+            className={cn(
+              "rounded-md px-2.5 py-1 font-medium transition-[color,background-color,box-shadow] duration-150 pointer-coarse:py-2",
+              active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground",
+            )}
           >
-            {LANGUAGE_NAMES[language]}
+            <span className="max-sm:sr-only">{LANGUAGE_NAMES[language]}</span>
+            <span className="sm:hidden" aria-hidden="true">
+              {SHORT[language]}
+            </span>
           </button>
         );
       })}

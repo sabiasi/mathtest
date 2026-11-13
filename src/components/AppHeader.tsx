@@ -1,16 +1,29 @@
 import Link from "next/link";
+import { Suspense } from "react";
+import { HeaderNav, HeaderNavFallback } from "./HeaderNav";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 import { LogoMark } from "./Logo";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 export function AppHeader() {
   return (
-    <header className="border-b border-slate-200 bg-white print:hidden">
-      <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2.5 rounded-lg text-lg font-bold text-slate-900">
-          <LogoMark />
+    <header className="border-b bg-card/80 backdrop-blur-md print:hidden">
+      <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
+        <Link
+          href="/tests"
+          className="flex items-center gap-2.5 rounded-lg text-[17px] font-bold tracking-tight text-foreground"
+        >
+          <LogoMark className="size-7" />
           MathTest
         </Link>
-        <LanguageSwitcher />
+        {/* The nav reads the current address, which Next.js only knows in the browser. */}
+        <Suspense fallback={<HeaderNavFallback />}>
+          <HeaderNav />
+        </Suspense>
+        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <ThemeSwitcher />
+          <LanguageSwitcher />
+        </div>
       </div>
     </header>
   );

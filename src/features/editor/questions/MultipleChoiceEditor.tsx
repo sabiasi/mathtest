@@ -4,6 +4,7 @@ import { CircleAlert, Plus, X } from "lucide-react";
 import { RichTextInput } from "@/features/math/RichTextInput";
 import { useT } from "@/i18n/language";
 import { newId } from "@/lib/ids";
+import { cn } from "@/lib/utils";
 import { MAX_OPTIONS, MIN_OPTIONS, optionLabel } from "@/lib/questions";
 import type { RichText } from "@/lib/richText";
 import type { LabelStyle, MultipleChoiceQuestion } from "@/lib/storage/types";
@@ -46,11 +47,12 @@ export function MultipleChoiceEditor({
                 aria-label={t("mc.markCorrect", { label })}
                 title={t("mc.markCorrect", { label })}
                 onClick={() => onChange({ ...question, correctOptionId: isCorrect ? null : option.id })}
-                className={`flex size-9 shrink-0 items-center justify-center rounded-full border-2 font-semibold transition-colors ${
+                className={cn(
+                  "flex size-9 shrink-0 items-center justify-center rounded-full border-2 font-semibold transition-[color,background-color,border-color,transform] duration-150 motion-safe:active:scale-90 pointer-coarse:size-11",
                   isCorrect
-                    ? "border-emerald-600 bg-emerald-600 text-white"
-                    : "border-slate-300 text-slate-600 hover:border-emerald-500 hover:text-emerald-700"
-                }`}
+                    ? "border-success bg-success text-white"
+                    : "border-input text-muted-foreground hover:border-success-border hover:text-success-text",
+                )}
               >
                 {label}
               </button>
@@ -61,10 +63,10 @@ export function MultipleChoiceEditor({
                   ariaLabel={t("mc.optionAria", { label })}
                   placeholder={t("mc.optionPlaceholder", { label })}
                   onChange={(text) => setOptionText(option.id, text)}
-                  className={isCorrect ? "border-emerald-500! bg-emerald-50/60! pr-20" : ""}
+                  className={isCorrect ? "border-success-border! bg-success-soft! pr-20" : ""}
                 />
                 {isCorrect && (
-                  <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold text-emerald-700">
+                  <span className="pointer-events-none absolute top-1/2 right-3 -translate-y-1/2 text-xs font-semibold text-success-text">
                     ✓ {t("mc.correct")}
                   </span>
                 )}
@@ -75,7 +77,7 @@ export function MultipleChoiceEditor({
                 onClick={() => removeOption(option.id)}
                 aria-label={t("mc.removeOption", { label })}
                 title={t("mc.removeOption", { label })}
-                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 disabled:invisible pointer-coarse:p-3"
+                className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:invisible pointer-coarse:p-3"
               >
                 <X className="size-4" aria-hidden="true" />
               </button>
@@ -86,28 +88,28 @@ export function MultipleChoiceEditor({
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3 pl-11">
         {correctOptionId === null ? (
-          <p className="flex items-center gap-1.5 text-sm text-amber-700">
+          <p className="flex items-center gap-1.5 text-sm text-warning-text">
             <CircleAlert className="size-4" aria-hidden="true" />
             {t("mc.noCorrect")} {t("mc.hint")}
           </p>
         ) : (
-          <p className="text-sm text-slate-500">{t("mc.hint")}</p>
+          <p className="text-sm text-muted-foreground">{t("mc.hint")}</p>
         )}
-        <label className="order-last flex w-full cursor-pointer flex-wrap items-center gap-x-2 text-sm text-slate-600">
+        <label className="order-last flex w-full cursor-pointer flex-wrap items-center gap-x-2 text-sm text-soft-foreground">
           <input
             type="checkbox"
             checked={question.lockOptions}
             onChange={(e) => onChange({ ...question, lockOptions: e.target.checked })}
-            className="size-4 accent-indigo-600"
+            className="size-4 accent-primary"
           />
           {t("variants.lockOptions")}
-          <span className="text-slate-500">({t("variants.lockHint")})</span>
+          <span className="text-muted-foreground">({t("variants.lockHint")})</span>
         </label>
         {options.length < MAX_OPTIONS && (
           <button
             type="button"
             onClick={() => onChange({ ...question, options: [...options, { id: newId(), text: [] }] })}
-            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+            className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-sm font-semibold text-brand transition-colors hover:bg-primary-soft"
           >
             <Plus className="size-4" aria-hidden="true" />
             {t("mc.addOption")}

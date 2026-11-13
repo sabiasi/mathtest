@@ -4,16 +4,20 @@ import {
   ArrowLeft,
   CloudCheck,
   ListChecks,
+  ListPlus,
   LoaderCircle,
   NotebookPen,
   Printer,
   TextCursorInput,
   ToggleRight,
 } from "lucide-react";
+import { toast } from "sonner";
+import { AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { buttonClasses } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { MathEditingProvider, useMathEditing, useMathLiveReady } from "@/features/math/MathEditingContext";
 import { MathToolbar } from "@/features/math/MathToolbar";
 import { useT } from "@/i18n/language";
@@ -99,6 +103,16 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
       if (!ok) return;
     }
     updateQuestions((qs) => qs.filter((q) => q.id !== question.id));
+    // A safety net: put it back exactly where it was.
+    toast(t("toast.questionDeleted", { number }), {
+      action: {
+        label: t("toast.undo"),
+        onClick: () =>
+          updateQuestions((qs) =>
+            qs.some((q) => q.id === question.id) ? qs : [...qs.slice(0, number - 1), question, ...qs.slice(number - 1)],
+          ),
+      },
+    });
   }
 
   const total = formatPoints(totalPoints(test.questions));
@@ -107,23 +121,25 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
     <MathEditingProvider>
       <div className="pb-24" data-editor-ready={mathReady ? "true" : "false"}>
         {/* Sticky bar: stays at the top while scrolling. */}
-        <div ref={stickyRef} className="sticky top-0 z-20 border-b border-slate-200 bg-white shadow-sm">
+        <div ref={stickyRef} className="sticky top-0 z-20 border-b bg-card/85 shadow-sm backdrop-blur-md">
           <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
             <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 rounded p-1 text-sm font-medium whitespace-nowrap text-slate-600 hover:text-slate-900"
+              href="/tests"
+              // Leaving saves right away (see useAutosave); say so.
+              onClick={() => toast.success(t("toast.saved"))}
+              className="inline-flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               <ArrowLeft className="size-4" aria-hidden="true" />
               {/* On phones only the arrow shows; screen readers still hear the text. */}
               <span className="max-sm:sr-only">{t("editor.back")}</span>
             </Link>
             <div className="flex flex-1 justify-end">
-              <Link href={`/print/${test.id}`} className={buttonClasses("secondary", "py-1.5! text-sm!")}>
+              <Link href={`/print/${test.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
                 <Printer className="size-4" aria-hidden="true" />
                 <span className="max-sm:sr-only">{t("editor.printPreview")}</span>
               </Link>
             </div>
-            <span className="flex items-center gap-1.5 text-sm text-slate-500" aria-live="polite">
+            <span className="flex items-center gap-1.5 text-sm text-muted-foreground" aria-live="polite">
               {dirty ? (
                 <>
                   <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
@@ -131,12 +147,12 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                 </>
               ) : (
                 <>
-                  <CloudCheck className="size-4 text-emerald-600" aria-hidden="true" />
+                  <CloudCheck className="size-4 text-success" aria-hidden="true" />
                   <span className="max-sm:sr-only">{t("editor.saved")}</span>
                 </>
               )}
             </span>
-            <span className="rounded-full bg-indigo-50 px-3 py-1 text-sm font-semibold whitespace-nowrap text-indigo-700">
+            <span className="rounded-full bg-primary-soft px-3 py-1 text-sm font-semibold whitespace-nowrap text-brand tabular-nums">
               {t("editor.total", { points: total })}
             </span>
           </div>
@@ -144,7 +160,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
         </div>
 
         {!mathReady ? (
-          <p className="py-16 text-center text-slate-500">{t("editor.loading")}</p>
+          <EditorSkeleton label={t("editor.loading")} />
         ) : (
           <div className="mx-auto max-w-3xl space-y-8 px-4 pt-8 sm:px-6">
             <TestHeaderForm test={test} onChange={update} />
@@ -152,13 +168,17 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
             <section>
               <div className="mb-4 flex items-baseline justify-between">
                 <h2 className="text-lg font-semibold">{t("questions.heading")}</h2>
-                <span className="text-sm text-slate-500">{t("editor.total", { points: total })}</span>
+                <span className="text-sm text-muted-foreground">{t("editor.total", { points: total })}</span>
               </div>
 
               {test.questions.length === 0 ? (
-                <p className="rounded-2xl border-2 border-dashed border-slate-300 bg-white px-6 py-10 text-center text-slate-600">
-                  {t("questions.empty")}
-                </p>
+                <div className="flex flex-col items-center rounded-2xl border-2 border-dashed bg-card/60 px-6 py-10 text-center">
+                  <span className="flex size-12 items-center justify-center rounded-xl bg-primary-soft text-brand">
+                    <ListPlus className="size-6" aria-hidden="true" />
+                  </span>
+                  <p className="mt-3 font-semibold text-foreground">{t("questions.emptyTitle")}</p>
+                  <p className="mt-1 max-w-md text-[15px] text-muted-foreground">{t("questions.empty")}</p>
+                </div>
               ) : (
                 <QuestionList
                   questions={test.questions}
@@ -176,22 +196,22 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                 />
               )}
 
-              <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-                <p className="mb-3 text-sm font-medium text-slate-700">{t("questions.add")}:</p>
+              <div className="mt-2 rounded-2xl border bg-card p-4 shadow-sm">
+                <p className="mb-3 text-sm font-medium text-soft-foreground">{t("questions.add")}:</p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {ADD_BUTTONS.map(({ type, Icon }) => (
                     <button
                       key={type}
                       type="button"
                       onClick={() => addQuestion(type)}
-                      className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 text-left font-medium text-slate-800 transition-colors hover:border-indigo-300 hover:bg-indigo-50"
+                      className="group flex items-center gap-3 rounded-xl border px-4 py-3 text-left font-medium text-foreground transition-[background-color,border-color,box-shadow,translate,scale] duration-150 hover:border-primary-soft-border hover:bg-primary-soft/60 hover:shadow-sm motion-safe:hover:-translate-y-px motion-safe:active:scale-[0.98]"
                     >
-                      <span className="rounded-lg bg-indigo-100 p-1.5 text-indigo-700">
+                      <span className="rounded-lg bg-primary-soft p-1.5 text-brand transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
                         <Icon className="size-5" aria-hidden="true" />
                       </span>
                       <span>
                         <span className="block">{t(`type.${type}`)}</span>
-                        <span className="block text-sm font-normal text-slate-500">{t(`typeHint.${type}`)}</span>
+                        <span className="block text-sm font-normal text-muted-foreground">{t(`typeHint.${type}`)}</span>
                       </span>
                     </button>
                   ))}
@@ -205,8 +225,38 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
   );
 }
 
+/** Grey shapes in the layout of the editor, shown while it loads. */
+export function EditorSkeleton({ label }: { label: string }) {
+  return (
+    <div className="mx-auto max-w-3xl space-y-8 px-4 pt-8 sm:px-6" aria-busy="true">
+      <span className="sr-only">{label}</span>
+      <div className="space-y-5 rounded-2xl border bg-card p-6 shadow-sm">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-11 w-full" />
+        <div className="grid gap-5 sm:grid-cols-2">
+          <Skeleton className="h-10" />
+          <Skeleton className="h-10" />
+        </div>
+      </div>
+      {[0, 1].map((i) => (
+        <div key={i} className="space-y-4 rounded-2xl border bg-card p-5 shadow-sm">
+          <div className="flex gap-3">
+            <Skeleton className="h-8 w-24" />
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="ml-auto h-8 w-20" />
+          </div>
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-9 w-2/3" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /** The math toolbar, shown only while a question or answer box is being edited. */
 function ToolbarWhenEditing() {
   const { activeEditor } = useMathEditing();
-  return activeEditor ? <MathToolbar /> : null;
+  // AnimatePresence lets the toolbar slide closed instead of vanishing.
+  return <AnimatePresence initial={false}>{activeEditor && <MathToolbar key="toolbar" />}</AnimatePresence>;
 }

@@ -1,5 +1,7 @@
 import { Suspense } from "react";
 import { EditorView } from "@/features/editor/EditorView";
+import { EditorSkeleton } from "@/features/editor/TestEditor";
+import { dictionaries } from "@/i18n/dictionaries";
 
 // [id] in the folder name means "any value here": /editor/abc → id = "abc".
 //
@@ -7,7 +9,7 @@ import { EditorView } from "@/features/editor/EditorView";
 // opens a link. <Suspense> says: "show the fallback until the id is known".
 export default function EditorPage() {
   return (
-    <Suspense fallback={<div className="h-72" aria-busy="true" />}>
+    <Suspense fallback={<EditorSkeleton label={dictionaries.ka["editor.loading"]} />}>
       <EditorView />
     </Suspense>
   );

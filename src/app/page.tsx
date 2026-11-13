@@ -1,6 +1,7 @@
-import { HomeView } from "@/features/home/HomeView";
+import { LandingGate } from "@/features/landing/LandingGate";
 
-// The route file stays tiny; the page itself lives in src/features/home.
+// "/": the landing page for first-time visitors; returning teachers are sent
+// straight to "My tests" (/tests). See LandingGate.
 export default function HomePage() {
-  return <HomeView />;
+  return <LandingGate />;
 }
