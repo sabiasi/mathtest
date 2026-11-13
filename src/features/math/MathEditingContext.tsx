@@ -20,6 +20,8 @@ type MathEditing = {
   forget: (editor: Editor) => void;
   /** Inserts a LaTeX template at the right place (see below). */
   insert: (latex: string) => void;
+  /** Inserts plain text at the cursor (e.g. "ძვ. წ." from the history toolbar). */
+  insertText: (text: string, caretBack?: number) => void;
 };
 
 const MathEditingContext = createContext<MathEditing | null>(null);
@@ -68,7 +70,27 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
     [activeEditor],
   );
 
-  const value = useMemo(() => ({ activeEditor, reportFocus, forget, insert }), [activeEditor, reportFocus, forget, insert]);
+  const insertText = useCallback(
+    (text: string, caretBack = 0) => {
+      const editor = activeEditor;
+      if (!editor || editor.isDestroyed) return;
+      // "1121" + "წ." → "1121 წ.": a space goes between a word (or the end of
+      // one: . , ; : ) “ ») and a new word or an opening quote / bracket.
+      const { from } = editor.state.selection;
+      const before = from > 1 ? editor.state.doc.textBetween(from - 1, from, "", " ") : "";
+      const needsSpace = /[\p{L}\p{N}.,;:)“”»]/u.test(before) && /^[\p{L}\p{N}„«(]/u.test(text);
+      // As a text node (not HTML), so characters like "<" stay as they are.
+      editor.chain().focus().insertContent({ type: "text", text: needsSpace ? ` ${text}` : text }).run();
+      // e.g. „“: put the cursor between the quotes.
+      if (caretBack > 0) editor.commands.setTextSelection(editor.state.selection.from - caretBack);
+    },
+    [activeEditor],
+  );
+
+  const value = useMemo(
+    () => ({ activeEditor, reportFocus, forget, insert, insertText }),
+    [activeEditor, reportFocus, forget, insert, insertText],
+  );
   return <MathEditingContext.Provider value={value}>{children}</MathEditingContext.Provider>;
 }
 

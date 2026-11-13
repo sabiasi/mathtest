@@ -92,7 +92,7 @@ export async function createSampleTest(language: Language): Promise<Test> {
       text: [T(x.triangle)],
       points: 2,
       images: figure
-        ? [{ id: newId(), imageId: figure.imageId, width: figure.width, height: figure.height, widthPercent: 35, position: "right" }]
+        ? [{ id: newId(), imageId: figure.imageId, width: figure.width, height: figure.height, widthPercent: 35, position: "right", caption: "" }]
         : [],
       grid: null,
       answer: [M("BC=10")],

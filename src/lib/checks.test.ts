@@ -35,7 +35,22 @@ describe("findProblems", () => {
   });
 
   it("a question with only a picture is not empty", () => {
-    const pic = { ...createQuestion("open-answer"), images: [{ id: "p", imageId: "i", width: 1, height: 1, widthPercent: 50, position: "above" as const }] };
+    const pic = { ...createQuestion("open-answer"), images: [{ id: "p", imageId: "i", width: 1, height: 1, widthPercent: 50, position: "above" as const, caption: "" }] };
     expect(findProblems(testOf([pic]))).toEqual([]);
+  });
+
+  it("checks the history and matching questions", () => {
+    const withText = <T extends Question>(q: T) => ({ ...q, text: text("?") });
+    const matching = withText(createQuestion("matching")); // 3 empty pairs
+    const timeline = withText(createQuestion("timeline"));
+    const allShown = timeline.type === "timeline" ? { ...timeline, events: timeline.events.map((e) => ({ ...e, hide: "none" as const })) } : timeline;
+    const source = withText(createQuestion("source"));
+    const map = withText(createQuestion("map"));
+    expect(findProblems(testOf([matching, timeline, allShown, source, map])).map((p) => p.kind)).toEqual([
+      "fewItems",
+      "noBlanks",
+      "noSource",
+      "noMap",
+    ]);
   });
 });

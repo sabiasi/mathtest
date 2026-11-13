@@ -7,11 +7,15 @@
  *     always produces the same "random" order. That's what keeps the answer
  *     key matching papers that were printed yesterday.
  *   - Options marked `lockOptions` keep their order (e.g. "all of the above").
+ *   - Chronological-order and matching questions are shuffled in EVERY
+ *     variant, A included (otherwise the answer would be "in the order
+ *     shown"). The order shown is put on the copy as `shownOrder`.
  *
  * A variant is just a normal Test with a new order, so the whole print
  * system works on it unchanged.
  */
-import type { MultipleChoiceQuestion, Question, Test } from "@/lib/storage/types";
+import { seedFromString } from "@/lib/storage/migrate";
+import type { MatchingQuestion, MultipleChoiceQuestion, OrderQuestion, Question, Test } from "@/lib/storage/types";
 
 export const VARIANT_LABELS = ["A", "B", "C", "D", "E", "F"] as const;
 export const MAX_VARIANTS = VARIANT_LABELS.length;
@@ -46,8 +50,47 @@ export function shuffle<T>(items: readonly T[], random: () => number): T[] {
 /** A text describing an arrangement, used to spot two identical variants. */
 function arrangement(questions: Question[]): string {
   return questions
-    .map((q) => (q.type === "multiple-choice" ? `${q.id}(${q.options.map((o) => o.id).join(",")})` : q.id))
+    .map((q) => {
+      if (q.type === "multiple-choice") return `${q.id}(${q.options.map((o) => o.id).join(",")})`;
+      if (q.type === "order" || q.type === "matching") return `${q.id}(${(q.shownOrder ?? []).join(",")})`;
+      return q.id;
+    })
     .join("|");
+}
+
+/**
+ * A shuffled order that isn't the answer itself: e.g. events must not come
+ * out already in the right order (a few tries; tiny lists may not manage).
+ */
+function shuffledIds(ids: string[], random: () => number): string[] {
+  let order = shuffle(ids, random);
+  for (let attempt = 0; attempt < 10 && ids.length > 1 && order.every((id, i) => id === ids[i]); attempt++) {
+    order = shuffle(ids, random);
+  }
+  return order;
+}
+
+/** Chronological order / matching: decide the shuffled order shown on paper. */
+export function arrangeItems(question: Question, random: () => number): Question {
+  if (question.type === "order") {
+    return { ...question, shownOrder: shuffledIds(question.items.map((i) => i.id), random) } satisfies OrderQuestion;
+  }
+  if (question.type === "matching") {
+    // The right column: the pairs' right sides plus the extra items. Only the
+    // pairs' order must not match the left column, so check that part.
+    const pairIds = question.pairs.map((p) => p.id);
+    let order = shuffle([...pairIds, ...question.extras.map((e) => e.id)], random);
+    for (let attempt = 0; attempt < 10 && pairIds.length > 1 && order.filter((id) => pairIds.includes(id)).every((id, i) => id === pairIds[i]); attempt++) {
+      order = shuffle(order, random);
+    }
+    return { ...question, shownOrder: order } satisfies MatchingQuestion;
+  }
+  return question;
+}
+
+/** Variant A: everything in the teacher's order, except order/matching items (shuffled once, repeatably). */
+function arrangeOriginal(test: Test): Question[] {
+  return test.questions.map((q) => arrangeItems(q, seededRandom(test.variants.seed ^ seedFromString(q.id))));
 }
 
 function shuffleOnce(test: Test, random: () => number): Question[] {
@@ -57,7 +100,7 @@ function shuffleOnce(test: Test, random: () => number): Question[] {
     if (question.type !== "multiple-choice" || !shuffleOptions || question.lockOptions) return question;
     // The correct answer is stored by option id, so it stays correct after shuffling.
     return { ...question, options: shuffle(question.options, random) } satisfies MultipleChoiceQuestion;
-  });
+  }).map((question) => arrangeItems(question, random));
 }
 
 export function variantCount(test: Test): number {
@@ -66,8 +109,9 @@ export function variantCount(test: Test): number {
 
 /** All variants of a test: [A (original), B, C, …]. */
 export function buildVariants(test: Test): Variant[] {
-  const variants: Variant[] = [{ label: VARIANT_LABELS[0], test }];
-  const seen = new Set([arrangement(test.questions)]);
+  const original = arrangeOriginal(test);
+  const variants: Variant[] = [{ label: VARIANT_LABELS[0], test: { ...test, questions: original } }];
+  const seen = new Set([arrangement(original)]);
 
   for (let i = 1; i < variantCount(test); i++) {
     // Each variant gets its own random sequence, derived from the test's seed.

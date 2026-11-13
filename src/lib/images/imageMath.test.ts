@@ -30,6 +30,16 @@ describe("usedImageIds / unusedImageIds", () => {
     expect([...usedImageIds([testWith(["a", "b"]), testWith(["b", "c"])])].sort()).toEqual(["a", "b", "c"]);
   });
 
+  it("counts map pictures as used (or clean-up would delete them), and skips diagrams", () => {
+    const test = {
+      questions: [
+        { type: "map", images: [], map: { imageId: "the-map", width: 1, height: 1 } },
+        { type: "open-answer", images: [{ id: "d", imageId: "", diagram: { kind: "circuit" } }] },
+      ],
+    } as unknown as Test;
+    expect([...usedImageIds([test])]).toEqual(["the-map"]);
+  });
+
   it("finds unused pictures, but keeps very new ones", () => {
     const now = 1_000_000_000;
     const stored = [

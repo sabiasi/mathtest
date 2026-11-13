@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createQuestion, correctOptionLabel } from "./questions";
-import type { MultipleChoiceQuestion, Question, Test } from "./storage/types";
+import type { MatchingQuestion, MultipleChoiceQuestion, OrderQuestion, Question, Test } from "./storage/types";
 import { buildVariants, seededRandom, shuffle } from "./variants";
 
 const text = (t: string) => [{ type: "text" as const, text: t }];
@@ -42,7 +42,35 @@ describe("buildVariants", () => {
 
   it("keeps variant A exactly as the teacher wrote it", () => {
     const test = makeTest(questions());
-    expect(buildVariants(test)[0].test).toBe(test);
+    expect(buildVariants(test)[0].test).toEqual(test);
+  });
+
+  it("shuffles chronological-order items in every variant, never into the answer", () => {
+    const order: OrderQuestion = {
+      ...(createQuestion("order", { id: "o" }) as OrderQuestion),
+      items: ["1", "2", "3", "4"].map((id) => ({ id, text: text(id) })),
+    };
+    const variants = buildVariants(makeTest([order, mc("q2")]));
+    for (const variant of variants) {
+      const shown = (variant.test.questions.find((q) => q.id === "o") as OrderQuestion).shownOrder!;
+      expect([...shown].sort()).toEqual(["1", "2", "3", "4"]);
+      expect(shown).not.toEqual(["1", "2", "3", "4"]);
+    }
+    // Repeatable: the same seed gives the same papers.
+    expect(buildVariants(makeTest([order, mc("q2")]))).toEqual(variants);
+  });
+
+  it("shuffles the matching column (with extras) so pair 1 isn't simply ა", () => {
+    const base = createQuestion("matching", { id: "m" }) as MatchingQuestion;
+    const matching: MatchingQuestion = {
+      ...base,
+      pairs: ["p1", "p2", "p3"].map((id) => ({ id, left: text(id), right: text(id) })),
+      extras: [{ id: "x1", text: text("extra") }],
+    };
+    const [a] = buildVariants(makeTest([matching], { count: 1 }));
+    const shown = (a.test.questions[0] as MatchingQuestion).shownOrder!;
+    expect([...shown].sort()).toEqual(["p1", "p2", "p3", "x1"]);
+    expect(shown.filter((id) => id !== "x1")).not.toEqual(["p1", "p2", "p3"]);
   });
 
   it("makes A, B, C, D that are all different", () => {

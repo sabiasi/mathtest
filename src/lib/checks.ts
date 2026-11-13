@@ -7,7 +7,17 @@ import { visibleOptions } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
 import type { Test } from "@/lib/storage/types";
 
-export type ProblemKind = "noQuestions" | "empty" | "fewOptions" | "noCorrect" | "noAnswer";
+export type ProblemKind =
+  | "noQuestions"
+  | "empty"
+  | "fewOptions"
+  | "noCorrect"
+  | "noAnswer"
+  | "fewItems"
+  | "noBlanks"
+  | "noMap"
+  | "noMarkers"
+  | "noSource";
 
 export type Problem = {
   kind: ProblemKind;
@@ -30,6 +40,22 @@ export function findProblems(test: Test): Problem[] {
     }
     if (q.type === "true-false" && q.correct === null) problems.push({ kind: "noCorrect", number, keyOnly: true });
     if (q.type === "short-answer" && isRichTextEmpty(q.answer)) problems.push({ kind: "noAnswer", number, keyOnly: true });
+    if (q.type === "matching" && q.pairs.filter((p) => !isRichTextEmpty(p.left) && !isRichTextEmpty(p.right)).length < 2) {
+      problems.push({ kind: "fewItems", number, keyOnly: false });
+    }
+    if (q.type === "order" && q.items.filter((i) => !isRichTextEmpty(i.text)).length < 2) {
+      problems.push({ kind: "fewItems", number, keyOnly: false });
+    }
+    if (q.type === "timeline") {
+      if (q.events.length < 2) problems.push({ kind: "fewItems", number, keyOnly: false });
+      else if (q.events.every((e) => e.hide === "none")) problems.push({ kind: "noBlanks", number, keyOnly: false });
+    }
+    if (q.type === "source" && isRichTextEmpty(q.source)) problems.push({ kind: "noSource", number, keyOnly: false });
+    if (q.type === "map") {
+      if (!q.map) problems.push({ kind: "noMap", number, keyOnly: false });
+      else if (q.markers.length === 0) problems.push({ kind: "noMarkers", number, keyOnly: false });
+      else if (q.markers.some((m) => !m.answer.trim())) problems.push({ kind: "noAnswer", number, keyOnly: true });
+    }
   });
   return problems;
 }

@@ -35,7 +35,7 @@ const isMac = () => typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(n
 export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
   const t = useT();
   const language = useLanguage();
-  const { insert } = useMathEditing();
+  const { insert, insertText } = useMathEditing();
   const tabs = toolkit.toolbar;
   const [tabId, setTabId] = useState(tabs[0]?.id);
   const tab = tabs.find((x) => x.id === tabId) ?? tabs[0];
@@ -55,7 +55,12 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
 
   // Turn each button's LaTeX into the HTML of a little formula (once per tab).
   const buttons = useMemo(
-    () => (style?.buttons ?? tab?.buttons ?? []).map((button) => ({ ...button, html: convertLatexToMarkup(button.display) })),
+    () =>
+      (style?.buttons ?? tab?.buttons ?? []).map((button) => ({
+        ...button,
+        // Text buttons show their text; formula buttons a little formula.
+        html: button.text === undefined ? convertLatexToMarkup(button.display) : null,
+      })),
     [tab, style],
   );
 
@@ -81,6 +86,8 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
     >
       <Tabs value={tab?.id ?? ""} onValueChange={setTabId} className="mx-auto max-w-5xl gap-0 px-4 sm:px-6">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
+          {toolkit.formulas && (
+            <>
           <Tooltip>
             <TooltipTrigger asChild>
               <button
@@ -96,6 +103,8 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
             </TooltipTrigger>
             <TooltipContent>{`${t("math.insertTooltip")} (${shortcut})`}</TooltipContent>
           </Tooltip>
+            </>
+          )}
 
           {/* Tabs (scroll sideways on phones, wrap on bigger screens) */}
           <TabsList className="h-auto! max-w-full justify-start gap-0.5 overflow-x-auto bg-transparent p-0 sm:flex-wrap sm:overflow-visible">
@@ -115,6 +124,7 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
 
         {/* Buttons of the chosen tab */}
         <TabsContent value={tab?.id ?? ""} className="flex flex-wrap gap-1 pt-2 pb-2.5" aria-label={tab?.[language]}>
+          {tab?.Widget && <tab.Widget insertText={insertText} />}
           {tab?.styles && (
             <div
               role="group"
@@ -148,11 +158,15 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
                   <button
                     type="button"
                     onMouseDown={keepFocus}
-                    onClick={() => insert(button.latex)}
+                    onClick={() => (button.text === undefined ? insert(button.latex) : insertText(button.text, button.caretBack))}
                     aria-label={button[language]}
                     className="flex h-10 min-w-10 items-center justify-center rounded-lg border bg-card px-2 text-foreground shadow-xs transition-[background-color,border-color,transform] duration-150 hover:border-primary-soft-border hover:bg-primary-soft motion-safe:active:scale-95 pointer-coarse:h-11 pointer-coarse:min-w-11"
                   >
-                    <span className="toolbar-math pointer-events-none" dangerouslySetInnerHTML={{ __html: button.html }} />
+                    {button.html === null ? (
+                      <span className="pointer-events-none text-sm font-medium whitespace-nowrap">{button.display}</span>
+                    ) : (
+                      <span className="toolbar-math pointer-events-none" dangerouslySetInnerHTML={{ __html: button.html }} />
+                    )}
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">{button[language]}</TooltipContent>

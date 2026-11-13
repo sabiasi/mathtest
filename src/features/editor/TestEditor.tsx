@@ -3,9 +3,14 @@
 import {
   ArrowLeft,
   CloudAlert,
+  ArrowDownWideNarrow,
   CloudCheck,
   ClipboardList,
+  GitCompareArrows,
+  GanttChart,
   HardDrive,
+  MapPinned,
+  Quote,
   ListChecks,
   ListPlus,
   LoaderCircle,
@@ -43,6 +48,11 @@ const TYPE_ICONS: Record<QuestionType, typeof ListChecks> = {
   "short-answer": TextCursorInput,
   "open-answer": NotebookPen,
   "given-find": ClipboardList,
+  matching: GitCompareArrows,
+  order: ArrowDownWideNarrow,
+  timeline: GanttChart,
+  source: Quote,
+  map: MapPinned,
 };
 
 /**
@@ -300,11 +310,11 @@ export function EditorSkeleton({ label }: { label: string }) {
 
 /**
  * The subject's toolbar, shown only while a question or answer box is being
- * edited. Subjects without formulas (history…) have none.
+ * edited. A subject without formulas or toolbar tabs (Georgian, for now) has none.
  */
 function ToolbarWhenEditing({ toolkit }: { toolkit: SubjectToolkit }) {
   const { activeEditor } = useMathEditing();
-  const show = activeEditor && toolkit.formulas;
+  const show = activeEditor && (toolkit.formulas || toolkit.toolbar.length > 0);
   // AnimatePresence lets the toolbar slide closed instead of vanishing.
   // key: switching the subject starts the toolbar fresh (on its first tab).
   return <AnimatePresence initial={false}>{show && <SubjectToolbar key={toolkit.id} toolkit={toolkit} />}</AnimatePresence>;

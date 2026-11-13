@@ -13,7 +13,9 @@ import { formatDate } from "@/lib/format";
 import { formatPoints, optionLabel, totalPoints, visibleOptions } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
 import type { Question, Test } from "@/lib/storage/types";
+import { MapPrint, OrderPrint, SourcePrint, TimelinePrint } from "@/subjects/history/HistoryPrint";
 import { GivenFindPrint } from "@/subjects/physics/GivenFindPrint";
+import { MatchingPrint } from "./MatchingPrint";
 
 export type PrintVersion = "student" | "key";
 
@@ -109,6 +111,7 @@ export function PrintQuestion({
               {above.map((image) => (
                 <div key={image.id} className="print-image" style={{ width: `${image.widthPercent}%` }}>
                   <QuestionImageView image={image} />
+                  {image.caption && <p className="print-caption">{image.caption}</p>}
                 </div>
               ))}
             </div>
@@ -131,6 +134,7 @@ export function PrintQuestion({
                   // Sizes are a % of the whole question width; inside this column, relative to the widest.
                   <div key={image.id} style={{ width: `${(image.widthPercent / rightWidth) * 100}%` }}>
                     <QuestionImageView image={image} />
+                    {image.caption && <p className="print-caption">{image.caption}</p>}
                   </div>
                 ))}
               </div>
@@ -215,5 +219,20 @@ function QuestionBody({
 
     case "given-find":
       return <GivenFindPrint question={question} answerKey={key} />;
+
+    case "matching":
+      return <MatchingPrint question={question} labelStyle={test.labelStyle} answerKey={key} />;
+
+    case "order":
+      return <OrderPrint question={question} labelStyle={test.labelStyle} answerKey={key} />;
+
+    case "timeline":
+      return <TimelinePrint question={question} answerKey={key} />;
+
+    case "source":
+      return <SourcePrint question={question} labelStyle={test.labelStyle} answerKey={key} />;
+
+    case "map":
+      return <MapPrint question={question} answerKey={key} />;
   }
 }

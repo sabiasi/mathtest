@@ -8,13 +8,19 @@ import { useState, type ClipboardEvent, type DragEvent } from "react";
 import { inputClasses } from "@/components/ui/form";
 import { IconButton } from "@/components/ui/icon-button";
 import { RichTextInput } from "@/features/math/RichTextInput";
+import type { MessageKey } from "@/i18n/dictionaries";
 import { useT } from "@/i18n/language";
 import { newId } from "@/lib/ids";
 import { UnsupportedImageError, addImage } from "@/lib/images/imageStore";
 import { changeQuestionType } from "@/lib/questions";
 import type { Diagram, DiagramKind, LabelStyle, Question, QuestionImage, QuestionType } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
+import { MapEditor } from "@/subjects/history/editors/MapEditor";
+import { OrderEditor } from "@/subjects/history/editors/OrderEditor";
+import { SourceEditor } from "@/subjects/history/editors/SourceEditor";
+import { TimelineEditor } from "@/subjects/history/editors/TimelineEditor";
 import { GivenFindEditor } from "@/subjects/physics/GivenFindEditor";
+import { MatchingEditor } from "./MatchingEditor";
 import { DiagramDialog } from "@/subjects/physics/diagrams/DiagramDialog";
 import { diagramSize } from "@/subjects/physics/diagrams/DiagramView";
 import { newCircuit, newForceDiagram } from "@/subjects/physics/diagrams/normalize";
@@ -25,6 +31,17 @@ import { PointsInput } from "./PointsInput";
 import { ImageStrip, MediaBar } from "./QuestionMedia";
 import { ShortAnswerEditor } from "./ShortAnswerEditor";
 import { TrueFalseEditor } from "./TrueFalseEditor";
+
+/** What the question box suggests writing, for types that need a different hint. */
+const TEXT_PLACEHOLDERS: Partial<Record<QuestionType, MessageKey>> = {
+  "true-false": "questions.statementPlaceholder",
+  "given-find": "questions.problemPlaceholder",
+  matching: "questions.matchingPlaceholder",
+  order: "questions.orderPlaceholder",
+  timeline: "questions.timelinePlaceholder",
+  source: "questions.sourcePlaceholder",
+  map: "questions.mapPlaceholder",
+};
 
 export function QuestionCard({
   question,
@@ -85,6 +102,7 @@ export function QuestionCard({
         diagram,
         widthPercent: diagram.kind === "circuit" ? 45 : 35,
         position: "right",
+        caption: "",
       };
       onPatch((q) => ({ ...q, images: [...q.images, placement] }));
     }
@@ -104,6 +122,7 @@ export function QuestionCard({
           height,
           widthPercent: width > height ? 50 : 35, // a sensible start; easy to resize
           position: "above",
+          caption: "",
         };
         onPatch((q) => ({ ...q, images: [...q.images, placement] }));
       } catch (error) {
@@ -215,13 +234,7 @@ export function QuestionCard({
               value={question.text}
               autoFocus={autoFocus}
               ariaLabel={t("questions.text")}
-              placeholder={t(
-                question.type === "true-false"
-                  ? "questions.statementPlaceholder"
-                  : question.type === "given-find"
-                    ? "questions.problemPlaceholder"
-                    : "questions.textPlaceholder",
-              )}
+              placeholder={t(TEXT_PLACEHOLDERS[question.type] ?? "questions.textPlaceholder")}
               onChange={(text) => onChange({ ...question, text })}
             />
 
@@ -238,6 +251,13 @@ export function QuestionCard({
             {question.type === "short-answer" && <ShortAnswerEditor question={question} onChange={onChange} />}
             {question.type === "open-answer" && <OpenAnswerEditor question={question} onChange={onChange} />}
             {question.type === "given-find" && <GivenFindEditor question={question} onChange={onChange} />}
+            {question.type === "matching" && <MatchingEditor question={question} templates={toolkit.matchingTemplates} onChange={onChange} />}
+            {question.type === "order" && <OrderEditor question={question} onChange={onChange} />}
+            {question.type === "timeline" && <TimelineEditor question={question} onChange={onChange} />}
+            {question.type === "source" && <SourceEditor question={question} labelStyle={labelStyle} onChange={onChange} />}
+            {question.type === "map" && (
+              <MapEditor question={question} onChange={onChange} onPatch={(patch) => onPatch((q) => (q.type === "map" ? patch(q) : q))} />
+            )}
 
             <MediaBar
               grid={question.grid}

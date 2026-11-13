@@ -6,7 +6,15 @@
  * read from storage passes through `normalizeTest`, which fills in safe
  * defaults. Unknown or broken questions are dropped rather than crashing.
  */
-import { DEFAULT_GIVEN_FIND_LINES, DEFAULT_LINES, GRID_LIMITS, MAX_LINES, MAX_OPTIONS, MIN_GIVEN_FIND_LINES } from "@/lib/questions";
+import {
+  DEFAULT_GIVEN_FIND_LINES,
+  DEFAULT_LINES,
+  GRID_LIMITS,
+  LIMITS,
+  MAX_LINES,
+  MAX_OPTIONS,
+  MIN_GIVEN_FIND_LINES,
+} from "@/lib/questions";
 import { normalizeDiagram } from "@/subjects/physics/diagrams/normalize";
 import { normalizeRichText } from "@/lib/richText";
 import { DEFAULT_SUBJECT, isSubjectId, subjectFromText } from "@/subjects/ids";
@@ -30,13 +38,23 @@ const str = (v: unknown, fallback = "") => (typeof v === "string" ? v : fallback
 const num = (v: unknown, fallback: number) =>
   typeof v === "number" && Number.isFinite(v) ? v : fallback;
 
-function normalizeOptions(value: unknown): ChoiceOption[] {
+function normalizeOptions(value: unknown, max = MAX_OPTIONS): ChoiceOption[] {
   if (!Array.isArray(value)) return [];
   return value
     .filter(isObject)
     .filter((o) => typeof o.id === "string")
-    .slice(0, MAX_OPTIONS)
+    .slice(0, max)
     .map((o) => ({ id: o.id as string, text: normalizeRichText(o.text) }));
+}
+
+/** A list of objects with string ids, at most `max`, each repaired by `fix`. */
+function list<T>(value: unknown, max: number, fix: (item: Loose & { id: string }) => T): T[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(isObject)
+    .filter((item): item is Loose & { id: string } => typeof item.id === "string")
+    .slice(0, max)
+    .map(fix);
 }
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
@@ -54,6 +72,7 @@ function normalizeImages(value: unknown): QuestionImage[] {
         height: Math.max(1, num(i.height, 300)),
         widthPercent: clamp(Math.round(num(i.widthPercent, 50)), 10, 100),
         position: i.position === "right" ? "right" : "above",
+        caption: str(i.caption).slice(0, 300),
       };
       if (i.diagram === undefined) return image.imageId ? image : null;
       // A diagram: keep it only if its data makes sense.
@@ -102,6 +121,64 @@ function normalizeQuestion(raw: unknown): Question | null {
     case "open-answer": {
       const lines = Math.min(MAX_LINES, Math.max(0, Math.round(num(raw.lines, DEFAULT_LINES))));
       return { ...base, type: "open-answer", lines };
+    }
+    case "matching":
+      return {
+        ...base,
+        type: "matching",
+        leftTitle: str(raw.leftTitle).slice(0, 100),
+        rightTitle: str(raw.rightTitle).slice(0, 100),
+        pairs: list(raw.pairs, LIMITS.matchingPairs.max, (p) => ({
+          id: p.id,
+          left: normalizeRichText(p.left),
+          right: normalizeRichText(p.right),
+        })),
+        extras: normalizeOptions(raw.extras, LIMITS.matchingExtras),
+      };
+    case "order":
+      return { ...base, type: "order", items: normalizeOptions(raw.items, LIMITS.orderItems.max) };
+    case "timeline":
+      return {
+        ...base,
+        type: "timeline",
+        events: list(raw.events, LIMITS.timelineEvents.max, (e) => ({
+          id: e.id,
+          date: normalizeRichText(e.date),
+          label: normalizeRichText(e.label),
+          hide: e.hide === "date" || e.hide === "none" ? e.hide : "label",
+        })),
+      };
+    case "source":
+      return {
+        ...base,
+        type: "source",
+        source: normalizeRichText(raw.source),
+        sourceCaption: normalizeRichText(raw.sourceCaption),
+        parts: list(raw.parts, LIMITS.sourceParts.max, (p) => ({
+          id: p.id,
+          text: normalizeRichText(p.text),
+          lines: clamp(Math.round(num(p.lines, 3)), 0, MAX_LINES),
+          answer: normalizeRichText(p.answer),
+        })),
+      };
+    case "map": {
+      const map =
+        isObject(raw.map) && typeof raw.map.imageId === "string" && raw.map.imageId
+          ? { imageId: raw.map.imageId, width: Math.max(1, num(raw.map.width, 800)), height: Math.max(1, num(raw.map.height, 600)) }
+          : null;
+      return {
+        ...base,
+        type: "map",
+        map,
+        mapWidth: clamp(Math.round(num(raw.mapWidth, 80)), LIMITS.mapWidth.min, LIMITS.mapWidth.max),
+        markers: list(raw.markers, LIMITS.mapMarkers, (m) => ({
+          id: m.id,
+          x: clamp(num(m.x, 50), 0, 100),
+          y: clamp(num(m.y, 50), 0, 100),
+          answer: str(m.answer).slice(0, 100),
+        })),
+        wordBank: raw.wordBank === true,
+      };
     }
     case "given-find": {
       const lines = clamp(Math.round(num(raw.lines, DEFAULT_GIVEN_FIND_LINES)), MIN_GIVEN_FIND_LINES, MAX_LINES);

@@ -23,11 +23,15 @@ export function outputType(inputType: string): "image/png" | "image/jpeg" {
 
 export const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/svg+xml", "image/webp", "image/gif"];
 
-/** Ids of every stored picture used by any test (diagrams have none). */
+/** Ids of every stored picture used by any test: question pictures and maps (diagrams have none). */
 export function usedImageIds(tests: Test[]): Set<string> {
   const used = new Set<string>();
-  for (const test of tests)
-    for (const q of test.questions) for (const image of q.images) if (image.imageId && !image.diagram) used.add(image.imageId);
+  for (const test of tests) {
+    for (const q of test.questions) {
+      for (const image of q.images) if (image.imageId && !image.diagram) used.add(image.imageId);
+      if (q.type === "map" && q.map) used.add(q.map.imageId);
+    }
+  }
   return used;
 }
 

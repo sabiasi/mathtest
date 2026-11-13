@@ -17,6 +17,8 @@ import { correctOptionLabel } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
 import type { Question, Test } from "@/lib/storage/types";
 import type { Variant } from "@/lib/variants";
+import { orderAnswer } from "@/subjects/history/HistoryPrint";
+import { matchingAnswers } from "./MatchingPrint";
 import { CONTENT_HEIGHT, CONTENT_WIDTH, PAGE, mmToPx } from "./usePrintLayout";
 
 const TITLE_GAP = 4; // mm between the title and the table
@@ -31,6 +33,14 @@ function Cell({ question, labelStyle }: { question: Question; labelStyle: Test["
     case "short-answer":
       return isRichTextEmpty(question.answer) ? <>—</> : <RichTextView value={question.answer} />;
     case "open-answer":
+      return <span className="is-open">{t("variants.open")}</span>;
+    case "matching":
+      return <>{matchingAnswers(question, labelStyle).map((letter, i) => `${i + 1}${letter}`).join(" ")}</>;
+    case "order":
+      return <>{orderAnswer(question, labelStyle).join(" ")}</>;
+    case "timeline":
+    case "source":
+    case "map":
       return <span className="is-open">{t("variants.open")}</span>;
     case "given-find":
       return isRichTextEmpty(question.answer) ? <span className="is-open">{t("variants.open")}</span> : <RichTextView value={question.answer} />;

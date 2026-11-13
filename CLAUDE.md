@@ -26,7 +26,8 @@ Visitors can try everything without an account (guest mode).
    integrals, limits, matrices, Greek letters… Teachers click a button and
    type into the slots. No LaTeX knowledge needed. Physics: the math toolbar
    plus units, constants, formulas, Given/Find/Solution problems, circuit and
-   force diagrams. Other subjects: placeholders for now, built one by one.
+   force diagrams. History: date/century tools, chronology, timelines,
+   sources, maps. Other subjects: placeholders for now, built one by one.
 3. **Question types**: multiple choice (A/B/C/D, correct one marked),
    true/false, short answer, open/long answer (blank lines for working),
    fill-in-the-blank, matching.
@@ -96,9 +97,19 @@ Visitors can try everything without an account (guest mode).
   diagrams (box/ball; nothing/floor/incline; presets mg, N, F_ხ, F, T that
   turn with the surface; vector arrows over letters). `\text{}` in formulas
   now uses Noto Sans Georgian (`--text-font-family`).
-- [ ] **Next**: remaining question types: fill-in-the-blank and matching
-  (common to every subject: add them to `QUESTION_TYPES`). Then each
-  subject's own tools, one by one.
+- [x] **History toolkit + matching**: `matching` is a common type (every
+  subject): pairs + extra items, right column shuffled & lettered, answer
+  boxes 1–[ ]; toolkits may add `matchingTemplates` (history: Person ↔ Date…).
+  History types: `order` (events stored in the right order, shown shuffled
+  and lettered, letters into boxes), `timeline` (evenly spaced, per event
+  hide nothing / date / event), `source` (quote + caption + parts ა) ბ) with
+  lines and key answers), `map` (uploaded map + numbered markers in %,
+  optional word bank, numbered answer lines). Toolbar "Dates and centuries":
+  TEXT buttons (Georgian ძვ. წ., ახ. წ., ს.… / English BC, AD, c.…, marks
+  – „“ … […]) + the century tool (12 or 1121 → XII / XII ს.). Captions on
+  every picture (all subjects).
+- [ ] **Next**: fill-in-the-blank (common to every subject: add it to
+  `QUESTION_TYPES`). Then Chemistry and Georgian toolkits.
 - [ ] Later: backup import/export, templates, own email service (SMTP) and
   hosting.
 
@@ -116,7 +127,8 @@ Visitors can try everything without an account (guest mode).
 | Icons | lucide-react |
 | Rich text | TipTap v3 (ProseMirror) with a custom inline `math` node (`src/features/math/MathNode.ts`) |
 | Math input | MathLive `<math-field>` inside that node; our own toolbar (MathLive's keyboard and menu are hidden). The formula node is shared by all subjects; which toolbar shows comes from the subject toolkit |
-| Subjects | `src/subjects/`: `ids.ts` (SUBJECT_IDS, subjectFromText; plain data, no React), `types.ts` (SubjectToolkit: Icon, colours, status ready/placeholder, formulas, toolbar tabs, questionTypes, print.className), one folder per subject (`index.ts` + `print.css`, imported in globals.css), `registry.ts` (getToolkit, SUBJECTS; steps for adding a subject are at its top). A toolkit also lists `diagrams` (drawing tools offered under each question). Toolbar tabs may have `styles` (switchable button sets, remembered in localStorage, e.g. units Latin/Georgian); a button may start a `group` (small heading). Colours: `--subject-<id>` tokens. Profile `default_subject` stores a subject id |
+| Subjects | `src/subjects/`: `ids.ts` (SUBJECT_IDS, subjectFromText; plain data, no React), `types.ts` (SubjectToolkit: Icon, colours, status ready/placeholder, formulas, toolbar tabs, questionTypes, print.className), one folder per subject (`index.ts` + `print.css`, imported in globals.css), `registry.ts` (getToolkit, SUBJECTS; steps for adding a subject are at its top). A toolkit also lists `diagrams` (drawing tools offered under each question) and optional `matchingTemplates`. Toolbar tabs may have `styles` (switchable button sets, remembered in localStorage, e.g. units Latin/Georgian), a `Widget` (React tool shown first, gets `insertText`); a button may start a `group` (small heading) and may insert plain `text` (with `caretBack`) instead of LaTeX. The toolbar shows when a toolkit has tabs or formulas; the "Σ Formula" button only when `formulas`. `insertText` adds a space automatically after a word / "." / closing quote |
+| Shuffled items | Order and matching items are shuffled in EVERY variant, A included: `buildVariants` puts `shownOrder` on the printed copies (seed = test seed ^ question id for A), never equal to the answer order. Print code reads `shownOrder`; answers (`orderAnswer`, `matchingAnswers`) are computed from it, so key + answer table always match the paper Colours: `--subject-<id>` tokens. Profile `default_subject` stores a subject id |
 | Math rendering | MathLive `convertLatexToMarkup` (same engine as input). Fonts/styles: `mathlive/fonts.css` + `mathlive/static.css` imported in `layout.tsx`, bundled and self-hosted; `MathfieldElement.fontsDirectory = null` |
 | Accounts | Supabase Auth via `@supabase/ssr` (sign-in kept in cookies). `src/proxy.ts` refreshes the sign-in and redirects (protected: only /settings; /tests, /editor, /print are open to guests). `/auth/callback` swaps email/Google links for a session. Only the publishable key (`NEXT_PUBLIC_SUPABASE_*` in `.env.local`), never a secret key |
 | Guests | Signed out (or Supabase not configured) = guest: `AuthProvider` starts the repository with `localTestsBackend()` (localStorage key `mathtest:tests:v1`) and `setImageUser(null)` (pictures in IndexedDB store `images`). On sign-in: `stopSync()` → cloud → `moveGuestTestsIntoAccount()` (lib/onboarding.ts): upload pictures, `importTests` (newer local version of an existing id → added as a copy), then after `waitUntilSaved` remove the browser copies. `useAuth().guest`, `useStorageKind()` ("cloud" / "device") |
@@ -151,6 +163,11 @@ src/
                         is active), RichTextView (static), mathlive.ts — shared by all subjects
   subjects/             Subject toolkits: ids, types, registry, <id>/index.ts + print.css,
                         math/toolbar.ts (the 7 math tabs)
+  subjects/history/     toolbar.ts (dates tab), CenturyTool, HistoryPrint (order, timeline,
+                        source, map + orderAnswer), editors/ (Order, Timeline, Source, Map,
+                        RowControls ↑↓✕)
+  features/editor/questions/MatchingEditor + features/print/MatchingPrint (common matching)
+  lib/roman.ts          toRoman, centuryOf
   subjects/physics/     toolbar.ts (math + physics tabs), GivenFindEditor/GivenFindPrint,
                         diagrams/ (normalize, geometry, DiagramView, CircuitEditor,
                         ForceEditor, DiagramDialog)
@@ -303,11 +320,19 @@ src/
   only the account parts (sign-in, moving guest tests) need a Supabase test
   account.
 - Pictures vs diagrams: anything that reads `image.imageId` must skip
-  diagrams (`usedImageIds` does). A diagram with broken data is dropped by
+  diagrams (`usedImageIds` does). Map questions keep their picture in
+  `question.map.imageId`; `usedImageIds` counts it — without that, picture
+  clean-up would delete maps. A diagram with broken data is dropped by
   `normalizeTest`.
 - SVG click targets: use a `<rect>`, not a thick transparent `<line>` — a
   straight line's box has zero width, so browser tests (and some screen
   readers) treat it as invisible.
+- iCloud syncs the Desktop folder: it can create "file 3.ts" copies (seen in
+  `.next/` and `.git/`). If `tsc` complains about duplicates in `.next/types`,
+  delete those " 3" copies (or `.next` when no dev server runs). Better: keep
+  the project outside iCloud-synced folders.
+- `.answer-table` and print blocks also exist as invisible measuring copies:
+  browser tests select `.sheet …`.
 - This project has no Prettier: don't run `npx prettier` (it downloads one
   and re-wraps whole files at 80 columns). Match the existing ~140-column style.
 - `cleanUpImages(tests)` must only run once tests are loaded (`tests !== null`):

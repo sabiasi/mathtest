@@ -9,6 +9,7 @@ import { GRID_CELL_MM, GridArea } from "@/components/GridArea";
 import { QuestionImageView } from "@/components/QuestionImageView";
 import { buttonVariants } from "@/components/ui/button";
 import { SegmentedControl } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { useT } from "@/i18n/language";
 import { ACCEPTED_TYPES } from "@/lib/images/imageMath";
 import { DEFAULT_GRID, GRID_LIMITS } from "@/lib/questions";
@@ -128,6 +129,15 @@ function EditableImage({
         )}
       </div>
       <figcaption className="mt-2 space-y-2 text-sm text-muted-foreground">
+        <Input
+          className="h-8 text-sm"
+          value={image.caption}
+          maxLength={300}
+          placeholder={t("media.captionPlaceholder")}
+          aria-label={t("media.caption")}
+          onChange={(e) => onChange({ caption: e.target.value })}
+          data-image-caption=""
+        />
         <SegmentedControl
           label={t("media.position")}
           value={image.position}

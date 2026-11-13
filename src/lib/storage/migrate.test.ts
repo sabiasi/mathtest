@@ -143,7 +143,7 @@ describe("normalizeTest (images and grids)", () => {
       ],
     });
     expect(test?.questions[0].images).toEqual([
-      { id: "p1", imageId: "img1", width: 800, height: 600, widthPercent: 100, position: "above" },
+      { id: "p1", imageId: "img1", width: 800, height: 600, widthPercent: 100, position: "above", caption: "" },
     ]);
     expect(test?.questions[0].grid).toEqual({ kind: "coordinates", cols: 34, rows: 2 });
   });

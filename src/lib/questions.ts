@@ -31,7 +31,19 @@ export const QUESTION_TYPES: readonly QuestionType[] = [
   "true-false",
   "short-answer",
   "open-answer",
+  "matching",
 ];
+
+/** How many items the list-like questions may have. */
+export const LIMITS = {
+  matchingPairs: { min: 2, max: 8 },
+  matchingExtras: 4,
+  orderItems: { min: 2, max: 8 },
+  timelineEvents: { min: 2, max: 8 },
+  sourceParts: { min: 1, max: 6 },
+  mapMarkers: 15,
+  mapWidth: { min: 40, max: 100 },
+};
 
 function emptyOptions(count: number): ChoiceOption[] {
   return Array.from({ length: count }, () => ({ id: newId(), text: [] }));
@@ -61,6 +73,36 @@ export function createQuestion(
       return { ...base, type, answer: [] };
     case "open-answer":
       return { ...base, type, points: keep.points ?? 3, lines: DEFAULT_LINES };
+    case "matching":
+      return {
+        ...base,
+        type,
+        points: keep.points ?? 3,
+        leftTitle: "",
+        rightTitle: "",
+        pairs: Array.from({ length: 3 }, () => ({ id: newId(), left: [], right: [] })),
+        extras: [],
+      };
+    case "order":
+      return { ...base, type, points: keep.points ?? 2, items: emptyOptions(4) };
+    case "timeline":
+      return {
+        ...base,
+        type,
+        points: keep.points ?? 2,
+        events: Array.from({ length: 4 }, () => ({ id: newId(), date: [], label: [], hide: "label" as const })),
+      };
+    case "source":
+      return {
+        ...base,
+        type,
+        points: keep.points ?? 4,
+        source: [],
+        sourceCaption: [],
+        parts: [{ id: newId(), text: [], lines: 3, answer: [] }],
+      };
+    case "map":
+      return { ...base, type, points: keep.points ?? 3, map: null, mapWidth: 80, markers: [], wordBank: false };
     case "given-find":
       return { ...base, type, points: keep.points ?? 3, lines: DEFAULT_GIVEN_FIND_LINES, given: [], find: [], solution: [], answer: [] };
   }
@@ -102,9 +144,10 @@ export function totalPoints(questions: Question[]): number {
   return total;
 }
 
+// Enough letters for the longest lists (matching: 8 pairs + 4 extras).
 const LABELS: Record<LabelStyle, string> = {
-  latin: "ABCDEF",
-  georgian: "აბგდევ",
+  latin: "ABCDEFGHIJKLMNOP",
+  georgian: "აბგდევზთიკლმნოპრ",
 };
 
 /**

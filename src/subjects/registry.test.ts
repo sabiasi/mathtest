@@ -57,8 +57,28 @@ describe("subject toolkits", () => {
     }
   });
 
-  it("subjects without formulas have no formula toolbar", () => {
-    for (const toolkit of SUBJECTS) if (!toolkit.formulas) expect(toolkit.toolbar).toEqual([]);
+  it("subjects without formulas only have text buttons (no formula buttons)", () => {
+    for (const toolkit of SUBJECTS) {
+      if (toolkit.formulas) continue;
+      for (const tab of toolkit.toolbar) {
+        for (const buttons of [tab.buttons, ...(tab.styles?.options.map((o) => o.buttons) ?? [])]) {
+          for (const button of buttons) expect(button.text).toBeDefined();
+        }
+      }
+    }
+  });
+
+  it("history offers its own question types, matching templates and date tools", () => {
+    const history = getToolkit("history");
+    for (const type of ["matching", "order", "timeline", "source", "map"]) expect(history.questionTypes).toContain(type);
+    expect(history.matchingTemplates?.length).toBeGreaterThan(0);
+    const dates = history.toolbar[0];
+    expect(dates.Widget).toBeDefined();
+    expect(dates.styles?.options.map((o) => o.id)).toEqual(["georgian", "english"]);
+    expect(dates.styles?.options[0].buttons.some((b) => b.text === "ძვ. წ.")).toBe(true);
+    // Matching is common to every subject; history's own types are not.
+    expect(getToolkit("math").questionTypes).toContain("matching");
+    expect(getToolkit("math").questionTypes).not.toContain("timeline");
   });
 });
 

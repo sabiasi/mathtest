@@ -32,6 +32,8 @@ export interface QuestionImage {
   widthPercent: number;
   /** Above the question text, or to the right of it. */
   position: "above" | "right";
+  /** Printed under the picture, e.g. "სურ. 1. ბაგრატის ტაძარი" ("" = none). */
+  caption: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -168,6 +170,96 @@ export interface GivenFindQuestion extends QuestionBase {
 }
 
 /**
+ * Matching (every subject): pairs that belong together, e.g. a person and
+ * a date. The left column is numbered 1, 2, 3…; the right column is lettered
+ * and printed in a shuffled order, plus optional extra (wrong) items.
+ * Students write the letters into answer boxes: 1–[ ] 2–[ ] 3–[ ].
+ */
+export interface MatchingPair {
+  id: string;
+  left: RichText;
+  right: RichText;
+}
+
+export interface MatchingQuestion extends QuestionBase {
+  type: "matching";
+  /** Optional headings over the columns, e.g. "პიროვნება" and "თარიღი". */
+  leftTitle: string;
+  rightTitle: string;
+  pairs: MatchingPair[];
+  /** Extra right-column items that match nothing (makes guessing harder). */
+  extras: ChoiceOption[];
+  /** Printed copies only (lib/variants.ts): the shuffled order of the right column. */
+  shownOrder?: string[];
+}
+
+/**
+ * History: put events in chronological order. `items` are stored in the
+ * CORRECT order; the paper shows them shuffled and lettered, with a row of
+ * boxes for the letters in the right order.
+ */
+export interface OrderQuestion extends QuestionBase {
+  type: "order";
+  items: ChoiceOption[];
+  /** Printed copies only (lib/variants.ts): the shuffled order of the items. */
+  shownOrder?: string[];
+}
+
+/** One point on a timeline. `hide` = what students must fill in. */
+export interface TimelineEvent {
+  id: string;
+  date: RichText;
+  label: RichText;
+  hide: "none" | "date" | "label";
+}
+
+/** History: a timeline with events/dates; some are left blank for students. */
+export interface TimelineQuestion extends QuestionBase {
+  type: "timeline";
+  /** Left to right, evenly spaced. */
+  events: TimelineEvent[];
+}
+
+/** One question about the source: ა) ბ) გ)… */
+export interface SourcePart {
+  id: string;
+  text: RichText;
+  lines: number;
+  /** The expected answer, only on the answer key. */
+  answer: RichText;
+}
+
+/** History: a historical document or quote, its source, and questions about it. */
+export interface SourceQuestion extends QuestionBase {
+  type: "source";
+  source: RichText;
+  /** Where it's from, e.g. „ქართლის ცხოვრება“. Printed under the quote. */
+  sourceCaption: RichText;
+  parts: SourcePart[];
+}
+
+/** A numbered marker on a map, in % of the map's width / height. */
+export interface MapMarker {
+  id: string;
+  x: number;
+  y: number;
+  /** The place, for the answer key (and the word bank). */
+  answer: string;
+}
+
+/** History: a map picture with numbered markers; students name the places. */
+export interface MapQuestion extends QuestionBase {
+  type: "map";
+  /** The uploaded map (a stored picture), or null until one is added. */
+  map: { imageId: string; width: number; height: number } | null;
+  /** How wide the map is printed, in % of the question width. */
+  mapWidth: number;
+  markers: MapMarker[];
+  /** Also print the answers as a list to choose from (alphabetical). */
+  wordBank: boolean;
+}
+
+/**
  * A question is exactly ONE of these. The `type` field tells which one —
  * TypeScript calls this a "discriminated union".
  */
@@ -176,7 +268,12 @@ export type Question =
   | TrueFalseQuestion
   | ShortAnswerQuestion
   | OpenAnswerQuestion
-  | GivenFindQuestion;
+  | GivenFindQuestion
+  | MatchingQuestion
+  | OrderQuestion
+  | TimelineQuestion
+  | SourceQuestion
+  | MapQuestion;
 
 export type QuestionType = Question["type"];
 
