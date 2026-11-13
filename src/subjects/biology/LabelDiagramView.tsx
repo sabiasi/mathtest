@@ -13,6 +13,7 @@ import { PICTURE_BOX, areaAspect, labelLetters, pictureSize, printedBank } from 
 import { optionLabel } from "@/lib/questions";
 import type { DiagramLabel, LabelDiagramQuestion, LabelStyle } from "@/lib/storage/types";
 import { drawingUrl } from "./drawings";
+import "./LabelDiagramView.css";
 
 /** The SVG's coordinate system: 1000 units wide, as tall as the area's shape. */
 const UNITS = 1000;
