@@ -2,6 +2,7 @@
 
 import {
   ArrowLeft,
+  CloudAlert,
   CloudCheck,
   ListChecks,
   ListPlus,
@@ -23,7 +24,9 @@ import { MathToolbar } from "@/features/math/MathToolbar";
 import { useT } from "@/i18n/language";
 import { createQuestion, duplicateQuestion, formatPoints, totalPoints } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
+import { useSaveState } from "@/lib/storage/useTests";
 import type { Question, QuestionType, Test } from "@/lib/storage/types";
+import { cn } from "@/lib/utils";
 import { QuestionList } from "./questions/QuestionList";
 import { TestHeaderForm } from "./TestHeaderForm";
 import { useAutosave } from "./useAutosave";
@@ -64,6 +67,19 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
 
   const markSaved = useCallback(() => setDirty(false), []);
   useAutosave(test, dirty, markSaved);
+  // "dirty" = typed but not handed to the repository yet; cloudState = on its way to the cloud.
+  const cloudState = useSaveState(test.id);
+  const saveState = cloudState === "error" ? "error" : dirty || cloudState === "saving" ? "saving" : "saved";
+
+  // Tell the teacher once when the cloud can't be reached (the indicator keeps showing it).
+  const warned = useRef(false);
+  useEffect(() => {
+    if (saveState === "error" && !warned.current) {
+      warned.current = true;
+      toast.error(t("toast.saveError"));
+    }
+    if (saveState === "saved") warned.current = false;
+  }, [saveState, t]);
 
   function update(changes: Partial<Test>) {
     setTest((prev) => ({ ...prev, ...changes }));
@@ -126,7 +142,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
             <Link
               href="/tests"
               // Leaving saves right away (see useAutosave); say so.
-              onClick={() => toast.success(t("toast.saved"))}
+              onClick={() => saveState !== "error" && toast.success(t("toast.saved"))}
               className="inline-flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               <ArrowLeft className="size-4" aria-hidden="true" />
@@ -139,8 +155,17 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                 <span className="max-sm:sr-only">{t("editor.printPreview")}</span>
               </Link>
             </div>
-            <span className="flex items-center gap-1.5 text-sm text-muted-foreground" aria-live="polite">
-              {dirty ? (
+            <span
+              className={cn("flex items-center gap-1.5 text-sm", saveState === "error" ? "text-destructive-text" : "text-muted-foreground")}
+              aria-live="polite"
+              data-save-state={saveState}
+            >
+              {saveState === "error" ? (
+                <>
+                  <CloudAlert className="size-4" aria-hidden="true" />
+                  <span className="max-sm:sr-only">{t("editor.saveError")}</span>
+                </>
+              ) : saveState === "saving" ? (
                 <>
                   <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
                   <span className="max-sm:sr-only">{t("editor.saving")}</span>

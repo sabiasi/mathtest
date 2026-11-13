@@ -1,7 +1,6 @@
-import { LandingGate } from "@/features/landing/LandingGate";
+import { LandingView } from "@/features/landing/LandingView";
 
-// "/": the landing page for first-time visitors; returning teachers are sent
-// straight to "My tests" (/tests). See LandingGate.
+// "/": the public landing page. Signed-in teachers are sent to /tests by proxy.ts.
 export default function HomePage() {
-  return <LandingGate />;
+  return <LandingView />;
 }

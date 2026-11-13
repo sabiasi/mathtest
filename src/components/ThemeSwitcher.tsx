@@ -12,7 +12,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from "@/features/auth/AuthProvider";
 import { useT } from "@/i18n/language";
+import type { ThemeChoice } from "@/lib/auth/profile";
 
 const THEMES = [
   { value: "light", Icon: Sun },
@@ -24,8 +26,10 @@ const THEMES = [
 export function ThemeSwitcher() {
   const t = useT();
   const { theme, setTheme } = useTheme();
+  const { status, updateProfile } = useAuth();
 
   function change(next: string) {
+    if (status === "signed-in") void updateProfile({ theme: next as ThemeChoice });
     const root = document.documentElement;
     const apply = () => {
       // Set the colours right now (next-themes would do it a moment later),

@@ -1,3 +1,4 @@
+import { SetupGate } from "@/components/SetupGate";
 import { Suspense } from "react";
 import { EditorView } from "@/features/editor/EditorView";
 import { EditorSkeleton } from "@/features/editor/TestEditor";
@@ -10,7 +11,9 @@ import { dictionaries } from "@/i18n/dictionaries";
 export default function EditorPage() {
   return (
     <Suspense fallback={<EditorSkeleton label={dictionaries.ka["editor.loading"]} />}>
-      <EditorView />
+      <SetupGate>
+        <EditorView />
+      </SetupGate>
     </Suspense>
   );
 }

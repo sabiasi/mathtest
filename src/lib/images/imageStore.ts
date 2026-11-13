@@ -1,23 +1,32 @@
 "use client";
 
 /**
- * Where pictures are stored: the browser's IndexedDB.
+ * Where pictures are stored.
  *
- * localStorage (where tests live) only holds ~5 MB in total — a few photos
- * would fill it. IndexedDB is the browser's built-in database for bigger
- * things and usually allows hundreds of MB. Tests only keep the picture's id.
+ * - In the cloud: Supabase Storage, bucket "images", in a folder named after
+ *   the teacher's user id:  images/<user id>/<picture id>. Only that teacher
+ *   can read or change their folder (rules in supabase/schema.sql).
+ * - In the browser: a copy in IndexedDB (the browser's built-in database for
+ *   bigger things), so pictures show instantly and uploads can be retried if
+ *   the internet drops. Store "cache", key "<user id>/<picture id>".
+ * - Store "images" holds pictures from before accounts existed. We only read
+ *   it, to import old tests.
  *
- * IndexedDB's own API is old-fashioned (events instead of promises), so the
- * small helpers below wrap it in promises, which are easier to use.
+ * Tests only keep the picture's id. IndexedDB's own API is old-fashioned
+ * (events instead of promises), so the helpers below wrap it in promises.
  */
 import { newId } from "@/lib/ids";
 import type { Test } from "@/lib/storage/types";
-import { ACCEPTED_TYPES, outputType, targetSize, unusedImageIds } from "./imageMath";
+import { IMAGE_BUCKET } from "@/lib/supabase/config";
+import { getSupabase } from "@/lib/supabase/client";
+import { ACCEPTED_TYPES, outputType, targetSize, unusedImageIds, usedImageIds } from "./imageMath";
 
 const DB_NAME = "mathtest";
-const STORE = "images";
+const LEGACY_STORE = "images";
+const CACHE_STORE = "cache";
 
-type StoredImage = { id: string; blob: Blob; width: number; height: number; createdAt: number };
+type LegacyImage = { id: string; blob: Blob; width: number; height: number; createdAt: number };
+type CachedImage = { key: string; userId: string; id: string; blob: Blob; uploaded: boolean; createdAt: number };
 
 declare global {
   interface Window {
@@ -26,27 +35,96 @@ declare global {
   }
 }
 
+// ---------------------------------------------------------------------------
+// IndexedDB helpers
+// ---------------------------------------------------------------------------
+
 let dbPromise: Promise<IDBDatabase> | null = null;
 
 function openDb(): Promise<IDBDatabase> {
   dbPromise ??= new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
-    request.onupgradeneeded = () => request.result.createObjectStore(STORE, { keyPath: "id" });
+    // Version 2 added the "cache" store (version 1 only had "images").
+    const request = indexedDB.open(DB_NAME, 2);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(LEGACY_STORE)) db.createObjectStore(LEGACY_STORE, { keyPath: "id" });
+      if (!db.objectStoreNames.contains(CACHE_STORE)) db.createObjectStore(CACHE_STORE, { keyPath: "key" });
+    };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
   return dbPromise;
 }
 
-/** Runs one request against the store and returns its result as a promise. */
-async function run<T>(mode: IDBTransactionMode, action: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
+/** Runs one request against a store and returns its result as a promise. */
+async function run<T>(storeName: string, mode: IDBTransactionMode, action: (store: IDBObjectStore) => IDBRequest<T>): Promise<T> {
   const db = await openDb();
   return new Promise((resolve, reject) => {
-    const request = action(db.transaction(STORE, mode).objectStore(STORE));
+    const request = action(db.transaction(storeName, mode).objectStore(storeName));
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
 }
+
+const cacheKey = (userId: string, id: string) => `${userId}/${id}`;
+
+// ---------------------------------------------------------------------------
+// Who is signed in (set by the sign-in code)
+// ---------------------------------------------------------------------------
+
+let currentUserId: string | null = null;
+
+/** Called on sign-in (with the user id) and sign-out (null). */
+export function setImageUser(userId: string | null): void {
+  currentUserId = userId;
+  urlCache.clear();
+  if (userId) void retryUploads(userId);
+}
+
+function requireUser(): string {
+  if (!currentUserId) throw new Error("not signed in");
+  return currentUserId;
+}
+
+// ---------------------------------------------------------------------------
+// Uploading
+// ---------------------------------------------------------------------------
+
+async function upload(userId: string, id: string, blob: Blob): Promise<void> {
+  const { error } = await getSupabase()
+    .storage.from(IMAGE_BUCKET)
+    .upload(`${userId}/${id}`, blob, { contentType: blob.type, upsert: true, cacheControl: "31536000" });
+  if (error) throw error;
+}
+
+/** Uploads pictures that couldn't be sent earlier (e.g. no internet then). */
+async function retryUploads(userId: string): Promise<void> {
+  try {
+    const all = await run<CachedImage[]>(CACHE_STORE, "readonly", (store) => store.getAll());
+    for (const image of all.filter((i) => i.userId === userId && !i.uploaded)) {
+      await upload(userId, image.id, image.blob);
+      await run(CACHE_STORE, "readwrite", (store) => store.put({ ...image, uploaded: true }));
+    }
+  } catch {
+    // Still offline — the next sign-in or page load tries again.
+  }
+}
+
+/** Uploads a picture now; if that fails, keeps it marked "not uploaded" and retries in the background. */
+async function storeAndUpload(userId: string, id: string, blob: Blob): Promise<void> {
+  const entry: CachedImage = { key: cacheKey(userId, id), userId, id, blob, uploaded: false, createdAt: Date.now() };
+  await run(CACHE_STORE, "readwrite", (store) => store.put(entry)).catch(() => undefined);
+  try {
+    await upload(userId, id, blob);
+    await run(CACHE_STORE, "readwrite", (store) => store.put({ ...entry, uploaded: true })).catch(() => undefined);
+  } catch {
+    setTimeout(() => void retryUploads(userId), 10_000);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Adding a picture
+// ---------------------------------------------------------------------------
 
 /** Loads a picture into an <img> to learn its size (works for SVG too). */
 function measure(blob: Blob): Promise<{ width: number; height: number }> {
@@ -73,6 +151,7 @@ export class UnsupportedImageError extends Error {}
  * because they stay sharp at any size.
  */
 export async function addImage(file: Blob): Promise<{ imageId: string; width: number; height: number }> {
+  const userId = requireUser();
   if (!ACCEPTED_TYPES.includes(file.type)) throw new UnsupportedImageError(file.type);
 
   let blob: Blob = file;
@@ -99,8 +178,27 @@ export async function addImage(file: Blob): Promise<{ imageId: string; width: nu
   }
 
   const id = newId();
-  await run("readwrite", (store) => store.put({ id, blob, width, height, createdAt: Date.now() } satisfies StoredImage));
+  await storeAndUpload(userId, id, blob);
   return { imageId: id, width, height };
+}
+
+// ---------------------------------------------------------------------------
+// Showing a picture
+// ---------------------------------------------------------------------------
+
+/** The picture's data: from the browser copy, or downloaded from the cloud (and then kept). */
+async function getBlob(id: string): Promise<Blob | null> {
+  const userId = currentUserId;
+  if (!userId) return null;
+  const cached = await run<CachedImage | undefined>(CACHE_STORE, "readonly", (store) => store.get(cacheKey(userId, id))).catch(
+    () => undefined,
+  );
+  if (cached) return cached.blob;
+  const { data, error } = await getSupabase().storage.from(IMAGE_BUCKET).download(`${userId}/${id}`);
+  if (error || !data) return null;
+  const entry: CachedImage = { key: cacheKey(userId, id), userId, id, blob: data, uploaded: true, createdAt: Date.now() };
+  await run(CACHE_STORE, "readwrite", (store) => store.put(entry)).catch(() => undefined);
+  return data;
 }
 
 // Object URLs ("blob:…") let an <img> show a stored picture. Make each once.
@@ -111,9 +209,11 @@ export function getImageUrl(imageId: string): Promise<string | null> {
   if (injected) return Promise.resolve(injected);
   let url = urlCache.get(imageId);
   if (!url) {
-    url = run<StoredImage | undefined>("readonly", (store) => store.get(imageId))
-      .then((stored) => (stored ? URL.createObjectURL(stored.blob) : null))
+    url = getBlob(imageId)
+      .then((blob) => (blob ? URL.createObjectURL(blob) : null))
       .catch(() => null);
+    // Don't remember "not found" — it may be uploaded from another computer soon.
+    url.then((value) => value === null && urlCache.delete(imageId));
     urlCache.set(imageId, url);
   }
   return url;
@@ -130,26 +230,73 @@ function toDataUrl(blob: Blob): Promise<string> {
 
 /** The test's pictures as text ("data URLs"), to send to the PDF server. */
 export async function imagesForTest(test: Test): Promise<Record<string, string>> {
-  const ids = new Set(test.questions.flatMap((q) => q.images.map((i) => i.imageId)));
   const result: Record<string, string> = {};
-  for (const id of ids) {
-    const stored = await run<StoredImage | undefined>("readonly", (store) => store.get(id));
-    if (stored) result[id] = await toDataUrl(stored.blob);
+  for (const id of usedImageIds([test])) {
+    const blob = await getBlob(id);
+    if (blob) result[id] = await toDataUrl(blob);
   }
   return result;
 }
 
-/** Deletes pictures no test uses any more (e.g. after deleting a test). */
+// ---------------------------------------------------------------------------
+// Old pictures (before accounts) → the cloud
+// ---------------------------------------------------------------------------
+
+/** Uploads the pictures used by `tests` from the old browser store to the teacher's cloud folder. */
+export async function importLocalImages(tests: Test[]): Promise<void> {
+  const userId = requireUser();
+  for (const id of usedImageIds(tests)) {
+    const old = await run<LegacyImage | undefined>(LEGACY_STORE, "readonly", (store) => store.get(id)).catch(() => undefined);
+    if (old) await storeAndUpload(userId, id, old.blob);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Tidying up
+// ---------------------------------------------------------------------------
+
+let lastCleanUp = 0;
+
+/**
+ * Deletes the teacher's pictures that no test uses any more (e.g. after
+ * deleting a test), in the cloud and in the browser copy. Pictures younger
+ * than 10 minutes are kept (Undo, or a test that's still being saved).
+ * Runs at most every 10 minutes.
+ */
 export async function cleanUpImages(tests: Test[]): Promise<number> {
+  const userId = currentUserId;
+  if (!userId || Date.now() - lastCleanUp < 10 * 60 * 1000) return 0;
+  lastCleanUp = Date.now();
   try {
-    const stored = await run<StoredImage[]>("readonly", (store) => store.getAll());
+    const { data, error } = await getSupabase().storage.from(IMAGE_BUCKET).list(userId, { limit: 1000 });
+    if (error || !data) return 0;
+    const stored = data.map((file) => ({ id: file.name, createdAt: Date.parse(file.created_at ?? "") || Date.now() }));
     const unused = unusedImageIds(stored, tests, Date.now());
-    for (const id of unused) {
-      await run("readwrite", (store) => store.delete(id));
-      urlCache.delete(id);
+    if (unused.length > 0) {
+      await getSupabase()
+        .storage.from(IMAGE_BUCKET)
+        .remove(unused.map((id) => `${userId}/${id}`));
+      for (const id of unused) {
+        await run(CACHE_STORE, "readwrite", (store) => store.delete(cacheKey(userId, id))).catch(() => undefined);
+        urlCache.delete(id);
+      }
     }
     return unused.length;
   } catch {
-    return 0; // IndexedDB unavailable (e.g. some private modes): nothing to clean
+    return 0;
+  }
+}
+
+/** Sign-out: removes this browser's copies of the teacher's pictures (shared school computers). */
+export async function clearImageCache(): Promise<void> {
+  urlCache.clear();
+  try {
+    const all = await run<CachedImage[]>(CACHE_STORE, "readonly", (store) => store.getAll());
+    // Keep pictures that never reached the cloud — deleting them would lose them.
+    for (const image of all.filter((i) => i.uploaded)) {
+      await run(CACHE_STORE, "readwrite", (store) => store.delete(image.key));
+    }
+  } catch {
+    // IndexedDB unavailable: nothing to clear
   }
 }

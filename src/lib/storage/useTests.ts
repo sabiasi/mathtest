@@ -2,20 +2,33 @@
 
 /**
  * React "hooks" that give components the saved tests and re-render them
- * automatically whenever the tests change.
+ * automatically whenever the tests (or their save state) change.
  */
 import { useSyncExternalStore } from "react";
-import { listTests, subscribe } from "./testsRepository";
+import { getLoadStatus, getSaveState, getTestsSnapshot, subscribe, type SaveState } from "./testsRepository";
 import type { Test } from "./types";
 
-// The server can't see the browser's localStorage. So on the server — and
-// during the very first render in the browser — the answer is `null`,
-// meaning "not loaded yet". A moment later React fills in the real data.
+// The server never has the teacher's tests. So on the server — and until
+// they're loaded from the cloud — the answer is `null`, meaning "loading".
 const getServerSnapshot = () => null;
 
 /** All tests, or `null` while loading. */
 export function useTests(): Test[] | null {
-  return useSyncExternalStore(subscribe, listTests, getServerSnapshot);
+  return useSyncExternalStore(subscribe, getTestsSnapshot, getServerSnapshot);
+}
+
+/** "idle" | "loading" | "ready" | "error" — e.g. to show "couldn't load, try again". */
+export function useLoadStatus() {
+  return useSyncExternalStore(subscribe, getLoadStatus, () => "idle" as const);
+}
+
+/** Whether one test's latest changes have reached the cloud. */
+export function useSaveState(id: string): SaveState {
+  return useSyncExternalStore(
+    subscribe,
+    () => getSaveState(id),
+    () => "saved" as const,
+  );
 }
 
 export type TestLookup =

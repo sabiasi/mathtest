@@ -63,9 +63,15 @@ make it fast and easy.
   Motion animations, landing page (`/`, `/about`), "My tests" moved to
   `/tests` with new cards and a "…" menu, skeleton loading states, toasts
   (sonner) with Undo for deleted tests/questions. Paper stays white.
+- [x] **Accounts (Supabase)**: email + password and Google sign-in, email
+  confirmation, forgot/reset password, user menu, settings page (name,
+  school, default subject, language, theme), protected pages (proxy.ts),
+  tests + pictures in the cloud with Row Level Security, one-time import of
+  old browser tests, cloud autosave indicator. Logo → /about.
+  Needs the owner's Supabase project (supabase/schema.sql, .env.local).
 - [ ] **Next**: remaining question types: fill-in-the-blank and matching.
-- [ ] Later: duplicate tests, backup import/export, templates, then accounts
-  and cloud storage.
+- [ ] Later: backup import/export, templates, own email service (SMTP) and
+  hosting.
 
 ## Tech decisions
 
@@ -82,9 +88,10 @@ make it fast and easy.
 | Rich text | TipTap v3 (ProseMirror) with a custom inline `math` node (`src/features/math/MathNode.ts`) |
 | Math input | MathLive `<math-field>` inside that node; our own toolbar (MathLive's keyboard and menu are hidden) |
 | Math rendering | MathLive `convertLatexToMarkup` (same engine as input). Fonts/styles: `mathlive/fonts.css` + `mathlive/static.css` imported in `layout.tsx`, bundled and self-hosted; `MathfieldElement.fontsDirectory = null` |
-| Storage | Tests in browser localStorage; pictures in IndexedDB (`lib/images/imageStore.ts`), referenced by id. No login yet. Accounts come later. |
+| Accounts | Supabase Auth via `@supabase/ssr` (sign-in kept in cookies). `src/proxy.ts` refreshes the sign-in and redirects (protected: /tests, /editor, /print, /settings). `/auth/callback` swaps email/Google links for a session. Only the publishable key (`NEXT_PUBLIC_SUPABASE_*` in `.env.local`), never a secret key |
+| Storage | Supabase Postgres: `profiles`, `tests` (whole test as JSON in `data`, PK user_id+id), Row Level Security on everything (`supabase/schema.sql`). Pictures: Storage bucket `images`, path `<user id>/<picture id>`, plus a browser copy in IndexedDB store `cache` |
 | Print | Our own pagination (`src/lib/paginate.ts` + `usePrintLayout`) into fixed 210×297mm `.sheet`s; `@page { size: A4; margin: 0 }` |
-| PDF | `POST /api/pdf` → puppeteer-core opens the same `/print` page (test injected into its localStorage) → `page.pdf()`. Chrome found by `findChrome()` / `CHROME_PATH`; hosting will need e.g. @sparticuz/chromium. No Chrome → 501 → client falls back to `window.print()` |
+| PDF | `POST /api/pdf` (signed-in teachers only) → puppeteer-core opens the same `/print` page with the test injected as `window.__MATHTEST_PRINT__` and header `x-mathtest-pdf: 1` (no sign-in cookies are passed) → `page.pdf()`. Chrome found by `findChrome()` / `CHROME_PATH`; hosting will need e.g. @sparticuz/chromium. No Chrome → 501 → client falls back to `window.print()` |
 | Fonts | Noto Sans Georgian + Noto Sans (backup for №, Cyrillic…), both via next/font; math fonts from MathLive CSS. PDFs must embed only these. |
 | Drag and drop | @dnd-kit (core + sortable), handle-only, keyboard accessible |
 | Tests | Vitest + jsdom (`npm test`) |
@@ -129,7 +136,15 @@ src/
   lib/variants.ts       buildVariants(test) → [A (original), B…]; seededRandom + shuffle
   lib/richText.ts       RichText = [{type:"text"} | {type:"math", latex}] + conversions to/from TipTap docs
   lib/questions.ts      Pure helpers: create/duplicate/change type, totals, labels
-  lib/storage/          types.ts, migrate.ts (normalizeTest), testsRepository.ts, useTests.ts
+  lib/storage/          types.ts, migrate.ts (normalizeTest), testsRepository.ts (memory + cloud
+                        send queue + readLocalTests for the import), supabaseTests.ts, useTests.ts
+  lib/supabase/         config (env), client (browser), server (route handlers)
+  lib/auth/             routes (protected paths, safeNext), errors (→ Georgian messages), profile
+  features/auth/        AuthProvider (useAuth, starts cloud sync), AuthParts, SignIn/SignUp/
+                        ForgotPassword/ResetPassword views
+  features/settings/    SettingsView
+  src/proxy.ts          sign-in refresh + redirects (Next 16's "middleware")
+  supabase/schema.sql   tables, RLS policies, trigger, storage bucket (paste into SQL Editor)
   lib/format.ts         Date formatting (Georgian by hand)
 ```
 
@@ -142,10 +157,14 @@ src/
   forces light mode. Never use `dark:` classes inside print components.
 - **All user-visible text goes in `src/i18n/dictionaries.ts`** (Georgian first,
   English with the same keys). Never hard-code UI text in components.
-- **Only `src/lib/storage/testsRepository.ts` touches localStorage for tests.**
-  Components use `useTests()` / `useTest(id)` and the repository functions.
-  Every saved test passes through `normalizeTest` (migrate.ts) on read: when
-  adding a field, give it a default there so older saved tests keep working.
+- **Only `src/lib/storage/testsRepository.ts` reads or writes tests.**
+  Components use `useTests()` / `useTest(id)` / `useSaveState(id)` and the
+  repository functions (sync API: memory first, cloud in the background).
+  Every loaded test passes through `normalizeTest` (migrate.ts): when adding
+  a field, give it a default there so older saved tests keep working.
+- **Privacy is enforced by RLS in the database**, not by the UI. Every new
+  table gets RLS + policies on `(select auth.uid())`. Never use or add the
+  service_role / secret key in this app.
 - Question text, options and short answers are `RichText` (our own format, not
   TipTap JSON). Formulas are stored as LaTeX. Use `RichTextInput` to edit and
   `RichTextView` to display. Exception to the dictionary rule: math toolbar
@@ -225,6 +244,17 @@ src/
 - Question cards: the outer `motion.li` is moved by dnd-kit (transform) and
   grown/shrunk by Motion (height/opacity); the visual card is the inner
   `[data-question-card]` div (also the paste/drop target).
+
+- `for (const x of map)` visits entries re-added during the loop: the send
+  queue loops over a snapshot (`[...queue]`) or failed saves retry at once.
+- Next.js adds a hidden `role="alert"` route announcer: browser tests select
+  our message boxes with `[role=alert].rounded-xl`.
+- Supabase's built-in email only sends to the project team's addresses and
+  only a few per hour: real teachers need custom SMTP (e.g. Resend).
+- Old browser test suites seeded localStorage; tests now live in the cloud,
+  so end-to-end browser tests need a Supabase test account.
+- Without `.env.local` values the app still runs: public pages work, and
+  account pages show "not connected yet" (SetupGate / SetupNotice).
 
 ## Commands
 

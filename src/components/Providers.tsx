@@ -7,6 +7,7 @@
  *   there's no flash of the wrong colours.
  * - MotionConfig: animations follow the computer's "reduce motion" setting.
  * - TooltipProvider: shared timing for all tooltips.
+ * - AuthProvider: who is signed in; loads their tests from the cloud.
  * - ConfirmProvider: our Georgian "Are you sure?" dialogs.
  * - Toaster: where toasts appear.
  */
@@ -14,6 +15,7 @@ import { MotionConfig } from "motion/react";
 import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/features/auth/AuthProvider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConfirmProvider } from "./ConfirmDialog";
 
@@ -30,12 +32,14 @@ export function Providers({ children }: { children: ReactNode }) {
       disableTransitionOnChange
     >
       <MotionConfig reducedMotion="user" transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}>
-        <TooltipProvider>
-          <ConfirmProvider>
-            {children}
-            <Toaster />
-          </ConfirmProvider>
-        </TooltipProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <ConfirmProvider>
+              {children}
+              <Toaster />
+            </ConfirmProvider>
+          </TooltipProvider>
+        </AuthProvider>
       </MotionConfig>
     </ThemeProvider>
   );

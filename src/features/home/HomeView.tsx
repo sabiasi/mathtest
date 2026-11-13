@@ -1,20 +1,22 @@
 "use client";
 
-import { BookOpen, ClipboardList, Info, LoaderCircle, PencilLine, Plus, Printer } from "lucide-react";
+import { BookOpen, ClipboardList, CloudOff, Info, LoaderCircle, PencilLine, Plus, Printer, RotateCw } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { PageTransition } from "@/components/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/features/auth/AuthProvider";
 import { useLanguage, useT } from "@/i18n/language";
 import { cleanUpImages } from "@/lib/images/imageStore";
-import { markStarted, takeSampleTurn } from "@/lib/onboarding";
+import { importLocalTestsIntoAccount, importWasHandled, localTestCount, markImportHandled } from "@/lib/onboarding";
 import { createSampleTest } from "@/lib/sample";
-import { createTest, listTests } from "@/lib/storage/testsRepository";
-import { useTests } from "@/lib/storage/useTests";
+import { createTest, listTests, retryLoad } from "@/lib/storage/testsRepository";
+import { useLoadStatus, useTests } from "@/lib/storage/useTests";
 import { TestCard } from "./TestCard";
 
 /** The "My tests" page (/tests). */
@@ -23,10 +25,10 @@ export function HomeView() {
   const language = useLanguage();
   const router = useRouter();
   const tests = useTests();
+  const loadStatus = useLoadStatus();
+  const confirm = useConfirm();
+  const { user, profile, updateProfile } = useAuth();
   const [openingSample, setOpeningSample] = useState(false);
-
-  // From now on, "/" goes straight here instead of showing the landing page.
-  useEffect(() => markStarted(), []);
 
   // Tidy up: delete stored pictures that no test uses any more (e.g. from
   // deleted tests or removed images). Runs quietly in the background.
@@ -34,16 +36,54 @@ export function HomeView() {
     void cleanUpImages(listTests());
   }, [tests]);
 
-  // The very first visit: add the sample test once, so the page isn't empty
-  // and the teacher can see what a finished test looks like.
+  // First sign-in in a browser that has tests from before accounts:
+  // offer to bring them into the account (once per account and browser).
+  const askedImport = useRef(false);
   useEffect(() => {
-    if (tests === null) return;
-    if (takeSampleTurn() && tests.length === 0) void createSampleTest(language);
-  }, [tests, language]);
+    if (tests === null || !user || askedImport.current) return;
+    const count = localTestCount();
+    if (count === 0 || importWasHandled(user.id)) return;
+    askedImport.current = true;
+    void (async () => {
+      const yes = await confirm({
+        title: t("import.title"),
+        message: t("import.text", { count }),
+        confirmLabel: t("import.confirm"),
+        cancelLabel: t("import.decline"),
+      });
+      markImportHandled(user.id);
+      if (!yes) return;
+      const id = toast.loading(t("import.working"));
+      try {
+        const added = await importLocalTestsIntoAccount();
+        if (added > 0) void updateProfile({ sample_added: true }); // they have real tests now
+        toast.success(added > 0 ? t("import.done", { count: added }) : t("import.nothing"), { id });
+      } catch {
+        toast.error(t("import.failed"), { id });
+      }
+    })();
+  }, [tests, user, confirm, t, updateProfile]);
+
+  // A brand-new account: add the sample test once, so the page isn't empty
+  // and the teacher can see what a finished test looks like.
+  const addingSample = useRef(false);
+  useEffect(() => {
+    if (tests === null || !user || !profile || profile.sample_added || addingSample.current) return;
+    if (tests.length > 0) {
+      addingSample.current = true; // already has tests: no sample needed
+      void updateProfile({ sample_added: true });
+      return;
+    }
+    if (localTestCount() > 0 && !importWasHandled(user.id)) return; // the import question comes first
+    addingSample.current = true;
+    void updateProfile({ sample_added: true }).then(() => createSampleTest(language));
+  }, [tests, user, profile, language, updateProfile]);
 
   function handleCreate() {
     const test = createTest({
-      subject: t("test.defaultSubject"),
+      // From Settings: the teacher's school and main subject.
+      schoolName: profile?.school_name ?? "",
+      subject: profile?.default_subject || t("test.defaultSubject"),
       // Georgian interface → ა, ბ, გ, დ; English interface → A, B, C, D
       labelStyle: language === "en" ? "latin" : "georgian",
     });
@@ -89,7 +129,19 @@ export function HomeView() {
       {tests && tests.length <= 1 && <HowItWorks />}
 
       <div className="mt-8">
-        {tests === null ? (
+        {loadStatus === "error" ? (
+          <EmptyState
+            Icon={CloudOff}
+            title={t("home.loadError")}
+            text={t("authError.network")}
+            actions={
+              <Button variant="outline" onClick={retryLoad}>
+                <RotateCw className="size-4" aria-hidden="true" />
+                {t("home.retry")}
+              </Button>
+            }
+          />
+        ) : tests === null ? (
           <CardsSkeleton />
         ) : tests.length === 0 ? (
           <EmptyState

@@ -2,11 +2,10 @@
 
 import {
   ArrowRight,
-  BookOpen,
   Grid3x3,
   KeyRound,
   ListChecks,
-  LoaderCircle,
+  LogIn,
   Printer,
   Shuffle,
   Sigma,
@@ -14,40 +13,27 @@ import {
 } from "lucide-react";
 import { convertLatexToMarkup } from "mathlive";
 import { motion } from "motion/react";
-import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import Link from "next/link";
+import type { ReactNode } from "react";
 import { LogoMark } from "@/components/Logo";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { useAuth } from "@/features/auth/AuthProvider";
 import { useLanguage, useT } from "@/i18n/language";
-import { markStarted, takeSampleTurn } from "@/lib/onboarding";
 import { optionLabel } from "@/lib/questions";
-import { createSampleTest } from "@/lib/sample";
 
 /** The landing page: what MathTest does, and a big "Get started" button. */
 export function LandingView() {
   const t = useT();
-  const language = useLanguage();
-  const router = useRouter();
-  const [openingSample, setOpeningSample] = useState(false);
+  const { status } = useAuth();
+  const signedIn = status === "signed-in";
 
-  function start() {
-    markStarted();
-    router.push("/tests");
-  }
-
-  async function openSample() {
-    setOpeningSample(true);
-    markStarted();
-    takeSampleTurn(); // this IS their sample — don't add a second one on "My tests"
-    const test = await createSampleTest(language);
-    router.push(`/editor/${test.id}`);
-  }
-
+  // Signed-out visitors start by creating an account; signed-in teachers go to their tests.
+  const startHref = signedIn ? "/tests" : "/signup";
   const startButton = (
-    <Button size="lg" onClick={start} className="group">
-      {t("landing.start")}
+    <Link href={startHref} className={buttonVariants({ size: "lg", className: "group" })}>
+      {signedIn ? t("home.title") : t("landing.start")}
       <ArrowRight className="size-5 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
-    </Button>
+    </Link>
   );
 
   const features: { Icon: LucideIcon; n: 1 | 2 | 3 | 4 | 5 | 6 }[] = [
@@ -83,10 +69,12 @@ export function LandingView() {
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted-foreground">{t("landing.lead")}</p>
           <div className="mt-8 flex flex-wrap gap-3">
             {startButton}
-            <Button size="lg" variant="outline" onClick={openSample} disabled={openingSample}>
-              {openingSample ? <LoaderCircle className="size-5 animate-spin" aria-hidden="true" /> : <BookOpen className="size-5" aria-hidden="true" />}
-              {t("landing.sample")}
-            </Button>
+            {!signedIn && (
+              <Link href="/signin" className={buttonVariants({ size: "lg", variant: "outline" })}>
+                <LogIn className="size-5" aria-hidden="true" />
+                {t("landing.signIn")}
+              </Link>
+            )}
           </div>
           <p className="mt-4 text-sm text-muted-foreground">{t("landing.note")}</p>
         </Reveal>
@@ -146,10 +134,10 @@ export function LandingView() {
             <h2 className="text-2xl font-bold tracking-tight">{t("landing.ctaTitle")}</h2>
             <p className="mt-2 text-[17px] text-white/80">{t("landing.ctaText")}</p>
           </div>
-          <Button size="lg" onClick={start} className="group bg-white text-[#3730a3] hover:bg-white/90">
-            {t("landing.start")}
+          <Link href={startHref} className={buttonVariants({ size: "lg", className: "group bg-white text-[#3730a3] hover:bg-white/90" })}>
+            {signedIn ? t("home.title") : t("landing.start")}
             <ArrowRight className="size-5 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden="true" />
-          </Button>
+          </Link>
         </Reveal>
       </section>
     </div>

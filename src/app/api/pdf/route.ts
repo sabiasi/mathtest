@@ -1,21 +1,30 @@
 /**
  * POST /api/pdf  { test, version, variant, language, images }  →  the PDF file
  *
- * How it works: the test lives in the teacher's browser (localStorage), so
- * the page sends it here. We open an invisible Chrome, put the test into
- * THAT browser's localStorage, open our own /print page, wait until the
- * pages are laid out, and ask Chrome to "print to PDF". Chrome embeds the
- * fonts (Noto Sans Georgian, the math fonts) into the file.
+ * How it works: the page sends the test (exactly as the teacher sees it).
+ * We open an invisible Chrome, hand it the test and pictures, open our own
+ * /print page, wait until the pages are laid out, and ask Chrome to "print
+ * to PDF". Chrome embeds the fonts (Noto Sans Georgian, the math fonts).
+ *
+ * Only signed-in teachers may use it. The invisible Chrome itself is NOT
+ * signed in: it gets the test handed over, so no sign-in cookie ever leaves
+ * the teacher's browser.
  */
 import { LANGUAGES, type Language } from "@/i18n/dictionaries";
 import { getBrowser } from "@/lib/server/chrome";
 import { normalizeTest } from "@/lib/storage/migrate";
-import { STORAGE_KEY } from "@/lib/storage/testsRepository";
+import { supabaseConfigured } from "@/lib/supabase/config";
+import { createSupabaseServer } from "@/lib/supabase/server";
 
 const LANGUAGE_KEY = "mathtest:language";
 const THEME_KEY = "mathtest:theme"; // same as THEME_STORAGE_KEY in components/Providers.tsx
 
 export async function POST(request: Request) {
+  if (supabaseConfigured) {
+    const supabase = await createSupabaseServer();
+    const { data } = await supabase.auth.getClaims();
+    if (!data?.claims?.sub) return Response.json({ error: "sign in first" }, { status: 401 });
+  }
   const body = (await request.json().catch(() => null)) as Record<string, unknown> | null;
   const test = normalizeTest(body?.test);
   const version = body?.version === "key" ? "key" : "student";
@@ -45,16 +54,17 @@ export async function POST(request: Request) {
     await page.setViewport({ width: 1280, height: 1000 });
     // Paper is always white: open the page in light mode, whatever the teacher uses.
     await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]);
+    // Lets this request past the "please sign in" redirect in proxy.ts.
+    await page.setExtraHTTPHeaders({ "x-mathtest-pdf": "1" });
     // Runs before the page's own code: give this browser the test and language.
     await page.evaluateOnNewDocument(
-      (storageKey, testsJson, languageKey, lang, themeKey, pictures) => {
-        localStorage.setItem(storageKey, testsJson);
+      (testJson, languageKey, lang, themeKey, pictures) => {
+        window.__MATHTEST_PRINT__ = { test: JSON.parse(testJson) };
         localStorage.setItem(languageKey, lang);
         localStorage.setItem(themeKey, "light");
         window.__MATHTEST_IMAGES__ = pictures;
       },
-      STORAGE_KEY,
-      JSON.stringify([test]),
+      JSON.stringify(test),
       LANGUAGE_KEY,
       language,
       THEME_KEY,

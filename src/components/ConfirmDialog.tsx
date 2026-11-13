@@ -28,6 +28,8 @@ type ConfirmOptions = {
   title: string;
   message: string;
   confirmLabel: string;
+  /** Text of the safe button (default: "Cancel"). */
+  cancelLabel?: string;
   /** Red button, for things that delete. */
   danger?: boolean;
 };
@@ -68,7 +70,7 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               <AlertDialogDescription>{pending.message}</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel onClick={() => answer(false)}>{t("dialog.cancel")}</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => answer(false)}>{pending.cancelLabel ?? t("dialog.cancel")}</AlertDialogCancel>
               <AlertDialogAction variant={pending.danger ? "destructive" : "default"} onClick={() => answer(true)}>
                 {pending.confirmLabel}
               </AlertDialogAction>
