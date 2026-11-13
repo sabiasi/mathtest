@@ -74,6 +74,9 @@ export interface SubjectToolkit {
   diagrams: readonly DiagramKind[];
   /** Ready-made column headings for matching questions (e.g. Person ↔ Date). */
   matchingTemplates?: { id: string; left: { ka: string; en: string }; right: { ka: string; en: string } }[];
-  /** The printed sheets get this class, so ./<id>/print.css can style them. */
-  print: { className: string };
+  /**
+   * The printed sheets get `className`, so ./<id>/print.css can style them.
+   * `typography: "georgian"` prints „quotes“ and long dashes (lib/typography.ts).
+   */
+  print: { className: string; typography?: "georgian" };
 }

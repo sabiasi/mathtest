@@ -4,6 +4,14 @@ import {
   ArrowLeft,
   CloudAlert,
   ArrowDownWideNarrow,
+  BookOpenText,
+  Feather,
+  PenLine,
+  SpellCheck,
+  Split,
+  Table2,
+  TextCursor,
+  Underline,
   CloudCheck,
   ClipboardList,
   GitCompareArrows,
@@ -29,7 +37,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MathEditingProvider, useMathEditing, useMathLiveReady } from "@/features/math/MathEditingContext";
 import { useT } from "@/i18n/language";
-import { createQuestion, duplicateQuestion, formatPoints, totalPoints } from "@/lib/questions";
+import { createQuestion, duplicateQuestion, formatPoints, questionNumbers, totalPoints } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
 import { useSaveState, useStorageKind } from "@/lib/storage/useTests";
 import type { Question, QuestionType, Test } from "@/lib/storage/types";
@@ -53,6 +61,14 @@ const TYPE_ICONS: Record<QuestionType, typeof ListChecks> = {
   timeline: GanttChart,
   source: Quote,
   map: MapPinned,
+  passage: BookOpenText,
+  poem: Feather,
+  "fill-blank": TextCursor,
+  "mark-words": Underline,
+  "grammar-table": Table2,
+  "find-mistake": SpellCheck,
+  "sentence-analysis": Split,
+  essay: PenLine,
 };
 
 /**
@@ -124,13 +140,17 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
     setFocusId(copy.id);
   }
 
-  async function remove(question: Question, number: number) {
+  /** `position`: 1-based place in the list (for Undo). */
+  async function remove(question: Question, position: number) {
+    // The printed number (reading texts and poems have none).
+    const number = questionNumbers(test.questions).get(question.id) ?? null;
     // Only ask when there is something to lose.
-    const hasContent = !isRichTextEmpty(question.text) || question.images.length > 0;
+    const hasContent =
+      !isRichTextEmpty(question.text) || question.images.length > 0 || ("body" in question && question.body.trim() !== "");
     if (hasContent) {
       const ok = await confirm({
         title: t("questions.delete"),
-        message: t("questions.deleteConfirm", { number }),
+        message: number === null ? t("text.deleteConfirm") : t("questions.deleteConfirm", { number }),
         confirmLabel: t("dialog.delete"),
         danger: true,
       });
@@ -138,12 +158,12 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
     }
     updateQuestions((qs) => qs.filter((q) => q.id !== question.id));
     // A safety net: put it back exactly where it was.
-    toast(t("toast.questionDeleted", { number }), {
+    toast(number === null ? t("text.deleted") : t("toast.questionDeleted", { number }), {
       action: {
         label: t("toast.undo"),
         onClick: () =>
           updateQuestions((qs) =>
-            qs.some((q) => q.id === question.id) ? qs : [...qs.slice(0, number - 1), question, ...qs.slice(number - 1)],
+            qs.some((q) => q.id === question.id) ? qs : [...qs.slice(0, position - 1), question, ...qs.slice(position - 1)],
           ),
       },
     });

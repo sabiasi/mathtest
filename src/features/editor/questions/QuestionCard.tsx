@@ -12,7 +12,7 @@ import type { MessageKey } from "@/i18n/dictionaries";
 import { useT } from "@/i18n/language";
 import { newId } from "@/lib/ids";
 import { UnsupportedImageError, addImage } from "@/lib/images/imageStore";
-import { changeQuestionType } from "@/lib/questions";
+import { changeQuestionType, isTextBlock } from "@/lib/questions";
 import type { Diagram, DiagramKind, LabelStyle, Question, QuestionImage, QuestionType } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
 import { MapEditor } from "@/subjects/history/editors/MapEditor";
@@ -20,6 +20,13 @@ import { OrderEditor } from "@/subjects/history/editors/OrderEditor";
 import { SourceEditor } from "@/subjects/history/editors/SourceEditor";
 import { TimelineEditor } from "@/subjects/history/editors/TimelineEditor";
 import { GivenFindEditor } from "@/subjects/physics/GivenFindEditor";
+import { EssayEditor } from "@/subjects/georgian/editors/EssayEditor";
+import { FindMistakeEditor } from "@/subjects/georgian/editors/FindMistakeEditor";
+import { GrammarTableEditor } from "@/subjects/georgian/editors/GrammarTableEditor";
+import { MarkWordsEditor } from "@/subjects/georgian/editors/MarkWordsEditor";
+import { SentenceAnalysisEditor } from "@/subjects/georgian/editors/SentenceAnalysisEditor";
+import { TextBlockEditor } from "@/subjects/georgian/editors/TextBlockEditor";
+import { FillBlankEditor } from "./FillBlankEditor";
 import { MatchingEditor } from "./MatchingEditor";
 import { DiagramDialog } from "@/subjects/physics/diagrams/DiagramDialog";
 import { diagramSize } from "@/subjects/physics/diagrams/DiagramView";
@@ -41,6 +48,14 @@ const TEXT_PLACEHOLDERS: Partial<Record<QuestionType, MessageKey>> = {
   timeline: "questions.timelinePlaceholder",
   source: "questions.sourcePlaceholder",
   map: "questions.mapPlaceholder",
+  passage: "questions.textBlockPlaceholder",
+  poem: "questions.textBlockPlaceholder",
+  "fill-blank": "questions.fillPlaceholder",
+  "mark-words": "questions.markPlaceholder",
+  "grammar-table": "questions.grammarPlaceholder",
+  "find-mistake": "questions.mistakePlaceholder",
+  "sentence-analysis": "questions.analysisPlaceholder",
+  essay: "questions.essayPlaceholder",
 };
 
 export function QuestionCard({
@@ -55,7 +70,8 @@ export function QuestionCard({
   onDelete,
 }: {
   question: Question;
-  number: number;
+  /** null for reading texts and poems (they have no number). */
+  number: number | null;
   labelStyle: LabelStyle;
   /** The subject's tools: question types and diagrams. */
   toolkit: SubjectToolkit;
@@ -75,6 +91,7 @@ export function QuestionCard({
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [dropActive, setDropActive] = useState(false);
   const questionTypes = toolkit.questionTypes;
+  const textBlock = isTextBlock(question);
 
   // ---- Diagrams (circuit, forces): drawn in a window, kept as data ----
   const [diagramEdit, setDiagramEdit] = useState<{ placementId: string | null; diagram: Diagram } | null>(null);
@@ -198,7 +215,10 @@ export function QuestionCard({
             >
               <GripVertical className="size-5" aria-hidden="true" />
             </IconButton>
-            <span className="font-semibold text-foreground">{t("questions.number", { number })}</span>
+            {/* Reading texts and poems aren't numbered questions. */}
+            <span className="font-semibold text-foreground">
+              {number === null ? t(question.type === "poem" ? "text.poemLabel" : "text.passageLabel") : t("questions.number", { number })}
+            </span>
             <select
               value={question.type}
               aria-label={t("questions.type")}
@@ -214,12 +234,16 @@ export function QuestionCard({
             </select>
 
             <div className="ml-auto flex items-center gap-1">
-              <PointsInput
-                value={question.points}
-                label={t("questions.points")}
-                onChange={(points) => onChange({ ...question, points })}
-              />
-              <span className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
+              {!textBlock && (
+                <>
+                  <PointsInput
+                    value={question.points}
+                    label={t("questions.points")}
+                    onChange={(points) => onChange({ ...question, points })}
+                  />
+                  <span className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
+                </>
+              )}
               <IconButton onClick={onDuplicate} label={t("questions.duplicate")}>
                 <Copy className="size-4" aria-hidden="true" />
               </IconButton>
@@ -259,6 +283,16 @@ export function QuestionCard({
               <MapEditor question={question} onChange={onChange} onPatch={(patch) => onPatch((q) => (q.type === "map" ? patch(q) : q))} />
             )}
 
+            {question.type === "passage" && <TextBlockEditor question={question} onChange={onChange} />}
+            {question.type === "poem" && <TextBlockEditor question={question} onChange={onChange} />}
+            {question.type === "fill-blank" && <FillBlankEditor question={question} onChange={onChange} />}
+            {question.type === "mark-words" && <MarkWordsEditor question={question} onChange={onChange} />}
+            {question.type === "grammar-table" && <GrammarTableEditor question={question} onChange={onChange} />}
+            {question.type === "find-mistake" && <FindMistakeEditor question={question} onChange={onChange} />}
+            {question.type === "sentence-analysis" && <SentenceAnalysisEditor question={question} onChange={onChange} />}
+            {question.type === "essay" && <EssayEditor question={question} onChange={onChange} />}
+
+            {!textBlock && (
             <MediaBar
               grid={question.grid}
               busy={mediaBusy}
@@ -268,6 +302,7 @@ export function QuestionCard({
               diagrams={toolkit.diagrams}
               onNewDiagram={startDiagram}
             />
+            )}
             <DiagramDialog
               diagram={diagramEdit?.diagram ?? null}
               isNew={diagramEdit?.placementId === null}

@@ -14,6 +14,7 @@
  * A variant is just a normal Test with a new order, so the whole print
  * system works on it unchanged.
  */
+import { isTextBlock } from "@/lib/questions";
 import { seedFromString } from "@/lib/storage/migrate";
 import type { MatchingQuestion, MultipleChoiceQuestion, OrderQuestion, Question, Test } from "@/lib/storage/types";
 
@@ -93,9 +94,31 @@ function arrangeOriginal(test: Test): Question[] {
   return test.questions.map((q) => arrangeItems(q, seededRandom(test.variants.seed ^ seedFromString(q.id))));
 }
 
+/**
+ * Shuffles the questions, but reading texts and poems stay where they are:
+ * only the questions between two texts are mixed, so "read the text and
+ * answer" questions always stay right after their text.
+ */
+export function shuffleAroundTexts(questions: Question[], random: () => number): Question[] {
+  const result: Question[] = [];
+  let segment: Question[] = [];
+  const flush = () => {
+    result.push(...shuffle(segment, random));
+    segment = [];
+  };
+  for (const question of questions) {
+    if (isTextBlock(question)) {
+      flush();
+      result.push(question);
+    } else segment.push(question);
+  }
+  flush();
+  return result;
+}
+
 function shuffleOnce(test: Test, random: () => number): Question[] {
   const { shuffleQuestions, shuffleOptions } = test.variants;
-  const ordered = shuffleQuestions ? shuffle(test.questions, random) : test.questions;
+  const ordered = shuffleQuestions ? shuffleAroundTexts(test.questions, random) : test.questions;
   return ordered.map((question) => {
     if (question.type !== "multiple-choice" || !shuffleOptions || question.lockOptions) return question;
     // The correct answer is stored by option id, so it stays correct after shuffling.

@@ -39,4 +39,14 @@ describe("paginate", () => {
       { columns: [[], []] },
     ]);
   });
+
+  it("a block with gap 0 (a continuing paragraph) is packed without a gap", () => {
+    const blocks = [
+      { key: "a", height: 40 },
+      { key: "b", height: 40, gap: 0 },
+      { key: "c", height: 20, gap: 0 },
+    ];
+    // 100 fits 40 + 40 + 20 only because the gaps are 0.
+    expect(paginate({ blocks, columnHeight: 100, columns: 1, gap: 10, firstPageTop: 0 })).toEqual([{ columns: [["a", "b", "c"]] }]);
+  });
 });

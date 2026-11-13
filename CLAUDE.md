@@ -27,10 +27,11 @@ Visitors can try everything without an account (guest mode).
    type into the slots. No LaTeX knowledge needed. Physics: the math toolbar
    plus units, constants, formulas, Given/Find/Solution problems, circuit and
    force diagrams. History: date/century tools, chronology, timelines,
-   sources, maps. Other subjects: placeholders for now, built one by one.
-3. **Question types**: multiple choice (A/B/C/D, correct one marked),
-   true/false, short answer, open/long answer (blank lines for working),
-   fill-in-the-blank, matching.
+   sources, maps. Georgian: reading texts with numbered lines, poems,
+   grammar exercises, essays, Georgian typography. Chemistry: placeholder.
+3. **Question types**: common to all subjects — multiple choice, true/false,
+   short answer, open answer, matching, fill-in-the-blank; plus each
+   subject's own (see the toolkits).
 4. **Points** per question with an automatic total.
 5. **Print / PDF** that looks like a professional printed exam on A4, plus a
    separate **answer key** version for the teacher.
@@ -108,10 +109,20 @@ Visitors can try everything without an account (guest mode).
   TEXT buttons (Georgian ძვ. წ., ახ. წ., ს.… / English BC, AD, c.…, marks
   – „“ … […]) + the century tool (12 or 1121 → XII / XII ს.). Captions on
   every picture (all subjects).
-- [ ] **Next**: fill-in-the-blank (common to every subject: add it to
-  `QUESTION_TYPES`). Then Chemistry and Georgian toolkits.
-- [ ] Later: backup import/export, templates, own email service (SMTP) and
-  hosting.
+- [x] **Georgian toolkit + fill-in-the-blank**: `fill-blank` is common
+  (teacher writes the full text, clicks the words to blank, optional hint
+  "(წერა)" and word bank). Georgian: text blocks `passage` (one paragraph per
+  line, every 5th printed line numbered) and `poem` (verses/stanzas kept,
+  every 5th verse numbered) — no number, no points, continue across pages;
+  `mark-words` (key underlines), `grammar-table` (templates: ბრუნვა 7 cases,
+  მწკრივი 11 screeves, მეტყველების ნაწილი, პირი და რიცხვი), `find-mistake`,
+  `sentence-analysis` (roles ქვემდებარე/შემასმენელი/დამატება…, click words to
+  fill), `essay` (up to 60 lines, guiding points, length); toolbar with „“ — –
+  … and "(სტრ. )" line references; matching templates ავტორი ↔ ნაწარმოები ↔
+  პერსონაჟი (three 2-column ones). Paper uses Georgian typography. No
+  literary texts are built in: teachers paste their own.
+- [ ] **Next**: Chemistry toolkit (when asked). Later: backup import/export,
+  templates, own email service (SMTP) and hosting.
 
 ## Tech decisions
 
@@ -134,6 +145,9 @@ Visitors can try everything without an account (guest mode).
 | Guests | Signed out (or Supabase not configured) = guest: `AuthProvider` starts the repository with `localTestsBackend()` (localStorage key `mathtest:tests:v1`) and `setImageUser(null)` (pictures in IndexedDB store `images`). On sign-in: `stopSync()` → cloud → `moveGuestTestsIntoAccount()` (lib/onboarding.ts): upload pictures, `importTests` (newer local version of an existing id → added as a copy), then after `waitUntilSaved` remove the browser copies. `useAuth().guest`, `useStorageKind()` ("cloud" / "device") |
 | Storage | Supabase Postgres: `profiles`, `tests` (whole test as JSON in `data`, PK user_id+id), Row Level Security on everything (`supabase/schema.sql`). Pictures: Storage bucket `images`, path `<user id>/<picture id>`, plus a browser copy in IndexedDB store `cache` |
 | Diagrams | Stored as DATA inside `QuestionImage.diagram` (with `imageId: ""`), so they reuse picture placement (above/right, size %) and print layout. Drawn as inline SVG by `subjects/physics/diagrams/DiagramView.tsx` (page font → Georgian labels work; black on white). Pure geometry in `geometry.ts`, validation/defaults in `normalize.ts` (called from migrate.ts). Editors open in `DiagramDialog` and work on a draft (Cancel = no change). `diagramSize()` sets width/height (aspect ratio) on save |
+| Print blocks | `features/print/blocks.ts`: `printBlocks(questions)` = what `paginate` packs. One block per question, except: `passage` → one per paragraph (`id~p0…`), `poem` → one per stanza (`id~s0…`), `essay` → the question + blocks of 10 lines (`id~l0…`). Continuations (`flowsOn`) get `gap: 0` in paginate and are pulled up over the flex gap when not first in a column. `pieces.tsx` `renderBlock` draws a block. Reading-text line numbers: every line has the same height (line-height 1.65 = PASSAGE_LINE_HEIGHT), `usePrintLayout` measures each paragraph's height ÷ line height → `lineStarts`; numbers are positioned at n × 1.65em (on a wrapper with the text's font size) and clipped. Question numbers come from `questionNumbers()` (texts get none); the answer table skips texts; variants shuffle only the questions between texts (`shuffleAroundTexts`) |
+| Typography | `lib/typography.ts` `georgianTypography` („“, —, …) applied at print time when the toolkit has `print.typography: "georgian"`, via `TypographyProvider` / `useTypography()` (RichTextView, header, Georgian blocks). Editors show text as typed |
+| Words | `lib/words.ts`: `tokenize`, clicked words saved as `WordRef { word, occurrence }` (survives edits elsewhere); `WordPicker` in the editor |
 | Print | Our own pagination (`src/lib/paginate.ts` + `usePrintLayout`) into fixed 210×297mm `.sheet`s; `@page { size: A4; margin: 0 }` |
 | PDF | `POST /api/pdf` (guests too) → puppeteer-core opens the same `/print` page with the test injected as `window.__MATHTEST_PRINT__` (no sign-in cookies are passed) → `page.pdf()`. Limits (`lib/server/rateLimit.ts`, in memory): 10 PDFs / 10 min per guest IP, 200 / 10 min for all guests together, 40 / 10 min per signed-in teacher, at most 3 PDFs at once (503), body ≤ 25 MB, ≤ 300 questions (413). 429 has `Retry-After`; the print page explains it. With several servers / serverless, move the counters to a shared store (e.g. Upstash Redis). Chrome found by `findChrome()` / `CHROME_PATH`; hosting will need e.g. @sparticuz/chromium. No Chrome → 501 → client falls back to `window.print()` |
 | Fonts | Noto Sans Georgian + Noto Sans (backup for №, Cyrillic…), both via next/font; math fonts from MathLive CSS. PDFs must embed only these. |
@@ -331,6 +345,9 @@ src/
   `.next/` and `.git/`). If `tsc` complains about duplicates in `.next/types`,
   delete those " 3" copies (or `.next` when no dev server runs). Better: keep
   the project outside iCloud-synced folders.
+- CSS `em` in `top:` is relative to the element's OWN font size: line numbers
+  are positioned on a wrapper with the text's font size, the smaller number
+  is inside it.
 - `.answer-table` and print blocks also exist as invisible measuring copies:
   browser tests select `.sheet …`.
 - This project has no Prettier: don't run `npx prettier` (it downloads one

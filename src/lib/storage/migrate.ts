@@ -47,6 +47,16 @@ function normalizeOptions(value: unknown, max = MAX_OPTIONS): ChoiceOption[] {
     .map((o) => ({ id: o.id as string, text: normalizeRichText(o.text) }));
 }
 
+/** A clicked word ({ word, occurrence }), or null if it isn't one. */
+function wordRef(value: unknown) {
+  if (!isObject(value) || typeof value.word !== "string" || !value.word) return null;
+  return { word: value.word.slice(0, 100), occurrence: Math.max(0, Math.round(num(value.occurrence, 0))) };
+}
+
+/** A list of strings, each at most `length` long. */
+const strings = (value: unknown, max: number, length: number) =>
+  (Array.isArray(value) ? value : []).filter((v): v is string => typeof v === "string").slice(0, max).map((v) => v.slice(0, length));
+
 /** A list of objects with string ids, at most `max`, each repaired by `fix`. */
 function list<T>(value: unknown, max: number, fix: (item: Loose & { id: string }) => T): T[] {
   if (!Array.isArray(value)) return [];
@@ -180,6 +190,73 @@ function normalizeQuestion(raw: unknown): Question | null {
         wordBank: raw.wordBank === true,
       };
     }
+    case "passage":
+    case "poem":
+      return {
+        ...base,
+        type: raw.type,
+        points: 0,
+        title: str(raw.title).slice(0, 300),
+        author: str(raw.author).slice(0, 300),
+        body: str(raw.body).slice(0, LIMITS.passageChars),
+        lineNumbers: typeof raw.lineNumbers === "boolean" ? raw.lineNumbers : raw.type === "passage",
+      };
+    case "fill-blank":
+      return {
+        ...base,
+        type: "fill-blank",
+        body: str(raw.body).slice(0, LIMITS.shortTextChars),
+        blanks: (Array.isArray(raw.blanks) ? raw.blanks : [])
+          .slice(0, LIMITS.blanks)
+          .map((b) => {
+            const ref = wordRef(b);
+            return ref ? { ...ref, hint: str(isObject(b) ? b.hint : "").slice(0, 100) } : null;
+          })
+          .filter((b) => b !== null),
+        wordBank: raw.wordBank === true,
+      };
+    case "mark-words":
+      return {
+        ...base,
+        type: "mark-words",
+        body: str(raw.body).slice(0, LIMITS.shortTextChars),
+        marked: (Array.isArray(raw.marked) ? raw.marked : []).slice(0, LIMITS.blanks).map(wordRef).filter((m) => m !== null),
+      };
+    case "grammar-table":
+      return {
+        ...base,
+        type: "grammar-table",
+        wordTitle: str(raw.wordTitle).slice(0, 100),
+        answerTitle: str(raw.answerTitle).slice(0, 100),
+        rows: list(raw.rows, LIMITS.tableRows, (row) => ({ id: row.id, word: str(row.word).slice(0, 200), answer: str(row.answer).slice(0, 200) })),
+        bank: strings(raw.bank, 20, 100),
+      };
+    case "find-mistake":
+      return {
+        ...base,
+        type: "find-mistake",
+        items: list(raw.items, LIMITS.mistakeItems, (item) => ({
+          id: item.id,
+          sentence: str(item.sentence).slice(0, 500),
+          mistake: wordRef(item.mistake),
+          correction: str(item.correction).slice(0, 200),
+        })),
+      };
+    case "sentence-analysis":
+      return {
+        ...base,
+        type: "sentence-analysis",
+        sentence: str(raw.sentence).slice(0, 500),
+        parts: list(raw.parts, LIMITS.sentenceParts, (part) => ({ id: part.id, role: str(part.role).slice(0, 100), answer: str(part.answer).slice(0, 200) })),
+      };
+    case "essay":
+      return {
+        ...base,
+        type: "essay",
+        lines: clamp(Math.round(num(raw.lines, 20)), 0, LIMITS.essayLines),
+        guide: strings(raw.guide, LIMITS.guidePoints, 300),
+        length: str(raw.length).slice(0, 100),
+      };
     case "given-find": {
       const lines = clamp(Math.round(num(raw.lines, DEFAULT_GIVEN_FIND_LINES)), MIN_GIVEN_FIND_LINES, MAX_LINES);
       return {

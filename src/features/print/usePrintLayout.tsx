@@ -18,7 +18,9 @@ import { paginate, type Page } from "@/lib/paginate";
 import type { Test } from "@/lib/storage/types";
 import { RichTextView } from "@/features/math/RichTextView";
 import { optionLabel, visibleOptions } from "@/lib/questions";
-import { PrintHeader, PrintQuestion, rightColumnPercent, type OptionColumns, type PrintVersion } from "./PrintBlocks";
+import { PrintHeader, rightColumnPercent, type OptionColumns, type PrintVersion } from "./PrintBlocks";
+import { flowsOn, printBlocks } from "./blocks";
+import { renderBlock } from "./pieces";
 
 // --- Paper geometry, in millimetres (must match .sheet in globals.css) ---
 export const PAGE = { width: 210, height: 297, padTop: 14, padX: 16, padBottom: 18 };
@@ -51,6 +53,31 @@ function chooseOptionColumns(count: number, widestPx: number, columns: 1 | 2, ri
   return 1;
 }
 
+/**
+ * Reading texts: how many printed lines each paragraph has (its height ÷
+ * the line height), so line numbers continue from paragraph to paragraph,
+ * even across pages. Returns { block key: number of its first line }.
+ */
+function countPassageLines(root: HTMLElement): Record<string, number> {
+  const starts: Record<string, number> = {};
+  let currentText = "";
+  let next = 1;
+  root.querySelectorAll<HTMLElement>("[data-block]").forEach((block) => {
+    const lines = block.querySelector<HTMLElement>("[data-passage-lines]");
+    const key = block.dataset.block!;
+    if (!lines) return;
+    const textId = key.split("~")[0];
+    if (textId !== currentText) {
+      currentText = textId; // a new reading text starts again at line 1
+      next = 1;
+    }
+    starts[key] = next;
+    const lineHeight = parseFloat(getComputedStyle(lines).lineHeight) || 1;
+    next += Math.max(1, Math.round(lines.getBoundingClientRect().height / lineHeight));
+  });
+  return starts;
+}
+
 export function usePrintLayout(test: Test, version: PrintVersion, language: string, variant: string | null) {
   // Fonts (Georgian, math) can finish loading late and change sizes:
   // count those events so we measure again when it happens.
@@ -68,7 +95,7 @@ export function usePrintLayout(test: Test, version: PrintVersion, language: stri
   const probeRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const [optionColumns, setOptionColumns] = useState<{ signature: string; value: OptionColumns } | null>(null);
-  const [pages, setPages] = useState<{ signature: string; value: Page[] } | null>(null);
+  const [pages, setPages] = useState<{ signature: string; value: Page[]; lineStarts: Record<string, number> } | null>(null);
   const { columns, fontSize } = test.printOptions;
 
   // Step 1: option widths → option columns.
@@ -102,9 +129,13 @@ export function usePrintLayout(test: Test, version: PrintVersion, language: stri
       const root = measureRef.current;
       if (!alive || !root) return;
       const header = root.querySelector<HTMLElement>("[data-header]")!;
+      // Paragraphs and essay lines that continue the block before them are
+      // drawn without a gap (see pieces.tsx), so they need none here either.
+      const flowing = new Set(printBlocks(test.questions).filter(flowsOn).map((b) => b.key));
       const blocks = [...root.querySelectorAll<HTMLElement>("[data-block]")].map((el) => ({
         key: el.dataset.block!,
         height: el.getBoundingClientRect().height,
+        gap: flowing.has(el.dataset.block!) ? 0 : undefined,
       }));
       const value = paginate({
         blocks,
@@ -114,12 +145,12 @@ export function usePrintLayout(test: Test, version: PrintVersion, language: stri
         gap: mmToPx(BLOCK_GAP),
         firstPageTop: header.getBoundingClientRect().height + mmToPx(HEADER_GAP),
       });
-      setPages({ signature, value });
+      setPages({ signature, value, lineStarts: countPassageLines(root) });
     });
     return () => {
       alive = false;
     };
-  }, [signature, optionColumns, pages?.signature, columns]);
+  }, [signature, optionColumns, pages?.signature, columns, test.questions]);
 
   // While re-measuring (e.g. a font finished loading), keep showing the previous
   // pages instead of flashing an empty screen. `ready` says the pages are up to date.
@@ -156,9 +187,9 @@ export function usePrintLayout(test: Test, version: PrintVersion, language: stri
             <PrintHeader test={test} version={version} variant={variant} />
           </div>
           <div style={{ width: `${columnWidth(columns)}mm` }}>
-            {test.questions.map((q, i) => (
-              <div key={q.id} data-block={q.id}>
-                <PrintQuestion question={q} number={i + 1} test={test} version={version} optionColumns={currentColumns} />
+            {printBlocks(test.questions).map((block) => (
+              <div key={block.key} data-block={block.key}>
+                {renderBlock(block, { test, version, optionColumns: currentColumns, lineStarts: {} })}
               </div>
             ))}
           </div>
@@ -170,6 +201,7 @@ export function usePrintLayout(test: Test, version: PrintVersion, language: stri
   return {
     measurer,
     pages: pages?.value ?? null,
+    lineStarts: pages?.lineStarts ?? {},
     optionColumns: currentColumns ?? optionColumns?.value ?? null,
     ready,
   };

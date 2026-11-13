@@ -7,6 +7,7 @@
  */
 
 import type { RichText } from "@/lib/richText";
+import type { WordRef } from "@/lib/words";
 import type { SubjectId } from "@/subjects/ids";
 
 /** How multiple-choice options are labelled: A, B, C… or ა, ბ, გ… */
@@ -259,6 +260,81 @@ export interface MapQuestion extends QuestionBase {
   wordBank: boolean;
 }
 
+// ---------------------------------------------------------------------------
+// Text blocks: a reading text or a poem. They are NOT questions (no number,
+// no points); the questions after them refer to them. On paper they may
+// continue on the next page (paragraph by paragraph / stanza by stanza).
+// The question `text` is an optional instruction above ("წაიკითხეთ…").
+// ---------------------------------------------------------------------------
+
+export interface PassageQuestion extends QuestionBase {
+  type: "passage";
+  title: string;
+  author: string;
+  /** The text, one paragraph per line. Pasted by the teacher. */
+  body: string;
+  /** Number every 5th printed line in the margin (for "lines 12–15" questions). */
+  lineNumbers: boolean;
+}
+
+export interface PoemQuestion extends QuestionBase {
+  type: "poem";
+  title: string;
+  author: string;
+  /** One verse per line; an empty line between stanzas. Kept exactly. */
+  body: string;
+  lineNumbers: boolean;
+}
+
+/** Fill in the blanks (every subject): words of `body` the teacher chose are left blank. */
+export interface FillBlankQuestion extends QuestionBase {
+  type: "fill-blank";
+  body: string;
+  /** Which words are blanks, with an optional hint printed after the blank, e.g. "წერა". */
+  blanks: (WordRef & { hint: string })[];
+  /** Also print the missing words as a list to choose from. */
+  wordBank: boolean;
+}
+
+/** Georgian: "underline the nouns" — the key shows the marked words underlined. */
+export interface MarkWordsQuestion extends QuestionBase {
+  type: "mark-words";
+  body: string;
+  marked: WordRef[];
+}
+
+/** Georgian: a table — word | case (ბრუნვა) / screeve (მწკრივი) / part of speech… */
+export interface GrammarTableQuestion extends QuestionBase {
+  type: "grammar-table";
+  wordTitle: string;
+  answerTitle: string;
+  rows: { id: string; word: string; answer: string }[];
+  /** Terms printed above the table to choose from (e.g. the 7 cases); [] = none. */
+  bank: string[];
+}
+
+/** Georgian: find and correct the mistake in each sentence. */
+export interface FindMistakeQuestion extends QuestionBase {
+  type: "find-mistake";
+  items: { id: string; sentence: string; mistake: WordRef | null; correction: string }[];
+}
+
+/** Georgian: sentence analysis — subject (ქვემდებარე), predicate (შემასმენელი)… */
+export interface SentenceAnalysisQuestion extends QuestionBase {
+  type: "sentence-analysis";
+  sentence: string;
+  parts: { id: string; role: string; answer: string }[];
+}
+
+/** An essay: guiding points, the expected length, and lines (may continue on the next page). */
+export interface EssayQuestion extends QuestionBase {
+  type: "essay";
+  lines: number;
+  guide: string[];
+  /** e.g. "150–200 სიტყვა" ("" = not shown). */
+  length: string;
+}
+
 /**
  * A question is exactly ONE of these. The `type` field tells which one —
  * TypeScript calls this a "discriminated union".
@@ -273,7 +349,15 @@ export type Question =
   | OrderQuestion
   | TimelineQuestion
   | SourceQuestion
-  | MapQuestion;
+  | MapQuestion
+  | PassageQuestion
+  | PoemQuestion
+  | FillBlankQuestion
+  | MarkWordsQuestion
+  | GrammarTableQuestion
+  | FindMistakeQuestion
+  | SentenceAnalysisQuestion
+  | EssayQuestion;
 
 export type QuestionType = Question["type"];
 

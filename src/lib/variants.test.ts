@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { createQuestion, correctOptionLabel } from "./questions";
 import type { MatchingQuestion, MultipleChoiceQuestion, OrderQuestion, Question, Test } from "./storage/types";
-import { buildVariants, seededRandom, shuffle } from "./variants";
+import { buildVariants, seededRandom, shuffle, shuffleAroundTexts } from "./variants";
 
 const text = (t: string) => [{ type: "text" as const, text: t }];
 
@@ -131,6 +131,21 @@ describe("buildVariants", () => {
           expect(optionIds(q)).toEqual([`${q.id}-a`, `${q.id}-b`, `${q.id}-c`, `${q.id}-d`]);
         }
       }
+    }
+  });
+});
+
+describe("shuffleAroundTexts", () => {
+  it("keeps reading texts in place and shuffles only the questions between them", () => {
+    const q = (id: string) => createQuestion("true-false", { id });
+    const text = (id: string) => createQuestion("passage", { id });
+    const questions = [text("T1"), q("a"), q("b"), q("c"), text("T2"), q("d"), q("e")];
+    for (let seed = 1; seed < 20; seed++) {
+      const ids = shuffleAroundTexts(questions, seededRandom(seed)).map((x) => x.id);
+      expect(ids[0]).toBe("T1");
+      expect(ids[4]).toBe("T2");
+      expect(ids.slice(1, 4).sort()).toEqual(["a", "b", "c"]);
+      expect(ids.slice(5).sort()).toEqual(["d", "e"]);
     }
   });
 });

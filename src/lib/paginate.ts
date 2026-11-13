@@ -11,7 +11,11 @@
  * It's a "pure" function (numbers in, numbers out), so it's easy to test.
  */
 
-export type MeasuredBlock = { key: string; height: number };
+/**
+ * `gap`: space before this block, if it isn't the first in its column
+ * (default: the normal gap). 0 for a paragraph that continues a reading text.
+ */
+export type MeasuredBlock = { key: string; height: number; gap?: number };
 
 /** One page: for each column, the keys of the questions in it. */
 export type Page = { columns: string[][] };
@@ -41,7 +45,8 @@ export function paginate({
 
   for (const block of blocks) {
     const isFirstInColumn = pages[pages.length - 1].columns[column].length === 0;
-    const needed = (isFirstInColumn ? 0 : gap) + block.height;
+    const blockGap = block.gap ?? gap;
+    const needed = (isFirstInColumn ? 0 : blockGap) + block.height;
 
     if (!isFirstInColumn && used + needed > available()) {
       // Doesn't fit: next column, or a fresh page.
@@ -54,7 +59,7 @@ export function paginate({
     }
 
     const page = pages[pages.length - 1];
-    used += (page.columns[column].length === 0 ? 0 : gap) + block.height;
+    used += (page.columns[column].length === 0 ? 0 : blockGap) + block.height;
     page.columns[column].push(block.key);
   }
 

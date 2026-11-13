@@ -1,5 +1,8 @@
+"use client";
+
 import { convertLatexToMarkup } from "mathlive";
 import { Fragment } from "react";
+import { useTypography } from "@/features/print/Typography";
 import type { RichText } from "@/lib/richText";
 
 /**
@@ -8,11 +11,13 @@ import type { RichText } from "@/lib/richText";
  * (and later on paper). The math fonts/styles are loaded in layout.tsx.
  */
 export function RichTextView({ value, className = "" }: { value: RichText; className?: string }) {
+  // On paper for Georgian tests: „quotes“ and long dashes (see features/print/Typography).
+  const fix = useTypography();
   return (
     <span className={`whitespace-pre-wrap ${className}`}>
       {value.map((segment, i) =>
         segment.type === "text" ? (
-          <Fragment key={i}>{segment.text}</Fragment>
+          <Fragment key={i}>{fix(segment.text)}</Fragment>
         ) : (
           <span
             key={i}

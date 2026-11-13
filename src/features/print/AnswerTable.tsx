@@ -13,11 +13,12 @@ import { useEffect, useRef, useState } from "react";
 import { RichTextView } from "@/features/math/RichTextView";
 import { useLanguage, useT } from "@/i18n/language";
 import { paginate, type Page } from "@/lib/paginate";
-import { correctOptionLabel } from "@/lib/questions";
+import { correctOptionLabel, isTextBlock } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
 import type { Question, Test } from "@/lib/storage/types";
 import type { Variant } from "@/lib/variants";
 import { orderAnswer } from "@/subjects/history/HistoryPrint";
+import { fillBlankAnswers } from "./FillBlankPrint";
 import { matchingAnswers } from "./MatchingPrint";
 import { CONTENT_HEIGHT, CONTENT_WIDTH, PAGE, mmToPx } from "./usePrintLayout";
 
@@ -38,9 +39,20 @@ function Cell({ question, labelStyle }: { question: Question; labelStyle: Test["
       return <>{matchingAnswers(question, labelStyle).map((letter, i) => `${i + 1}${letter}`).join(" ")}</>;
     case "order":
       return <>{orderAnswer(question, labelStyle).join(" ")}</>;
+    case "fill-blank":
+      return <>{fillBlankAnswers(question).join(", ") || "—"}</>;
+    case "mark-words":
+      return <>{question.marked.map((m) => m.word).join(", ") || "—"}</>;
+    case "find-mistake":
+      return <>{question.items.map((item) => item.correction).filter(Boolean).join(", ") || "—"}</>;
     case "timeline":
     case "source":
     case "map":
+    case "grammar-table":
+    case "sentence-analysis":
+    case "essay":
+    case "passage":
+    case "poem":
       return <span className="is-open">{t("variants.open")}</span>;
     case "given-find":
       return isRichTextEmpty(question.answer) ? <span className="is-open">{t("variants.open")}</span> : <RichTextView value={question.answer} />;
@@ -83,8 +95,9 @@ export function AnswerTable({
       if (!alive || !root) return;
       const title = root.querySelector("h2")!.getBoundingClientRect().height + mmToPx(TITLE_GAP);
       const head = root.querySelector("thead")!.getBoundingClientRect().height;
-      const rows = [...root.querySelectorAll("tbody tr")].map((row, i) => ({
-        key: String(i),
+      const rows = [...root.querySelectorAll<HTMLElement>("tbody tr")].map((row) => ({
+        // The question's position in the test (texts are skipped, so not simply 0, 1, 2…).
+        key: row.dataset.row!,
         height: row.getBoundingClientRect().height,
       }));
       const value = paginate({
@@ -113,8 +126,8 @@ export function AnswerTable({
       </thead>
       <tbody>
         {rowIndexes.map((i) => (
-          <tr key={i}>
-            <td>{i + 1}</td>
+          <tr key={i} data-row={i}>
+            <td>{rowNumber(i)}</td>
             {variants.map((v) => (
               <td key={v.label}>
                 <Cell question={v.test.questions[i]} labelStyle={test.labelStyle} />
@@ -127,7 +140,10 @@ export function AnswerTable({
   );
 
   const title = <h2 className="text-center text-[1.2em] font-bold">{t("variants.tableTitle")}</h2>;
-  const allRows = Array.from({ length: rowCount }, (_, i) => i);
+  // Reading texts and poems aren't questions: no row. (They stay in the same
+  // place in every variant, so the same positions are skipped everywhere.)
+  const allRows = Array.from({ length: rowCount }, (_, i) => i).filter((i) => !isTextBlock(test.questions[i]));
+  const rowNumber = (i: number) => allRows.indexOf(i) + 1;
   const shown = pages?.value ?? [];
 
   return (

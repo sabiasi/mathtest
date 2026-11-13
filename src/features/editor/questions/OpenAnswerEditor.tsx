@@ -10,9 +10,21 @@ import type { OpenAnswerQuestion } from "@/lib/storage/types";
 const PREVIEW_LINES = 6;
 
 /** "Lines for working: [−] 5 [+]" — also used by the Given / Find / Solution question. */
-export function LinesStepper({ id, value, min, onChange }: { id: string; value: number; min: number; onChange: (lines: number) => void }) {
+export function LinesStepper({
+  id,
+  value,
+  min,
+  max = MAX_LINES,
+  onChange,
+}: {
+  id: string;
+  value: number;
+  min: number;
+  max?: number;
+  onChange: (lines: number) => void;
+}) {
   const t = useT();
-  const set = (n: number) => onChange(Math.min(MAX_LINES, Math.max(min, n)));
+  const set = (n: number) => onChange(Math.min(max, Math.max(min, n)));
   const stepButton = buttonVariants({ variant: "outline", size: "icon-sm" });
   return (
     <div>
@@ -24,7 +36,7 @@ export function LinesStepper({ id, value, min, onChange }: { id: string; value: 
         <span className="w-8 text-center text-lg font-semibold tabular-nums" aria-live="polite">
           {value}
         </span>
-        <button type="button" className={stepButton} onClick={() => set(value + 1)} disabled={value >= MAX_LINES} aria-label={t("common.increase")}>
+        <button type="button" className={stepButton} onClick={() => set(value + 1)} disabled={value >= max} aria-label={t("common.increase")}>
           <Plus className="size-4" aria-hidden="true" />
         </button>
       </div>

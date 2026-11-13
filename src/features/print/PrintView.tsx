@@ -18,10 +18,13 @@ import type { PrintOptions, Test, VariantSettings } from "@/lib/storage/types";
 import { useTest } from "@/lib/storage/useTests";
 import { MAX_VARIANTS, buildVariants, newSeed, type Variant } from "@/lib/variants";
 import { getToolkit } from "@/subjects/registry";
+import { printBlocks } from "./blocks";
+import { renderBlock } from "./pieces";
+import { TypographyProvider } from "./Typography";
 import { AnswerTable } from "./AnswerTable";
 import { GuestBanner } from "@/components/GuestBanner";
 import { PdfError, downloadPdf, pdfFileName, waitForImages } from "./downloadPdf";
-import { PrintHeader, PrintQuestion, type PrintVersion } from "./PrintBlocks";
+import { PrintHeader, type PrintVersion } from "./PrintBlocks";
 import { BLOCK_GAP, COLUMN_GAP, HEADER_GAP, PAGE, usePrintLayout } from "./usePrintLayout";
 
 /** The /print/[id] page.  URL: ?version=student|key&variant=A…F|all */
@@ -322,6 +325,7 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
           style its paper. The invisible measuring copies sit inside too, so
           pages are measured with the same styles they're printed with. */}
       <div className={`print-sheets ${getToolkit(test.subjectId).print.className}`} style={{ zoom }}>
+        <TypographyProvider georgian={getToolkit(test.subjectId).print.typography === "georgian"}>
         {withTable && <AnswerTable variants={variants} test={test} blankAfter={test.variants.duplex} onReady={reportTableReady} />}
         {shown.map((variant, i) => (
           <PrintedVariant
@@ -334,6 +338,7 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
             onReady={reportReady}
           />
         ))}
+        </TypographyProvider>
       </div>
     </div>
   );
@@ -356,7 +361,7 @@ function PrintedVariant({
   const t = useT();
   const language = useLanguage();
   const test = variant.test;
-  const { measurer, pages, optionColumns, ready } = usePrintLayout(test, version, language, label);
+  const { measurer, pages, optionColumns, lineStarts, ready } = usePrintLayout(test, version, language, label);
 
   useEffect(() => {
     onReady(variant.label, ready);
@@ -371,18 +376,11 @@ function PrintedVariant({
     .filter(Boolean)
     .join(" — ");
 
-  const blockFor = (questionId: string) => {
-    const index = test.questions.findIndex((q) => q.id === questionId);
-    return (
-      <PrintQuestion
-        key={questionId}
-        question={test.questions[index]}
-        number={index + 1}
-        test={test}
-        version={version}
-        optionColumns={optionColumns ?? {}}
-      />
-    );
+  const blocks = new Map(printBlocks(test.questions).map((block) => [block.key, block]));
+  const blockFor = (key: string, indexInColumn: number) => {
+    const block = blocks.get(key);
+    if (!block) return null;
+    return renderBlock(block, { test, version, optionColumns: optionColumns ?? {}, lineStarts }, indexInColumn === 0);
   };
 
   return (

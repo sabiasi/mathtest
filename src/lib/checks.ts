@@ -3,7 +3,7 @@
  * empty questions, multiple choice without enough answers or without the
  * correct one marked, and missing answers (which leave gaps in the key).
  */
-import { visibleOptions } from "@/lib/questions";
+import { isTextBlock, visibleOptions } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
 import type { Test } from "@/lib/storage/types";
 
@@ -17,7 +17,9 @@ export type ProblemKind =
   | "noBlanks"
   | "noMap"
   | "noMarkers"
-  | "noSource";
+  | "noSource"
+  | "emptyText"
+  | "noGaps";
 
 export type Problem = {
   kind: ProblemKind;
@@ -31,8 +33,14 @@ export function findProblems(test: Test): Problem[] {
   if (test.questions.length === 0) return [{ kind: "noQuestions", number: 0, keyOnly: false }];
 
   const problems: Problem[] = [];
-  test.questions.forEach((q, i) => {
-    const number = i + 1;
+  let next = 1; // question numbers skip texts (see questionNumbers in lib/questions.ts)
+  test.questions.forEach((q) => {
+    // Reading texts and poems have no number: their problem says "a text is empty".
+    if (isTextBlock(q)) {
+      if (!("body" in q) || !q.body.trim()) problems.push({ kind: "emptyText", number: 0, keyOnly: false });
+      return;
+    }
+    const number = next++;
     if (isRichTextEmpty(q.text) && q.images.length === 0) problems.push({ kind: "empty", number, keyOnly: false });
     if (q.type === "multiple-choice") {
       if (visibleOptions(q).length < 2) problems.push({ kind: "fewOptions", number, keyOnly: false });
@@ -51,6 +59,13 @@ export function findProblems(test: Test): Problem[] {
       else if (q.events.every((e) => e.hide === "none")) problems.push({ kind: "noBlanks", number, keyOnly: false });
     }
     if (q.type === "source" && isRichTextEmpty(q.source)) problems.push({ kind: "noSource", number, keyOnly: false });
+    if (q.type === "fill-blank" && q.blanks.length === 0) problems.push({ kind: "noGaps", number, keyOnly: false });
+    if (q.type === "mark-words" && q.marked.length === 0) problems.push({ kind: "noAnswer", number, keyOnly: true });
+    if (q.type === "find-mistake" && q.items.some((item) => item.sentence.trim() && !item.mistake)) {
+      problems.push({ kind: "noAnswer", number, keyOnly: true });
+    }
+    if (q.type === "grammar-table" && q.rows.filter((row) => row.word.trim()).length === 0) problems.push({ kind: "fewItems", number, keyOnly: false });
+    if (q.type === "sentence-analysis" && (q.parts.length === 0 || !q.sentence.trim())) problems.push({ kind: "fewItems", number, keyOnly: false });
     if (q.type === "map") {
       if (!q.map) problems.push({ kind: "noMap", number, keyOnly: false });
       else if (q.markers.length === 0) problems.push({ kind: "noMarkers", number, keyOnly: false });

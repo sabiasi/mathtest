@@ -15,7 +15,10 @@ import { isRichTextEmpty } from "@/lib/richText";
 import type { Question, Test } from "@/lib/storage/types";
 import { MapPrint, OrderPrint, SourcePrint, TimelinePrint } from "@/subjects/history/HistoryPrint";
 import { GivenFindPrint } from "@/subjects/physics/GivenFindPrint";
+import { EssayPrint, FindMistakePrint, GrammarTablePrint, MarkWordsPrint, SentenceAnalysisPrint } from "@/subjects/georgian/GeorgianPrint";
+import { FillBlankPrint } from "./FillBlankPrint";
 import { MatchingPrint } from "./MatchingPrint";
+import { useTypography } from "./Typography";
 
 export type PrintVersion = "student" | "key";
 
@@ -35,6 +38,7 @@ export function PrintHeader({
   variant: string | null;
 }) {
   const t = useT();
+  const fix = useTypography();
   const language = useLanguage();
   const total = formatPoints(totalPoints(test.questions));
   const meta = [
@@ -49,7 +53,7 @@ export function PrintHeader({
       {variant && <p className="print-variant-badge">{t("variants.name", { label: variant })}</p>}
       {version === "key" && <p className="print-key-banner">{t("print.keyBanner")}</p>}
       {test.schoolName && <p className="print-school">{test.schoolName}</p>}
-      <h1 className="print-title">{test.title || t("test.untitled")}</h1>
+      <h1 className="print-title">{fix(test.title) || t("test.untitled")}</h1>
       {meta.length > 0 && <p className="print-meta">{meta.join("  ·  ")}</p>}
 
       <div className="print-fields">
@@ -70,7 +74,7 @@ export function PrintHeader({
         )}
       </div>
 
-      {test.instructions && <p className="print-instructions">{test.instructions}</p>}
+      {test.instructions && <p className="print-instructions">{fix(test.instructions)}</p>}
     </header>
   );
 }
@@ -234,5 +238,28 @@ function QuestionBody({
 
     case "map":
       return <MapPrint question={question} answerKey={key} />;
+
+    case "fill-blank":
+      return <FillBlankPrint question={question} answerKey={key} />;
+
+    case "mark-words":
+      return <MarkWordsPrint question={question} answerKey={key} />;
+
+    case "grammar-table":
+      return <GrammarTablePrint question={question} answerKey={key} />;
+
+    case "find-mistake":
+      return <FindMistakePrint question={question} answerKey={key} />;
+
+    case "sentence-analysis":
+      return <SentenceAnalysisPrint question={question} answerKey={key} />;
+
+    case "essay":
+      return <EssayPrint question={question} />;
+
+    // Reading texts and poems are drawn piece by piece (see pieces.tsx), never here.
+    case "passage":
+    case "poem":
+      return null;
   }
 }

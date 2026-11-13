@@ -32,7 +32,24 @@ export const QUESTION_TYPES: readonly QuestionType[] = [
   "short-answer",
   "open-answer",
   "matching",
+  "fill-blank",
 ];
+
+/** Reading texts and poems: not questions (no number, no points), questions refer to them. */
+export function isTextBlock(question: Question): boolean {
+  return question.type === "passage" || question.type === "poem";
+}
+
+/**
+ * The printed number of each question (1, 2, 3…). Text blocks get none, so
+ * "read the text and answer questions 1–5" stays right.
+ */
+export function questionNumbers(questions: Question[]): Map<string, number | null> {
+  const numbers = new Map<string, number | null>();
+  let next = 1;
+  for (const question of questions) numbers.set(question.id, isTextBlock(question) ? null : next++);
+  return numbers;
+}
 
 /** How many items the list-like questions may have. */
 export const LIMITS = {
@@ -43,6 +60,14 @@ export const LIMITS = {
   sourceParts: { min: 1, max: 6 },
   mapMarkers: 15,
   mapWidth: { min: 40, max: 100 },
+  passageChars: 30_000,
+  shortTextChars: 3_000,
+  blanks: 40,
+  tableRows: 15,
+  mistakeItems: 10,
+  sentenceParts: 8,
+  essayLines: 60,
+  guidePoints: 8,
 };
 
 function emptyOptions(count: number): ChoiceOption[] {
@@ -103,6 +128,35 @@ export function createQuestion(
       };
     case "map":
       return { ...base, type, points: keep.points ?? 3, map: null, mapWidth: 80, markers: [], wordBank: false };
+    case "passage":
+      return { ...base, type, points: 0, title: "", author: "", body: "", lineNumbers: true };
+    case "poem":
+      return { ...base, type, points: 0, title: "", author: "", body: "", lineNumbers: false };
+    case "fill-blank":
+      return { ...base, type, points: keep.points ?? 2, body: "", blanks: [], wordBank: false };
+    case "mark-words":
+      return { ...base, type, points: keep.points ?? 2, body: "", marked: [] };
+    case "grammar-table":
+      return {
+        ...base,
+        type,
+        points: keep.points ?? 3,
+        wordTitle: "",
+        answerTitle: "",
+        rows: Array.from({ length: 3 }, () => ({ id: newId(), word: "", answer: "" })),
+        bank: [],
+      };
+    case "find-mistake":
+      return {
+        ...base,
+        type,
+        points: keep.points ?? 2,
+        items: Array.from({ length: 2 }, () => ({ id: newId(), sentence: "", mistake: null, correction: "" })),
+      };
+    case "sentence-analysis":
+      return { ...base, type, points: keep.points ?? 3, sentence: "", parts: [] };
+    case "essay":
+      return { ...base, type, points: keep.points ?? 10, lines: 20, guide: [], length: "" };
     case "given-find":
       return { ...base, type, points: keep.points ?? 3, lines: DEFAULT_GIVEN_FIND_LINES, given: [], find: [], solution: [], answer: [] };
   }

@@ -68,6 +68,18 @@ describe("subject toolkits", () => {
     }
   });
 
+  it("Georgian offers texts, grammar and essays, matching templates and Georgian typography", () => {
+    const georgian = getToolkit("georgian");
+    for (const type of ["passage", "poem", "fill-blank", "mark-words", "grammar-table", "find-mistake", "sentence-analysis", "essay"]) {
+      expect(georgian.questionTypes).toContain(type);
+    }
+    expect(georgian.matchingTemplates?.map((t) => t.id)).toEqual(expect.arrayContaining(["author-work", "work-character", "author-character"]));
+    expect(georgian.print.typography).toBe("georgian");
+    expect(getToolkit("math").print.typography).toBeUndefined();
+    // Fill in the blanks is common to every subject.
+    expect(getToolkit("physics").questionTypes).toContain("fill-blank");
+  });
+
   it("history offers its own question types, matching templates and date tools", () => {
     const history = getToolkit("history");
     for (const type of ["matching", "order", "timeline", "source", "map"]) expect(history.questionTypes).toContain(type);
