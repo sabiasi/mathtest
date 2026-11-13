@@ -16,6 +16,7 @@ import {
   MessagesSquare,
   Repeat,
   Search,
+  Tags,
   WholeWord,
   type LucideIcon,
   SpellCheck,
@@ -90,6 +91,7 @@ const TYPE_ICONS: Record<QuestionType, typeof ListChecks> = {
   "odd-one-out": CircleSlash,
   crossword: Grid2x2,
   "word-search": Search,
+  "label-diagram": Tags,
 };
 
 /** One "add a question" button. */

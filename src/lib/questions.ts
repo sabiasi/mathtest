@@ -224,6 +224,8 @@ export function createQuestion(
       return { ...base, type, points: keep.points ?? 4, words: [], size: 10, allDirections: false, seed: seedOf(base.id) };
     case "given-find":
       return { ...base, type, points: keep.points ?? 3, lines: DEFAULT_GIVEN_FIND_LINES, given: [], find: [], solution: [], answer: [] };
+    case "label-diagram":
+      return { ...base, type, points: keep.points ?? 4, picture: null, pictureWidth: 100, labels: [], mode: "boxes", wordBank: false, extras: [] };
   }
 }
 

@@ -31,6 +31,7 @@ export function usedImageIds(tests: Test[]): Set<string> {
       for (const image of q.images) if (image.imageId && !image.diagram) used.add(image.imageId);
       if (q.type === "map" && q.map) used.add(q.map.imageId);
       if (q.type === "picture-match") for (const picture of q.pictures) used.add(picture.imageId);
+      if (q.type === "label-diagram" && q.picture?.kind === "upload") used.add(q.picture.imageId);
     }
   }
   return used;

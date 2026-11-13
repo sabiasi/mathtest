@@ -44,7 +44,8 @@ export type ToolbarButton = {
 
 /** A small tool shown at the start of a tab (e.g. century → Roman numeral). */
 export type ToolbarWidgetProps = {
-  insertText: (text: string, caretBack?: number) => void;
+  /** `marks`: e.g. ["italic"] for a Latin name (the text after it is plain again). */
+  insertText: (text: string, caretBack?: number, marks?: TextMark[]) => void;
   insertChem: (text: string, caretBack?: number) => void;
 };
 export type ToolbarTab = {

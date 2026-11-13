@@ -16,6 +16,8 @@ import {
   MIN_GIVEN_FIND_LINES,
 } from "@/lib/questions";
 import { normalizeDiagram } from "@/subjects/physics/diagrams/normalize";
+import { isBioDrawingId } from "@/subjects/biology/drawingIds";
+import { LABEL_LIMITS } from "@/lib/labelDiagram";
 import { normalizeRichText } from "@/lib/richText";
 import { DEFAULT_SUBJECT, isSubjectId, subjectFromText } from "@/subjects/ids";
 import {
@@ -29,6 +31,7 @@ import {
   DEFAULT_VARIANTS,
   type ChoiceOption,
   type LabelStyle,
+  type LabelDiagramQuestion,
   type PrintOptions,
   type Question,
   type Test,
@@ -373,6 +376,32 @@ function normalizeQuestion(raw: unknown): Question | null {
         find: normalizeRichText(raw.find),
         solution: normalizeRichText(raw.solution),
         answer: normalizeRichText(raw.answer),
+      };
+    }
+    case "label-diagram": {
+      const p = raw.picture;
+      let picture: LabelDiagramQuestion["picture"] = null;
+      if (isObject(p) && p.kind === "builtin" && isBioDrawingId(p.drawing)) picture = { kind: "builtin", drawing: p.drawing };
+      else if (isObject(p) && p.kind === "upload" && typeof p.imageId === "string" && p.imageId) {
+        picture = { kind: "upload", imageId: p.imageId, width: Math.max(1, num(p.width, 800)), height: Math.max(1, num(p.height, 600)) };
+      }
+      const position = (value: unknown, fallback: number) => clamp(num(value, fallback), 0, 100);
+      return {
+        ...base,
+        type: "label-diagram",
+        picture,
+        pictureWidth: clamp(Math.round(num(raw.pictureWidth, 100)), LABEL_LIMITS.width.min, LABEL_LIMITS.width.max),
+        labels: list(raw.labels, LABEL_LIMITS.labels, (l) => ({
+          id: l.id,
+          x: position(l.x, 50),
+          y: position(l.y, 50),
+          lx: position(l.lx, 10),
+          ly: position(l.ly, 50),
+          answer: str(l.answer).slice(0, 100),
+        })),
+        mode: raw.mode === "numbers" || raw.mode === "match" ? raw.mode : "boxes",
+        wordBank: raw.wordBank === true,
+        extras: strings(raw.extras, 10, 100),
       };
     }
     default:

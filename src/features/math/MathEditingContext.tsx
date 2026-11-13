@@ -30,7 +30,8 @@ type MathEditing = {
   /** Turns bold / italic / underline / word box on or off for the selected text. */
   toggleFormat: (mark: TextMark) => void;
   /** Inserts plain text at the cursor (e.g. "ძვ. წ." from the history toolbar). */
-  insertText: (text: string, caretBack?: number) => void;
+  /** `marks` (e.g. ["italic"]): the inserted text gets them; the cursor continues in plain text. */
+  insertText: (text: string, caretBack?: number, marks?: TextMark[]) => void;
 };
 
 const MathEditingContext = createContext<MathEditing | null>(null);
@@ -84,7 +85,7 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
   );
 
   const insertText = useCallback(
-    (text: string, caretBack = 0) => {
+    (text: string, caretBack = 0, marks?: TextMark[]) => {
       const editor = activeEditor;
       if (!editor || editor.isDestroyed) return;
       // "1121" + "წ." → "1121 წ.": a space goes between a word (or the end of
@@ -92,6 +93,19 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
       const { from } = editor.state.selection;
       const before = from > 1 ? editor.state.doc.textBetween(from - 1, from, "", " ") : "";
       const needsSpace = /[\p{L}\p{N}.,;:)“”»]/u.test(before) && /^[\p{L}\p{N}„«(]/u.test(text);
+      if (marks?.length) {
+        // e.g. an italic Latin name, then a plain space so typing goes on in normal text.
+        editor
+          .chain()
+          .focus()
+          .insertContent([
+            ...(needsSpace ? [{ type: "text", text: " " }] : []),
+            { type: "text", text, marks: marks.map((type) => ({ type })) },
+            { type: "text", text: " " },
+          ])
+          .run();
+        return;
+      }
       // As a text node (not HTML), so characters like "<" stay as they are.
       editor.chain().focus().insertContent({ type: "text", text: needsSpace ? ` ${text}` : text }).run();
       // e.g. „“: put the cursor between the quotes.

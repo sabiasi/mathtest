@@ -107,6 +107,22 @@ describe("subject toolkits", () => {
     expect(getToolkit("math").questionTypes).toContain("matching");
     expect(getToolkit("math").questionTypes).not.toContain("timeline");
   });
+
+  it("biology offers label-the-diagram, Georgian instruction templates, chemistry formulas and its own toolbar", () => {
+    const biology = getToolkit("biology");
+    expect(biology.questionTypes).toContain("label-diagram");
+    expect(biology.chemistry).toBe(true);
+    expect(biology.print.typography).toBe("georgian");
+    expect(biology.instructionTemplates?.every((i) => i.ka && i.en)).toBe(true);
+    const tab = biology.toolbar[0];
+    expect(tab.Widget).toBeDefined();
+    const [latin, georgian] = tab.styles!.options;
+    expect(latin.buttons.length).toBe(georgian.buttons.length);
+    expect(latin.buttons.some((b) => b.text === "μm")).toBe(true);
+    expect(georgian.buttons.some((b) => b.text === "მკმ")).toBe(true);
+    expect(biology.toolbar.some((t) => t.buttons.some((b) => b.chem?.includes("C6H12O6")))).toBe(true);
+    expect(getToolkit("history").questionTypes).not.toContain("label-diagram");
+  });
 });
 
 describe("subjectFromText", () => {
@@ -115,6 +131,7 @@ describe("subjectFromText", () => {
     expect(subjectFromText("  PHYSICS ")).toBe("physics");
     expect(subjectFromText("ქართული ენა და ლიტერატურა")).toBe("georgian");
     expect(subjectFromText("history")).toBe("history");
+    expect(subjectFromText("ბიოლოგია")).toBe("biology");
   });
   it("returns null for anything else", () => {
     expect(subjectFromText("")).toBeNull();
