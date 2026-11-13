@@ -1,0 +1,52 @@
+/* Biology diagram labels: boxes or numbers at the end of pointer lines.
+   Sizes in mm so a box always has room for a handwritten word. */
+.print-label-box,
+.print-label-number {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  background: #fff;
+  border: 0.35mm solid #000;
+}
+.print-label-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: max(19%, 24mm);
+  min-height: 7.5mm;
+  padding: 0.6mm 1mm 0.6mm 2.8mm;
+  border-radius: 1mm;
+  font-size: 8pt;
+  line-height: 1.15;
+  text-align: center;
+}
+.print-label-box-number {
+  position: absolute;
+  top: 0.4mm;
+  left: 0.9mm;
+  font-size: 6.5pt;
+  font-weight: 600;
+  line-height: 1;
+}
+.print-key-answer-inline {
+  font-weight: 700;
+}
+.print-label-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 5.5mm;
+  height: 5.5mm;
+  border-radius: 50%;
+  font-size: 8.5pt;
+  font-weight: 700;
+}
+.print-label-bank {
+  margin-top: 3mm;
+  border: 0.3mm solid #000;
+  padding: 1.5mm 2.5mm;
+}
+.print-label-bank-lettered {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1mm 6mm;
+}

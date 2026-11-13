@@ -1,6 +1,7 @@
 /*
  * Print styles that only apply to biology tests (inside ".subject-biology").
- * Keep the paper white and text black (see CLAUDE.md). Label-the-diagram
- * styles are shared (globals.css), because the question type can travel
- * with a test that changes subject.
+ * Keep the paper white and text black (see CLAUDE.md). Styles of the
+ * biology question types are NOT here but shared, because a question can
+ * travel with a test that changes subject: label-the-diagram in
+ * LabelDiagramView.css, genetics in globals.css.
  */
