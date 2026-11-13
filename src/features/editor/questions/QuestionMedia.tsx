@@ -3,7 +3,7 @@
 /**
  * Pictures and the answer grid of one question, in the editor.
  */
-import { Grid3x3, ImagePlus, LoaderCircle, Minus, Plus, X } from "lucide-react";
+import { Grid3x3, ImagePlus, LoaderCircle, Minus, MoveUpRight, Pencil, Plus, X, Zap, type LucideIcon } from "lucide-react";
 import { useRef, useState, type PointerEvent } from "react";
 import { GRID_CELL_MM, GridArea } from "@/components/GridArea";
 import { QuestionImageView } from "@/components/QuestionImageView";
@@ -12,7 +12,7 @@ import { SegmentedControl } from "@/components/ui/form";
 import { useT } from "@/i18n/language";
 import { ACCEPTED_TYPES } from "@/lib/images/imageMath";
 import { DEFAULT_GRID, GRID_LIMITS } from "@/lib/questions";
-import type { AnswerGrid, QuestionImage } from "@/lib/storage/types";
+import type { AnswerGrid, DiagramKind, QuestionImage } from "@/lib/storage/types";
 
 // ---------------------------------------------------------------------------
 // Pictures
@@ -21,9 +21,12 @@ import type { AnswerGrid, QuestionImage } from "@/lib/storage/types";
 export function ImageStrip({
   images,
   onChange,
+  onEditDiagram,
 }: {
   images: QuestionImage[];
   onChange: (images: QuestionImage[]) => void;
+  /** Opens a diagram (circuit, forces) in its drawing window. */
+  onEditDiagram: (image: QuestionImage) => void;
 }) {
   const stripRef = useRef<HTMLDivElement>(null);
   if (images.length === 0) return null;
@@ -40,6 +43,7 @@ export function ImageStrip({
           stripRef={stripRef}
           onChange={(changes) => update(image.id, changes)}
           onRemove={() => onChange(images.filter((i) => i.id !== image.id))}
+          onEdit={image.diagram ? () => onEditDiagram(image) : undefined}
         />
       ))}
     </div>
@@ -51,11 +55,14 @@ function EditableImage({
   stripRef,
   onChange,
   onRemove,
+  onEdit,
 }: {
   image: QuestionImage;
   stripRef: React.RefObject<HTMLDivElement | null>;
   onChange: (changes: Partial<QuestionImage>) => void;
   onRemove: () => void;
+  /** Only for diagrams: open the drawing window. */
+  onEdit?: () => void;
 }) {
   const t = useT();
   // While dragging the corner we show the new size right away and save it once at the end.
@@ -108,6 +115,17 @@ function EditableImage({
         >
           <X className="size-4" aria-hidden="true" />
         </button>
+        {onEdit && (
+          <button
+            type="button"
+            onClick={onEdit}
+            data-edit-diagram=""
+            className="absolute top-1 left-1 inline-flex items-center gap-1 rounded-md bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover pointer-coarse:py-2"
+          >
+            <Pencil className="size-3.5" aria-hidden="true" />
+            {t("diagram.edit")}
+          </button>
+        )}
       </div>
       <figcaption className="mt-2 space-y-2 text-sm text-muted-foreground">
         <SegmentedControl
@@ -141,18 +159,25 @@ function EditableImage({
 // The bar under a question: "Add image" and the answer grid
 // ---------------------------------------------------------------------------
 
+const DIAGRAM_ICONS: Record<DiagramKind, LucideIcon> = { circuit: Zap, forces: MoveUpRight };
+
 export function MediaBar({
   grid,
   busy,
   error,
   onFiles,
   onGridChange,
+  diagrams,
+  onNewDiagram,
 }: {
   grid: AnswerGrid | null;
   busy: boolean;
   error: string | null;
   onFiles: (files: File[]) => void;
   onGridChange: (grid: AnswerGrid | null) => void;
+  /** The subject's drawing tools (physics: circuit, forces). */
+  diagrams: readonly DiagramKind[];
+  onNewDiagram: (kind: DiagramKind) => void;
 }) {
   const t = useT();
   const fileInput = useRef<HTMLInputElement>(null);
@@ -183,6 +208,26 @@ export function MediaBar({
             }}
           />
         </div>
+
+        {diagrams.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            {diagrams.map((kind) => {
+              const Icon = DIAGRAM_ICONS[kind];
+              return (
+                <button
+                  key={kind}
+                  type="button"
+                  onClick={() => onNewDiagram(kind)}
+                  data-new-diagram={kind}
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  <Icon className="size-4" aria-hidden="true" />
+                  {t(`diagram.new.${kind}`)}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
         <div className="flex items-center gap-2">
           <Grid3x3 className="size-4 text-muted-foreground" aria-hidden="true" />
@@ -239,7 +284,7 @@ function GridEditor({ grid, onChange }: { grid: AnswerGrid; onChange: (grid: Ans
   );
 }
 
-function Stepper({
+export function Stepper({
   label,
   value,
   min,

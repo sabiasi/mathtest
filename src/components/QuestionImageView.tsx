@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getImageUrl } from "@/lib/images/imageStore";
 import type { QuestionImage } from "@/lib/storage/types";
+import { DiagramView } from "@/subjects/physics/diagrams/DiagramView";
 
 /** The address of a stored picture, or null while it loads (or if it's gone). */
 export function useImageUrl(imageId: string): string | null {
@@ -25,6 +26,18 @@ export function useImageUrl(imageId: string): string | null {
  * be measured without waiting for pictures to load.
  */
 export function QuestionImageView({ image, className = "" }: { image: QuestionImage; className?: string }) {
+  // A diagram (circuit, forces…) is drawn from its data; a picture is loaded.
+  if (image.diagram) {
+    return (
+      <div className={`w-full ${className}`} style={{ aspectRatio: `${image.width} / ${image.height}` }}>
+        <DiagramView diagram={image.diagram} />
+      </div>
+    );
+  }
+  return <StoredPicture image={image} className={className} />;
+}
+
+function StoredPicture({ image, className }: { image: QuestionImage; className: string }) {
   const url = useImageUrl(image.imageId);
   const style = { aspectRatio: `${image.width} / ${image.height}` };
   return url ? (

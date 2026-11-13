@@ -4,6 +4,7 @@ import {
   ArrowLeft,
   CloudAlert,
   CloudCheck,
+  ClipboardList,
   HardDrive,
   ListChecks,
   ListPlus,
@@ -41,6 +42,7 @@ const TYPE_ICONS: Record<QuestionType, typeof ListChecks> = {
   "true-false": ToggleRight,
   "short-answer": TextCursorInput,
   "open-answer": NotebookPen,
+  "given-find": ClipboardList,
 };
 
 /**
@@ -221,7 +223,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                 <QuestionList
                   questions={test.questions}
                   labelStyle={test.labelStyle}
-                  questionTypes={toolkit.questionTypes}
+                  toolkit={toolkit}
                   focusId={focusId}
                   onReorder={(questions) => update({ questions })}
                   onChange={(changed) =>

@@ -9,6 +9,29 @@ import type { OpenAnswerQuestion } from "@/lib/storage/types";
 
 const PREVIEW_LINES = 6;
 
+/** "Lines for working: [−] 5 [+]" — also used by the Given / Find / Solution question. */
+export function LinesStepper({ id, value, min, onChange }: { id: string; value: number; min: number; onChange: (lines: number) => void }) {
+  const t = useT();
+  const set = (n: number) => onChange(Math.min(MAX_LINES, Math.max(min, n)));
+  const stepButton = buttonVariants({ variant: "outline", size: "icon-sm" });
+  return (
+    <div>
+      <FieldLabel id={`${id}-lines`}>{t("oa.lines")}</FieldLabel>
+      <div className="flex items-center gap-2" role="group" aria-labelledby={`${id}-lines`}>
+        <button type="button" className={stepButton} onClick={() => set(value - 1)} disabled={value <= min} aria-label={t("common.decrease")}>
+          <Minus className="size-4" aria-hidden="true" />
+        </button>
+        <span className="w-8 text-center text-lg font-semibold tabular-nums" aria-live="polite">
+          {value}
+        </span>
+        <button type="button" className={stepButton} onClick={() => set(value + 1)} disabled={value >= MAX_LINES} aria-label={t("common.increase")}>
+          <Plus className="size-4" aria-hidden="true" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function OpenAnswerEditor({
   question,
   onChange,
@@ -18,26 +41,10 @@ export function OpenAnswerEditor({
 }) {
   const t = useT();
   const { lines } = question;
-  const setLines = (n: number) => onChange({ ...question, lines: Math.min(MAX_LINES, Math.max(0, n)) });
-
-  const stepButton = buttonVariants({ variant: "outline", size: "icon-sm" });
 
   return (
     <div className="flex flex-wrap items-start gap-x-8 gap-y-4">
-      <div>
-        <FieldLabel id={`${question.id}-lines`}>{t("oa.lines")}</FieldLabel>
-        <div className="flex items-center gap-2" role="group" aria-labelledby={`${question.id}-lines`}>
-          <button type="button" className={stepButton} onClick={() => setLines(lines - 1)} disabled={lines <= 0} aria-label={t("common.decrease")}>
-            <Minus className="size-4" aria-hidden="true" />
-          </button>
-          <span className="w-8 text-center text-lg font-semibold tabular-nums" aria-live="polite">
-            {lines}
-          </span>
-          <button type="button" className={stepButton} onClick={() => setLines(lines + 1)} disabled={lines >= MAX_LINES} aria-label={t("common.increase")}>
-            <Plus className="size-4" aria-hidden="true" />
-          </button>
-        </div>
-      </div>
+      <LinesStepper id={question.id} value={lines} min={0} onChange={(n) => onChange({ ...question, lines: n })} />
 
       {lines > 0 && (
         <div className="min-w-48 flex-1" aria-hidden="true">

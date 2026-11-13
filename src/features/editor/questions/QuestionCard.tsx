@@ -12,8 +12,13 @@ import { useT } from "@/i18n/language";
 import { newId } from "@/lib/ids";
 import { UnsupportedImageError, addImage } from "@/lib/images/imageStore";
 import { changeQuestionType } from "@/lib/questions";
-import type { LabelStyle, Question, QuestionImage, QuestionType } from "@/lib/storage/types";
+import type { Diagram, DiagramKind, LabelStyle, Question, QuestionImage, QuestionType } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
+import { GivenFindEditor } from "@/subjects/physics/GivenFindEditor";
+import { DiagramDialog } from "@/subjects/physics/diagrams/DiagramDialog";
+import { diagramSize } from "@/subjects/physics/diagrams/DiagramView";
+import { newCircuit, newForceDiagram } from "@/subjects/physics/diagrams/normalize";
+import type { SubjectToolkit } from "@/subjects/types";
 import { MultipleChoiceEditor } from "./MultipleChoiceEditor";
 import { OpenAnswerEditor } from "./OpenAnswerEditor";
 import { PointsInput } from "./PointsInput";
@@ -25,7 +30,7 @@ export function QuestionCard({
   question,
   number,
   labelStyle,
-  questionTypes,
+  toolkit,
   autoFocus,
   onChange,
   onPatch,
@@ -35,7 +40,8 @@ export function QuestionCard({
   question: Question;
   number: number;
   labelStyle: LabelStyle;
-  questionTypes: readonly QuestionType[];
+  /** The subject's tools: question types and diagrams. */
+  toolkit: SubjectToolkit;
   autoFocus: boolean;
   onChange: (question: Question) => void;
   onPatch: (patch: (question: Question) => Question) => void;
@@ -51,6 +57,38 @@ export function QuestionCard({
   const [mediaBusy, setMediaBusy] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [dropActive, setDropActive] = useState(false);
+  const questionTypes = toolkit.questionTypes;
+
+  // ---- Diagrams (circuit, forces): drawn in a window, kept as data ----
+  const [diagramEdit, setDiagramEdit] = useState<{ placementId: string | null; diagram: Diagram } | null>(null);
+
+  function startDiagram(kind: DiagramKind) {
+    const diagram =
+      kind === "circuit"
+        ? newCircuit()
+        : newForceDiagram({ gravity: t("forces.preset.gravityLabel"), normal: t("forces.preset.normalLabel") }, newId);
+    setDiagramEdit({ placementId: null, diagram });
+  }
+
+  function saveDiagram(diagram: Diagram) {
+    const editing = diagramEdit;
+    setDiagramEdit(null);
+    if (!editing) return;
+    const size = diagramSize(diagram);
+    if (editing.placementId) {
+      onPatch((q) => ({ ...q, images: q.images.map((i) => (i.id === editing.placementId ? { ...i, ...size, diagram } : i)) }));
+    } else {
+      const placement: QuestionImage = {
+        id: newId(),
+        imageId: "",
+        ...size,
+        diagram,
+        widthPercent: diagram.kind === "circuit" ? 45 : 35,
+        position: "right",
+      };
+      onPatch((q) => ({ ...q, images: [...q.images, placement] }));
+    }
+  }
 
   async function addFiles(files: File[]) {
     if (files.length === 0) return;
@@ -177,11 +215,21 @@ export function QuestionCard({
               value={question.text}
               autoFocus={autoFocus}
               ariaLabel={t("questions.text")}
-              placeholder={t(question.type === "true-false" ? "questions.statementPlaceholder" : "questions.textPlaceholder")}
+              placeholder={t(
+                question.type === "true-false"
+                  ? "questions.statementPlaceholder"
+                  : question.type === "given-find"
+                    ? "questions.problemPlaceholder"
+                    : "questions.textPlaceholder",
+              )}
               onChange={(text) => onChange({ ...question, text })}
             />
 
-            <ImageStrip images={question.images} onChange={(images) => onChange({ ...question, images })} />
+            <ImageStrip
+              images={question.images}
+              onChange={(images) => onChange({ ...question, images })}
+              onEditDiagram={(image) => image.diagram && setDiagramEdit({ placementId: image.id, diagram: image.diagram })}
+            />
 
             {question.type === "multiple-choice" && (
               <MultipleChoiceEditor question={question} labelStyle={labelStyle} onChange={onChange} />
@@ -189,6 +237,7 @@ export function QuestionCard({
             {question.type === "true-false" && <TrueFalseEditor question={question} onChange={onChange} />}
             {question.type === "short-answer" && <ShortAnswerEditor question={question} onChange={onChange} />}
             {question.type === "open-answer" && <OpenAnswerEditor question={question} onChange={onChange} />}
+            {question.type === "given-find" && <GivenFindEditor question={question} onChange={onChange} />}
 
             <MediaBar
               grid={question.grid}
@@ -196,6 +245,14 @@ export function QuestionCard({
               error={mediaError}
               onFiles={(files) => void addFiles(files)}
               onGridChange={(grid) => onChange({ ...question, grid })}
+              diagrams={toolkit.diagrams}
+              onNewDiagram={startDiagram}
+            />
+            <DiagramDialog
+              diagram={diagramEdit?.diagram ?? null}
+              isNew={diagramEdit?.placementId === null}
+              onSave={saveDiagram}
+              onClose={() => setDiagramEdit(null)}
             />
           </div>
         </div>

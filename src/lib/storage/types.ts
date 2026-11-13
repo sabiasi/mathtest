@@ -13,15 +13,18 @@ import type { SubjectId } from "@/subjects/ids";
 export type LabelStyle = "latin" | "georgian";
 
 /**
- * An image placed in a question. The picture itself lives in the browser's
- * IndexedDB (see lib/images/imageStore.ts); here we only keep its id and how
- * it is shown.
+ * A picture or diagram placed in a question. A stored picture lives in the
+ * cloud / IndexedDB (see lib/images/imageStore.ts); here we only keep its id
+ * and how it is shown. A diagram (circuit, forces…) is kept right here as
+ * data and drawn on the fly.
  */
 export interface QuestionImage {
   /** This placement's own id (the same picture can appear in two questions). */
   id: string;
-  /** The stored picture. */
+  /** The stored picture ("" for a diagram). */
   imageId: string;
+  /** Set for diagrams drawn with the subject tools; then there's no stored picture. */
+  diagram?: Diagram;
   /** Natural size in pixels — used for the aspect ratio before the picture loads. */
   width: number;
   height: number;
@@ -30,6 +33,71 @@ export interface QuestionImage {
   /** Above the question text, or to the right of it. */
   position: "above" | "right";
 }
+
+// ---------------------------------------------------------------------------
+// Diagrams drawn with a subject's tools (physics: circuits, forces). They are
+// stored as data (not as a picture), so the teacher can open and change them,
+// and they are drawn as sharp vector graphics on screen, paper and PDF.
+// ---------------------------------------------------------------------------
+
+/** Parts of an electric circuit. */
+export type CircuitPart =
+  | "wire"
+  | "battery"
+  | "resistor"
+  | "lamp"
+  | "switch-open"
+  | "switch-closed"
+  | "ammeter"
+  | "voltmeter";
+
+/**
+ * One part, placed on a gap between two neighbouring grid dots.
+ * `at` = "h:x:y" (from dot x,y to the dot on its right) or
+ *        "v:x:y" (from dot x,y to the dot below it).
+ */
+export interface CircuitElement {
+  at: string;
+  part: CircuitPart;
+  /** e.g. "R1" (printed as R₁) or "6 Ω". */
+  label: string;
+  /** Battery: swap the + and − sides. */
+  flipped: boolean;
+}
+
+export interface CircuitDiagram {
+  kind: "circuit";
+  /** Grid size in squares (the dots are one more in each direction). */
+  cols: number;
+  rows: number;
+  elements: CircuitElement[];
+}
+
+/** One force arrow, starting at the centre of the body. */
+export interface ForceArrow {
+  id: string;
+  /** Direction in degrees: 0 = right, 90 = up, 180 = left, 270 = down. */
+  angle: number;
+  /** 1 = short, 2 = medium, 3 = long. */
+  length: 1 | 2 | 3;
+  /** e.g. "mg", "N", "F_ხ" (after "_" is written small, below). */
+  label: string;
+}
+
+export interface ForceDiagram {
+  kind: "forces";
+  body: "box" | "ball";
+  /** What the body stands on. */
+  surface: "none" | "floor" | "incline";
+  /** Slope of the incline in degrees (15–60). */
+  inclineAngle: number;
+  forces: ForceArrow[];
+  /** Draw a small arrow over each force's letter (F⃗), as in textbooks. */
+  vectorLabels: boolean;
+}
+
+export type Diagram = CircuitDiagram | ForceDiagram;
+export type DiagramKind = Diagram["kind"];
 
 /** Graph paper or a coordinate plane printed as an answer area. 5 mm squares. */
 export interface AnswerGrid {
@@ -84,6 +152,22 @@ export interface OpenAnswerQuestion extends QuestionBase {
 }
 
 /**
+ * A physics problem in the standard Georgian school layout:
+ * მოცემულია (Given) | საპოვნელია (Find) on the left, ამოხსნა (Solution) on the right.
+ * The teacher's own given/find/solution/answer appear only on the answer key.
+ */
+export interface GivenFindQuestion extends QuestionBase {
+  type: "given-find";
+  /** Height of the frame, in writing lines. */
+  lines: number;
+  given: RichText;
+  find: RichText;
+  solution: RichText;
+  /** The final answer (also shown in the answer table). */
+  answer: RichText;
+}
+
+/**
  * A question is exactly ONE of these. The `type` field tells which one —
  * TypeScript calls this a "discriminated union".
  */
@@ -91,7 +175,8 @@ export type Question =
   | MultipleChoiceQuestion
   | TrueFalseQuestion
   | ShortAnswerQuestion
-  | OpenAnswerQuestion;
+  | OpenAnswerQuestion
+  | GivenFindQuestion;
 
 export type QuestionType = Question["type"];
 

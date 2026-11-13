@@ -14,5 +14,6 @@ export const historyToolkit: SubjectToolkit = {
   formulas: false,
   toolbar: [],
   questionTypes: QUESTION_TYPES,
+  diagrams: [],
   print: { className: "subject-history" },
 };

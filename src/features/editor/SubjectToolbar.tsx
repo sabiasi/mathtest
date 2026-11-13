@@ -3,7 +3,7 @@
 import { convertLatexToMarkup } from "mathlive";
 import { Sigma } from "lucide-react";
 import { motion } from "motion/react";
-import { useMemo, useState, type MouseEvent } from "react";
+import { Fragment, useMemo, useState, type MouseEvent } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useMathEditing } from "@/features/math/MathEditingContext";
@@ -15,6 +15,15 @@ import type { SubjectToolkit } from "@/subjects/types";
 // (Radix Tabs would normally switch tabs on mouse-down; preventing it there
 // means we switch in onClick instead — see the tab buttons below.)
 const keepFocus = (event: MouseEvent) => event.preventDefault();
+
+/** The remembered writing style of a tab (e.g. units), or null. */
+function readStyle(storageKey: string): string | null {
+  try {
+    return localStorage.getItem(storageKey);
+  } catch {
+    return null;
+  }
+}
 
 const isMac = () => typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent);
 
@@ -31,10 +40,23 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
   const [tabId, setTabId] = useState(tabs[0]?.id);
   const tab = tabs.find((x) => x.id === tabId) ?? tabs[0];
 
+  // Tabs with writing styles (units: Latin / Georgian): which one is chosen.
+  const [styleIds, setStyleIds] = useState<Record<string, string>>({});
+  const styleId = tab?.styles ? (styleIds[tab.styles.storageKey] ?? readStyle(tab.styles.storageKey)) : null;
+  const style = tab?.styles?.options.find((o) => o.id === styleId) ?? tab?.styles?.options[0];
+  function chooseStyle(storageKey: string, id: string) {
+    setStyleIds((current) => ({ ...current, [storageKey]: id }));
+    try {
+      localStorage.setItem(storageKey, id);
+    } catch {
+      // storage blocked: remembered until the page is closed
+    }
+  }
+
   // Turn each button's LaTeX into the HTML of a little formula (once per tab).
   const buttons = useMemo(
-    () => (tab?.buttons ?? []).map((button) => ({ ...button, html: convertLatexToMarkup(button.display) })),
-    [tab],
+    () => (style?.buttons ?? tab?.buttons ?? []).map((button) => ({ ...button, html: convertLatexToMarkup(button.display) })),
+    [tab, style],
   );
 
   const shortcut = isMac() ? "⌥ =" : "Alt + =";
@@ -57,7 +79,7 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
         (document.activeElement as HTMLElement | null)?.scrollIntoView?.({ block: "nearest" })
       }
     >
-      <Tabs value={tab?.id ?? ""} onValueChange={setTabId} className="mx-auto max-w-3xl gap-0 px-4 sm:px-6">
+      <Tabs value={tab?.id ?? ""} onValueChange={setTabId} className="mx-auto max-w-5xl gap-0 px-4 sm:px-6">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -93,21 +115,49 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
 
         {/* Buttons of the chosen tab */}
         <TabsContent value={tab?.id ?? ""} className="flex flex-wrap gap-1 pt-2 pb-2.5" aria-label={tab?.[language]}>
-          {buttons.map((button) => (
-            <Tooltip key={button.latex + button.display}>
-              <TooltipTrigger asChild>
+          {tab?.styles && (
+            <div
+              role="group"
+              aria-label={t("toolbar.style")}
+              className="mr-1.5 flex h-10 items-center gap-0.5 rounded-lg bg-muted p-0.5 pointer-coarse:h-11"
+              data-toolbar-styles=""
+            >
+              {tab.styles.options.map((option) => (
                 <button
+                  key={option.id}
                   type="button"
                   onMouseDown={keepFocus}
-                  onClick={() => insert(button.latex)}
-                  aria-label={button[language]}
-                  className="flex h-10 min-w-10 items-center justify-center rounded-lg border bg-card px-2 text-foreground shadow-xs transition-[background-color,border-color,transform] duration-150 hover:border-primary-soft-border hover:bg-primary-soft motion-safe:active:scale-95 pointer-coarse:h-11 pointer-coarse:min-w-11"
+                  onClick={() => chooseStyle(tab.styles!.storageKey, option.id)}
+                  aria-pressed={option.id === style?.id}
+                  className="h-full rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground aria-pressed:bg-card aria-pressed:text-foreground aria-pressed:shadow-xs"
                 >
-                  <span className="toolbar-math pointer-events-none" dangerouslySetInnerHTML={{ __html: button.html }} />
+                  {option[language]}
                 </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">{button[language]}</TooltipContent>
-            </Tooltip>
+              ))}
+            </div>
+          )}
+          {buttons.map((button) => (
+            <Fragment key={button.latex + button.display}>
+              {button.group && (
+                <span className="ml-2 flex h-10 items-center text-sm font-medium text-muted-foreground pointer-coarse:h-11">
+                  {button.group[language]}
+                </span>
+              )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onMouseDown={keepFocus}
+                    onClick={() => insert(button.latex)}
+                    aria-label={button[language]}
+                    className="flex h-10 min-w-10 items-center justify-center rounded-lg border bg-card px-2 text-foreground shadow-xs transition-[background-color,border-color,transform] duration-150 hover:border-primary-soft-border hover:bg-primary-soft motion-safe:active:scale-95 pointer-coarse:h-11 pointer-coarse:min-w-11"
+                  >
+                    <span className="toolbar-math pointer-events-none" dangerouslySetInnerHTML={{ __html: button.html }} />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{button[language]}</TooltipContent>
+              </Tooltip>
+            </Fragment>
           ))}
         </TabsContent>
       </Tabs>

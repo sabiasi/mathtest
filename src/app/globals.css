@@ -329,6 +329,12 @@ math-field::part(virtual-keyboard-toggle) {
   display: none;
 }
 
+/* Words inside formulas (\text{…}, e.g. Georgian units "მ/წმ") use OUR font,
+   not the computer's system font — so screen, print and PDF all match. */
+:root {
+  --text-font-family: var(--font-sans);
+}
+
 /* Static (read-only) formulas and toolbar button icons. */
 .math-static {
   font-size: 1.1em;
@@ -541,6 +547,42 @@ math-field::part(virtual-keyboard-toggle) {
 }
 .sheet-font-large .print-line {
   height: 9.5mm;
+}
+
+/* Physics: the "Given / Find / Solution" frame */
+.print-gf {
+  display: grid;
+  grid-template-columns: 34% 1fr;
+}
+.print-gf-left {
+  display: flex;
+  flex-direction: column;
+  border-right: 0.35mm solid #000;
+}
+/* The padding is on the parts (not the column), so the line under
+   "Given" reaches all the way to the vertical line. */
+.print-gf-given {
+  flex: 2 1 auto;
+  padding: 0 3mm 2mm 0;
+}
+.print-gf-find {
+  flex: 1 1 auto;
+  min-height: 14mm;
+  border-top: 0.35mm solid #000;
+  padding: 1mm 3mm 0 0;
+}
+.print-gf-right {
+  padding-left: 3mm;
+}
+.print-gf-label {
+  display: block;
+  font-weight: 600;
+}
+.print-key-text {
+  font-weight: 600;
+}
+.print-gf-answer {
+  margin-top: 2mm;
 }
 
 /* What happens when printing (also used by the PDF) */

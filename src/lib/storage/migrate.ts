@@ -6,7 +6,8 @@
  * read from storage passes through `normalizeTest`, which fills in safe
  * defaults. Unknown or broken questions are dropped rather than crashing.
  */
-import { DEFAULT_LINES, GRID_LIMITS, MAX_LINES, MAX_OPTIONS } from "@/lib/questions";
+import { DEFAULT_GIVEN_FIND_LINES, DEFAULT_LINES, GRID_LIMITS, MAX_LINES, MAX_OPTIONS, MIN_GIVEN_FIND_LINES } from "@/lib/questions";
+import { normalizeDiagram } from "@/subjects/physics/diagrams/normalize";
 import { normalizeRichText } from "@/lib/richText";
 import { DEFAULT_SUBJECT, isSubjectId, subjectFromText } from "@/subjects/ids";
 import {
@@ -45,14 +46,21 @@ function normalizeImages(value: unknown): QuestionImage[] {
   return value
     .filter(isObject)
     .filter((i) => typeof i.id === "string" && typeof i.imageId === "string")
-    .map((i) => ({
-      id: i.id as string,
-      imageId: i.imageId as string,
-      width: Math.max(1, num(i.width, 400)),
-      height: Math.max(1, num(i.height, 300)),
-      widthPercent: clamp(Math.round(num(i.widthPercent, 50)), 10, 100),
-      position: i.position === "right" ? "right" : "above",
-    }));
+    .map((i): QuestionImage | null => {
+      const image: QuestionImage = {
+        id: i.id as string,
+        imageId: i.imageId as string,
+        width: Math.max(1, num(i.width, 400)),
+        height: Math.max(1, num(i.height, 300)),
+        widthPercent: clamp(Math.round(num(i.widthPercent, 50)), 10, 100),
+        position: i.position === "right" ? "right" : "above",
+      };
+      if (i.diagram === undefined) return image.imageId ? image : null;
+      // A diagram: keep it only if its data makes sense.
+      const diagram = normalizeDiagram(i.diagram);
+      return diagram ? { ...image, imageId: "", diagram } : null;
+    })
+    .filter((i): i is QuestionImage => i !== null);
 }
 
 function normalizeGrid(value: unknown): AnswerGrid | null {
@@ -94,6 +102,18 @@ function normalizeQuestion(raw: unknown): Question | null {
     case "open-answer": {
       const lines = Math.min(MAX_LINES, Math.max(0, Math.round(num(raw.lines, DEFAULT_LINES))));
       return { ...base, type: "open-answer", lines };
+    }
+    case "given-find": {
+      const lines = clamp(Math.round(num(raw.lines, DEFAULT_GIVEN_FIND_LINES)), MIN_GIVEN_FIND_LINES, MAX_LINES);
+      return {
+        ...base,
+        type: "given-find",
+        lines,
+        given: normalizeRichText(raw.given),
+        find: normalizeRichText(raw.find),
+        solution: normalizeRichText(raw.solution),
+        answer: normalizeRichText(raw.answer),
+      };
     }
     default:
       return null;

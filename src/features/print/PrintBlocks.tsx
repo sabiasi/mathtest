@@ -13,6 +13,7 @@ import { formatDate } from "@/lib/format";
 import { formatPoints, optionLabel, totalPoints, visibleOptions } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
 import type { Question, Test } from "@/lib/storage/types";
+import { GivenFindPrint } from "@/subjects/physics/GivenFindPrint";
 
 export type PrintVersion = "student" | "key";
 
@@ -211,5 +212,8 @@ function QuestionBody({
           ))}
         </div>
       );
+
+    case "given-find":
+      return <GivenFindPrint question={question} answerKey={key} />;
   }
 }

@@ -24,8 +24,9 @@ Visitors can try everything without an account (guest mode).
 2. **Subject toolkits**: each subject has its own tools. Mathematics: a visual
    toolbar with fractions, powers, roots, sin/cos/tan, log, π, ≤ ≥ ≠ ±, × ÷,
    integrals, limits, matrices, Greek letters… Teachers click a button and
-   type into the slots. No LaTeX knowledge needed. Other subjects: placeholders
-   for now, built one by one.
+   type into the slots. No LaTeX knowledge needed. Physics: the math toolbar
+   plus units, constants, formulas, Given/Find/Solution problems, circuit and
+   force diagrams. Other subjects: placeholders for now, built one by one.
 3. **Question types**: multiple choice (A/B/C/D, correct one marked),
    true/false, short answer, open/long answer (blank lines for working),
    fill-in-the-blank, matching.
@@ -85,6 +86,16 @@ Visitors can try everything without an account (guest mode).
   subject icons on cards; landing page for all subjects. Math = the full
   toolbar; physics/chemistry borrow some math tabs; history/Georgian have no
   formula toolbar. Placeholders say "special tools coming soon".
+- [x] **Physics toolkit**: toolbar = all math tabs + Units (Latin "m/s" /
+  Georgian "მ/წმ" switch, remembered; prefixes n μ m k M), Vectors/Δ/a·10ⁿ,
+  Constants (tooltips with values), Formulas (28 ready-made); special question
+  type `given-find` (მოცემულია / საპოვნელია | ამოხსნა frame, teacher's
+  solution + answer only on the key and in the answer table); diagrams:
+  circuits on a snap grid (wire, battery, resistor, lamp, switch open/closed,
+  ammeter, voltmeter; labels R1 → R₁; junction dots automatic) and force
+  diagrams (box/ball; nothing/floor/incline; presets mg, N, F_ხ, F, T that
+  turn with the surface; vector arrows over letters). `\text{}` in formulas
+  now uses Noto Sans Georgian (`--text-font-family`).
 - [ ] **Next**: remaining question types: fill-in-the-blank and matching
   (common to every subject: add them to `QUESTION_TYPES`). Then each
   subject's own tools, one by one.
@@ -105,11 +116,12 @@ Visitors can try everything without an account (guest mode).
 | Icons | lucide-react |
 | Rich text | TipTap v3 (ProseMirror) with a custom inline `math` node (`src/features/math/MathNode.ts`) |
 | Math input | MathLive `<math-field>` inside that node; our own toolbar (MathLive's keyboard and menu are hidden). The formula node is shared by all subjects; which toolbar shows comes from the subject toolkit |
-| Subjects | `src/subjects/`: `ids.ts` (SUBJECT_IDS, subjectFromText; plain data, no React), `types.ts` (SubjectToolkit: Icon, colours, status ready/placeholder, formulas, toolbar tabs, questionTypes, print.className), one folder per subject (`index.ts` + `print.css`, imported in globals.css), `registry.ts` (getToolkit, SUBJECTS; steps for adding a subject are at its top). Colours: `--subject-<id>` tokens. Profile `default_subject` stores a subject id |
+| Subjects | `src/subjects/`: `ids.ts` (SUBJECT_IDS, subjectFromText; plain data, no React), `types.ts` (SubjectToolkit: Icon, colours, status ready/placeholder, formulas, toolbar tabs, questionTypes, print.className), one folder per subject (`index.ts` + `print.css`, imported in globals.css), `registry.ts` (getToolkit, SUBJECTS; steps for adding a subject are at its top). A toolkit also lists `diagrams` (drawing tools offered under each question). Toolbar tabs may have `styles` (switchable button sets, remembered in localStorage, e.g. units Latin/Georgian); a button may start a `group` (small heading). Colours: `--subject-<id>` tokens. Profile `default_subject` stores a subject id |
 | Math rendering | MathLive `convertLatexToMarkup` (same engine as input). Fonts/styles: `mathlive/fonts.css` + `mathlive/static.css` imported in `layout.tsx`, bundled and self-hosted; `MathfieldElement.fontsDirectory = null` |
 | Accounts | Supabase Auth via `@supabase/ssr` (sign-in kept in cookies). `src/proxy.ts` refreshes the sign-in and redirects (protected: only /settings; /tests, /editor, /print are open to guests). `/auth/callback` swaps email/Google links for a session. Only the publishable key (`NEXT_PUBLIC_SUPABASE_*` in `.env.local`), never a secret key |
 | Guests | Signed out (or Supabase not configured) = guest: `AuthProvider` starts the repository with `localTestsBackend()` (localStorage key `mathtest:tests:v1`) and `setImageUser(null)` (pictures in IndexedDB store `images`). On sign-in: `stopSync()` → cloud → `moveGuestTestsIntoAccount()` (lib/onboarding.ts): upload pictures, `importTests` (newer local version of an existing id → added as a copy), then after `waitUntilSaved` remove the browser copies. `useAuth().guest`, `useStorageKind()` ("cloud" / "device") |
 | Storage | Supabase Postgres: `profiles`, `tests` (whole test as JSON in `data`, PK user_id+id), Row Level Security on everything (`supabase/schema.sql`). Pictures: Storage bucket `images`, path `<user id>/<picture id>`, plus a browser copy in IndexedDB store `cache` |
+| Diagrams | Stored as DATA inside `QuestionImage.diagram` (with `imageId: ""`), so they reuse picture placement (above/right, size %) and print layout. Drawn as inline SVG by `subjects/physics/diagrams/DiagramView.tsx` (page font → Georgian labels work; black on white). Pure geometry in `geometry.ts`, validation/defaults in `normalize.ts` (called from migrate.ts). Editors open in `DiagramDialog` and work on a draft (Cancel = no change). `diagramSize()` sets width/height (aspect ratio) on save |
 | Print | Our own pagination (`src/lib/paginate.ts` + `usePrintLayout`) into fixed 210×297mm `.sheet`s; `@page { size: A4; margin: 0 }` |
 | PDF | `POST /api/pdf` (guests too) → puppeteer-core opens the same `/print` page with the test injected as `window.__MATHTEST_PRINT__` (no sign-in cookies are passed) → `page.pdf()`. Limits (`lib/server/rateLimit.ts`, in memory): 10 PDFs / 10 min per guest IP, 200 / 10 min for all guests together, 40 / 10 min per signed-in teacher, at most 3 PDFs at once (503), body ≤ 25 MB, ≤ 300 questions (413). 429 has `Retry-After`; the print page explains it. With several servers / serverless, move the counters to a shared store (e.g. Upstash Redis). Chrome found by `findChrome()` / `CHROME_PATH`; hosting will need e.g. @sparticuz/chromium. No Chrome → 501 → client falls back to `window.print()` |
 | Fonts | Noto Sans Georgian + Noto Sans (backup for №, Cyrillic…), both via next/font; math fonts from MathLive CSS. PDFs must embed only these. |
@@ -139,6 +151,9 @@ src/
                         is active), RichTextView (static), mathlive.ts — shared by all subjects
   subjects/             Subject toolkits: ids, types, registry, <id>/index.ts + print.css,
                         math/toolbar.ts (the 7 math tabs)
+  subjects/physics/     toolbar.ts (math + physics tabs), GivenFindEditor/GivenFindPrint,
+                        diagrams/ (normalize, geometry, DiagramView, CircuitEditor,
+                        ForceEditor, DiagramDialog)
   features/subjects/    SubjectPicker + SubjectIcon, NewTestDialog ("which subject?")
   components/           Shared UI: AppHeader/HeaderNav/AppFooter, Providers (theme, motion,
                         tooltips, confirm, toaster), ThemeSwitcher, PageTransition,
@@ -287,6 +302,14 @@ src/
 - Browser tests can run as a guest (fresh browser = empty localStorage);
   only the account parts (sign-in, moving guest tests) need a Supabase test
   account.
+- Pictures vs diagrams: anything that reads `image.imageId` must skip
+  diagrams (`usedImageIds` does). A diagram with broken data is dropped by
+  `normalizeTest`.
+- SVG click targets: use a `<rect>`, not a thick transparent `<line>` — a
+  straight line's box has zero width, so browser tests (and some screen
+  readers) treat it as invisible.
+- This project has no Prettier: don't run `npx prettier` (it downloads one
+  and re-wraps whole files at 80 columns). Match the existing ~140-column style.
 - `cleanUpImages(tests)` must only run once tests are loaded (`tests !== null`):
   while loading the list is empty and every picture looks unused.
 - Placeholder subject colours: `bg-subject-<id>/12` (the opacity modifier works

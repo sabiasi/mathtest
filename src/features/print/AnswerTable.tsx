@@ -32,6 +32,8 @@ function Cell({ question, labelStyle }: { question: Question; labelStyle: Test["
       return isRichTextEmpty(question.answer) ? <>—</> : <RichTextView value={question.answer} />;
     case "open-answer":
       return <span className="is-open">{t("variants.open")}</span>;
+    case "given-find":
+      return isRichTextEmpty(question.answer) ? <span className="is-open">{t("variants.open")}</span> : <RichTextView value={question.answer} />;
   }
 }
 

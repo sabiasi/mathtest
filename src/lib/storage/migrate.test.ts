@@ -26,6 +26,31 @@ describe("normalizeTest", () => {
     });
   });
 
+  it("keeps Given / Find / Solution problems and repairs their lines", () => {
+    const test = normalizeTest({ id: "t", questions: [{ id: "q", type: "given-find", text: "?", lines: 1, given: "m = 2" }] });
+    expect(test?.questions[0]).toMatchObject({ type: "given-find", lines: 4, given: [{ type: "text", text: "m = 2" }], find: [], solution: [], answer: [] });
+  });
+
+  it("keeps valid diagrams and drops broken ones", () => {
+    const test = normalizeTest({
+      id: "t",
+      questions: [
+        {
+          id: "q",
+          type: "open-answer",
+          images: [
+            { id: "a", imageId: "", diagram: { kind: "circuit", cols: 2, rows: 1, elements: [] }, width: 200, height: 150 },
+            { id: "b", imageId: "", diagram: { kind: "unknown" } },
+            { id: "c", imageId: "" }, // neither a picture nor a diagram
+            { id: "d", imageId: "pic1" },
+          ],
+        },
+      ],
+    });
+    expect(test?.questions[0].images.map((i) => i.id)).toEqual(["a", "d"]);
+    expect(test?.questions[0].images[0].diagram?.kind).toBe("circuit");
+  });
+
   it("finds the subject of tests saved before subjects existed", () => {
     expect(normalizeTest({ id: "a", subject: "ფიზიკა" })?.subjectId).toBe("physics");
     expect(normalizeTest({ id: "b", subject: " Chemistry " })?.subjectId).toBe("chemistry");

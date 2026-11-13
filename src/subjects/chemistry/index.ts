@@ -16,5 +16,6 @@ export const chemistryToolkit: SubjectToolkit = {
   formulas: true,
   toolbar: MATH_TOOLBAR.filter((tab) => ["basic", "greek"].includes(tab.id)),
   questionTypes: QUESTION_TYPES,
+  diagrams: [],
   print: { className: "subject-chemistry" },
 };

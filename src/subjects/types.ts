@@ -7,7 +7,7 @@
  * the toolkit of the test's subject and shows the right tools.
  */
 import type { LucideIcon } from "lucide-react";
-import type { QuestionType } from "@/lib/storage/types";
+import type { DiagramKind, QuestionType } from "@/lib/storage/types";
 import type { SubjectId } from "./ids";
 
 /**
@@ -16,8 +16,29 @@ import type { SubjectId } from "./ids";
  *   #@  "whatever is selected" (or an empty box if nothing is)
  * `display` is what the button shows; `ka` / `en` the tooltip.
  */
-export type ToolbarButton = { latex: string; display: string; ka: string; en: string };
-export type ToolbarTab = { id: string; ka: string; en: string; buttons: ToolbarButton[] };
+export type ToolbarButton = {
+  latex: string;
+  display: string;
+  ka: string;
+  en: string;
+  /** Optional small heading shown before this button, starting a group (e.g. "Prefixes:"). */
+  group?: { ka: string; en: string };
+};
+export type ToolbarTab = {
+  id: string;
+  ka: string;
+  en: string;
+  buttons: ToolbarButton[];
+  /**
+   * Optional: the same tab in different writing styles (e.g. units in Latin
+   * "m/s" or Georgian "მ/წმ"). A small switch appears in the tab; the choice
+   * is remembered in this browser under `storageKey`. The first is the default.
+   */
+  styles?: {
+    storageKey: string;
+    options: { id: string; ka: string; en: string; buttons: ToolbarButton[] }[];
+  };
+};
 
 export interface SubjectToolkit {
   id: SubjectId;
@@ -36,6 +57,8 @@ export interface SubjectToolkit {
   toolbar: ToolbarTab[];
   /** Question types offered in this subject: the common ones plus any special ones. */
   questionTypes: readonly QuestionType[];
+  /** Diagrams teachers can draw in a question ("circuit", "forces"); [] = none. */
+  diagrams: readonly DiagramKind[];
   /** The printed sheets get this class, so ./<id>/print.css can style them. */
   print: { className: string };
 }

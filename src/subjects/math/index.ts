@@ -12,5 +12,6 @@ export const mathToolkit: SubjectToolkit = {
   formulas: true,
   toolbar: MATH_TOOLBAR,
   questionTypes: QUESTION_TYPES,
+  diagrams: [],
   print: { className: "subject-math" },
 };

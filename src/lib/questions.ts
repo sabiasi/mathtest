@@ -21,6 +21,9 @@ export const DEFAULT_LINES = 5;
 /** Grid limits: 35 squares of 5 mm fill the 178 mm printable width. */
 export const GRID_LIMITS = { minCols: 4, maxCols: 34, minRows: 2, maxRows: 40 };
 export const DEFAULT_GRID = { cols: 20, rows: 12 };
+/** Height of a Given / Find / Solution frame, in writing lines. */
+export const DEFAULT_GIVEN_FIND_LINES = 7;
+export const MIN_GIVEN_FIND_LINES = 4;
 
 /** The common question types: every subject offers these (see src/subjects). */
 export const QUESTION_TYPES: readonly QuestionType[] = [
@@ -58,6 +61,8 @@ export function createQuestion(
       return { ...base, type, answer: [] };
     case "open-answer":
       return { ...base, type, points: keep.points ?? 3, lines: DEFAULT_LINES };
+    case "given-find":
+      return { ...base, type, points: keep.points ?? 3, lines: DEFAULT_GIVEN_FIND_LINES, given: [], find: [], solution: [], answer: [] };
   }
 }
 

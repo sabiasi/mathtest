@@ -28,6 +28,35 @@ describe("subject toolkits", () => {
     expect(getToolkit("math").toolbar.map((tab) => tab.id)).toEqual(["basic", "algebra", "trig", "calculus", "geometry", "sets", "greek"]);
   });
 
+  it("physics has every math tab plus its own, and its special tools", () => {
+    const physics = getToolkit("physics");
+    const ids = physics.toolbar.map((tab) => tab.id);
+    for (const tab of getToolkit("math").toolbar) expect(ids).toContain(tab.id);
+    for (const id of ["units", "vectors", "constants", "formulas"]) expect(ids).toContain(id);
+    expect(physics.questionTypes).toContain("given-find");
+    expect(physics.diagrams).toEqual(["circuit", "forces"]);
+    expect(getToolkit("math").questionTypes).not.toContain("given-find");
+  });
+
+  it("units come in Latin and Georgian letters, with the same buttons", () => {
+    const units = getToolkit("physics").toolbar.find((tab) => tab.id === "units")!;
+    const [latin, georgian] = units.styles!.options;
+    expect(latin.buttons.length).toBe(georgian.buttons.length);
+    expect(latin.buttons.some((b) => b.latex === "\\,\\mathrm{N}")).toBe(true);
+    expect(georgian.buttons.some((b) => b.latex === "\\,\\text{ნ}")).toBe(true);
+  });
+
+  it("no two buttons in a tab are the same (they'd confuse teachers)", () => {
+    for (const toolkit of SUBJECTS) {
+      for (const tab of toolkit.toolbar) {
+        for (const buttons of [tab.buttons, ...(tab.styles?.options.map((o) => o.buttons) ?? [])]) {
+          const keys = buttons.map((b) => b.latex + b.display);
+          expect(new Set(keys).size).toBe(keys.length);
+        }
+      }
+    }
+  });
+
   it("subjects without formulas have no formula toolbar", () => {
     for (const toolkit of SUBJECTS) if (!toolkit.formulas) expect(toolkit.toolbar).toEqual([]);
   });
