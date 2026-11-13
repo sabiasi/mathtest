@@ -21,6 +21,9 @@ import { orderAnswer } from "@/subjects/history/HistoryPrint";
 import { balanceAnswer } from "@/subjects/chemistry/BalancePrint";
 import { labelDiagramAnswer } from "@/subjects/biology/LabelDiagramView";
 import { pedigreeAnswer, punnettAnswer } from "@/subjects/biology/GeneticsPrint";
+import { sequenceAnswer } from "@/subjects/biology/MolecularPrint";
+import { foodWebAnswer, pyramidAnswer } from "@/subjects/biology/EcologyPrint";
+import { keyAnswer, taxonomyAnswer } from "@/subjects/biology/ClassificationPrint";
 import { fillBlankAnswers, fillBlankChoiceAnswers } from "./FillBlankPrint";
 import { matchingAnswers } from "./MatchingPrint";
 import { CONTENT_HEIGHT, CONTENT_WIDTH, PAGE, mmToPx } from "./usePrintLayout";
@@ -61,6 +64,18 @@ function Cell({ question, labelStyle }: { question: Question; labelStyle: Test["
       return <>{labelDiagramAnswer(question, labelStyle) || "—"}</>;
     case "punnett":
       return <>{punnettAnswer(question) || "—"}</>;
+    case "sequence":
+      return <>{sequenceAnswer(question) || "—"}</>;
+    case "food-web":
+      return <>{foodWebAnswer(question) || "—"}</>;
+    case "pyramid":
+      return <>{pyramidAnswer(question) || "—"}</>;
+    case "dichotomous-key":
+      return <>{keyAnswer(question) || "—"}</>;
+    case "taxonomy":
+      return <>{taxonomyAnswer(question) || "—"}</>;
+    case "codon-table":
+      return <span className="is-open">{t("variants.open")}</span>;
     case "pedigree":
       return pedigreeAnswer(question) ? <>{pedigreeAnswer(question)}</> : <span className="is-open">{t("variants.open")}</span>;
     case "odd-one-out":

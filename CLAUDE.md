@@ -183,10 +183,22 @@ Visitors can try everything without an account (guest mode).
     person for the student's genotype (key fills it); legend of the symbols
     used. Toolbar tab "გენეტიკა": genotype tool (XAXa → \mathrm{X}^{A}…),
     Xᴬ Xᵃ Y, Iᴬ Iᴮ i, P F₁ F₂ G, ×, ratios.
-  - [ ] **B3 — molecular, ecology, classification**: DNA/RNA sequence tasks
-    (complementary strand, mRNA, translation; key computed), printable codon
-    table (3-letter amino acids + Georgian legend), food chain/web, ecological
-    pyramid, dichotomous key, taxonomy ranks template.
+  - [x] **B3 — molecular, ecology, classification**: `lib/molecular.ts`
+    (readSequence: DNA has T, RNA has U, ≤ 42 bases; complement, transcribe
+    from the template or coding strand, the genetic code, translate stops at
+    Stop, `sequenceRows`). Question `sequence` (given strand + tasks
+    complement / mrna / protein, `example` = first codon given; bases in
+    boxes grouped by codon, 8 codons per line, 4 on two-column papers).
+    Block `codon-table` (a text block: no number, no points — drawn in
+    `pieces.tsx`; 4×4 table + optional Georgian legend). `lib/ecology.ts`:
+    question `food-web` (organisms on a 5×5 grid, arrows food → eater,
+    edge-to-edge, hidden boxes; samples chain / web) and `pyramid` (levels
+    bottom first, hide name / value / both; samples energy / biomass /
+    numbers). `lib/dichotomous.ts`: question `dichotomous-key` (couplets
+    with yes / no leads → next question or organism; list or tree layout;
+    loops end safely) and `taxonomy` (8 ranks, plants → "განყოფილება",
+    Latin genus / species in italics; default = human with 3 ranks hidden).
+    Print styles in `subjects/biology/BiologyPrint.css`.
   - [ ] **B4 — processes and data**: stages in order with pictures (+ ready
     sets: mitosis, meiosis, digestion, circulation, nerve impulse), cycle
     diagrams, data table → line/bar chart (B&W patterns) + questions,

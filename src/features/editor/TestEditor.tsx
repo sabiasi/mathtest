@@ -19,6 +19,11 @@ import {
   Tags,
   Grid3x3,
   Network,
+  Dna,
+  TableProperties,
+  Workflow,
+  Triangle,
+  ListTree,
   WholeWord,
   type LucideIcon,
   SpellCheck,
@@ -96,6 +101,12 @@ const TYPE_ICONS: Record<QuestionType, typeof ListChecks> = {
   "label-diagram": Tags,
   punnett: Grid3x3,
   pedigree: Network,
+  sequence: Dna,
+  "codon-table": TableProperties,
+  "food-web": Workflow,
+  pyramid: Triangle,
+  "dichotomous-key": Split,
+  taxonomy: ListTree,
 };
 
 /** One "add a question" button. */

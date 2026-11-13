@@ -9,6 +9,9 @@ import { sectionPoints } from "@/lib/questions";
 import { flowsOn, type PrintBlock } from "./blocks";
 import { BLOCK_GAP } from "./usePrintLayout";
 import { PrintQuestion, type OptionColumns, type PrintVersion } from "./PrintBlocks";
+import { RichTextView } from "@/features/math/RichTextView";
+import { isRichTextEmpty } from "@/lib/richText";
+import { CodonTablePrint } from "@/subjects/biology/MolecularPrint";
 
 export type BlockContext = {
   test: Test;
@@ -44,6 +47,14 @@ export function renderBlock(block: PrintBlock, context: BlockContext, firstInCol
     );
   } else if (question.type === "listening") {
     content = piece ? <TranscriptPiece question={question} index={index} /> : <ListeningPrint question={question} bilingual={bilingual} />;
+  } else if (question.type === "codon-table") {
+    // Reference material: no number, no points; an optional title above it.
+    content = (
+      <div className="print-question">
+        {!isRichTextEmpty(question.text) && <RichTextView value={question.text} className="print-text" />}
+        <CodonTablePrint question={question} />
+      </div>
+    );
   } else if (question.type === "speaking") {
     content = <SpeakingPage question={question} page={index} />;
   } else if (question.type === "essay" && piece) {

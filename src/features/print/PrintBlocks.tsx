@@ -19,6 +19,9 @@ import { EssayPrint, FindMistakePrint, GrammarTablePrint, MarkWordsPrint, Senten
 import { BalancePrint } from "@/subjects/chemistry/BalancePrint";
 import { LabelDiagramPrint } from "@/subjects/biology/LabelDiagramView";
 import { PedigreePrint, PunnettPrint } from "@/subjects/biology/GeneticsPrint";
+import { CodonTablePrint, SequencePrint } from "@/subjects/biology/MolecularPrint";
+import { FoodWebPrint, PyramidPrint } from "@/subjects/biology/EcologyPrint";
+import { KeyPrint, TaxonomyPrint } from "@/subjects/biology/ClassificationPrint";
 import { FillBlankPrint } from "./FillBlankPrint";
 import {
   CrosswordPrint,
@@ -264,6 +267,24 @@ function QuestionBody({
 
     case "pedigree":
       return <PedigreePrint question={question} answerKey={key} />;
+
+    case "sequence":
+      return <SequencePrint question={question} answerKey={key} columns={test.printOptions.columns} />;
+
+    case "codon-table":
+      return <CodonTablePrint question={question} />;
+
+    case "food-web":
+      return <FoodWebPrint question={question} answerKey={key} />;
+
+    case "pyramid":
+      return <PyramidPrint question={question} answerKey={key} />;
+
+    case "dichotomous-key":
+      return <KeyPrint question={question} answerKey={key} />;
+
+    case "taxonomy":
+      return <TaxonomyPrint question={question} answerKey={key} />;
 
     case "fill-blank":
       return <FillBlankPrint question={question} labelStyle={test.labelStyle} answerKey={key} />;

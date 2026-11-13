@@ -532,6 +532,100 @@ export interface PedigreeQuestion extends QuestionBase {
   numbers: boolean;
 }
 
+/**
+ * Biology: a DNA / RNA strand and rows to complete (lib/molecular.ts works
+ * out the answers): the complementary strand, the mRNA, the amino acids.
+ */
+export interface SequenceQuestion extends QuestionBase {
+  type: "sequence";
+  /** As typed, e.g. "TAC GGA CTT". */
+  given: string;
+  tasks: ("complement" | "mrna" | "protein")[];
+  /** Which DNA strand is given: the template (mRNA = complement) or the coding strand (mRNA = same with U). */
+  strand: "template" | "coding";
+  /** Students get the first codon of every row filled in, as an example. */
+  example: boolean;
+}
+
+/** Biology: the genetic code table (mRNA codons → amino acids). Not a question: no number, no points. */
+export interface CodonTableQuestion extends QuestionBase {
+  type: "codon-table";
+  /** Also print the amino acids' full names. */
+  legend: boolean;
+}
+
+/** One organism in a food chain / web, on a grid (row 0 = top). */
+export interface FoodWebOrganism {
+  id: string;
+  name: string;
+  col: number;
+  row: number;
+  /** An empty box on the student's paper. */
+  hidden: boolean;
+}
+
+/** Biology: a food chain or web. Arrows point from the food to the eater (the way energy flows). */
+export interface FoodWebQuestion extends QuestionBase {
+  type: "food-web";
+  organisms: FoodWebOrganism[];
+  arrows: { id: string; from: string; to: string }[];
+  /** Print "→ energy flow" under it. */
+  legend: boolean;
+}
+
+/** One level of an ecological pyramid (the list starts at the bottom: producers). */
+export interface PyramidLevel {
+  id: string;
+  /** The trophic level, printed on the left (e.g. "პროდუცენტები"). */
+  level: string;
+  name: string;
+  value: string;
+  /** What students fill in. */
+  hide: "none" | "name" | "value" | "both";
+}
+
+/** Biology: an ecological pyramid (energy, biomass or numbers). */
+export interface PyramidQuestion extends QuestionBase {
+  type: "pyramid";
+  levels: PyramidLevel[];
+}
+
+/** One answer of a dichotomous key's question: go on to another question, or an organism. */
+export interface KeyLead {
+  /** The id of the next question, or null when this answer names an organism. */
+  next: string | null;
+  organism: string;
+  /** Students write the organism. */
+  hide: boolean;
+}
+
+export interface KeyCouplet {
+  id: string;
+  question: string;
+  yes: KeyLead;
+  no: KeyLead;
+}
+
+/** Biology: a dichotomous (identification) key, printed as numbered steps or as a tree. */
+export interface DichotomousKeyQuestion extends QuestionBase {
+  type: "dichotomous-key";
+  /** The first one is where the key starts. */
+  couplets: KeyCouplet[];
+  style: "list" | "tree";
+}
+
+export const TAXONOMY_RANKS = ["domain", "kingdom", "phylum", "class", "order", "family", "genus", "species"] as const;
+export type TaxonomyRank = (typeof TAXONOMY_RANKS)[number];
+
+/** Biology: an organism's classification, domain → species, some ranks left for students. */
+export interface TaxonomyQuestion extends QuestionBase {
+  type: "taxonomy";
+  organism: string;
+  /** Plants say "განყოფილება" (division) instead of "ტიპი" (phylum). */
+  plants: boolean;
+  ranks: { rank: TaxonomyRank; value: string; hide: boolean }[];
+}
+
 /** Odd one out: rows of words; students circle the one that doesn't belong. */
 export interface OddOneOutQuestion extends QuestionBase {
   type: "odd-one-out";
@@ -591,7 +685,13 @@ export type Question =
   | WordSearchQuestion
   | LabelDiagramQuestion
   | PunnettQuestion
-  | PedigreeQuestion;
+  | PedigreeQuestion
+  | SequenceQuestion
+  | CodonTableQuestion
+  | FoodWebQuestion
+  | PyramidQuestion
+  | DichotomousKeyQuestion
+  | TaxonomyQuestion;
 
 export type QuestionType = Question["type"];
 

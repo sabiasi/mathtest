@@ -19,6 +19,9 @@ import { normalizeDiagram } from "@/subjects/physics/diagrams/normalize";
 import { isBioDrawingId } from "@/subjects/biology/drawingIds";
 import { LABEL_LIMITS } from "@/lib/labelDiagram";
 import { PEDIGREE_LIMITS } from "@/lib/pedigree";
+import { KEY_LIMITS } from "@/lib/dichotomous";
+import { WEB_LIMITS } from "@/lib/ecology";
+import { MAX_BASES } from "@/lib/molecular";
 import { normalizeRichText } from "@/lib/richText";
 import { DEFAULT_SUBJECT, isSubjectId, subjectFromText } from "@/subjects/ids";
 import {
@@ -34,6 +37,9 @@ import {
   type LabelStyle,
   type LabelDiagramQuestion,
   type PedigreePerson,
+  type KeyLead,
+  type PyramidLevel,
+  TAXONOMY_RANKS,
   type PrintOptions,
   type Question,
   type Test,
@@ -445,6 +451,75 @@ function normalizeQuestion(raw: unknown): Question | null {
         children: strings(c.children, PEDIGREE_LIMITS.slots, 64).filter((child) => ids.has(child)),
       })).filter((c) => ids.has(c.a) && ids.has(c.b) && c.a !== c.b);
       return { ...base, type: "pedigree", people, couples, legend: raw.legend !== false, numbers: raw.numbers !== false };
+    }
+    case "sequence": {
+      const tasks = (["complement", "mrna", "protein"] as const).filter((task) => Array.isArray(raw.tasks) && raw.tasks.includes(task));
+      return {
+        ...base,
+        type: "sequence",
+        given: str(raw.given).slice(0, MAX_BASES * 2),
+        tasks,
+        strand: raw.strand === "coding" ? "coding" : "template",
+        example: raw.example === true,
+      };
+    }
+    case "codon-table":
+      return { ...base, type: "codon-table", points: 0, legend: raw.legend !== false };
+    case "food-web": {
+      const organisms = list(raw.organisms, WEB_LIMITS.organisms, (o) => ({
+        id: o.id,
+        name: str(o.name).slice(0, 40),
+        col: clamp(Math.round(num(o.col, 0)), 0, WEB_LIMITS.cols - 1),
+        row: clamp(Math.round(num(o.row, 0)), 0, WEB_LIMITS.rows - 1),
+        hidden: o.hidden === true,
+      }));
+      const ids = new Set(organisms.map((o) => o.id));
+      const arrows = list(raw.arrows, WEB_LIMITS.arrows, (a) => ({ id: a.id, from: str(a.from), to: str(a.to) })).filter(
+        (a) => ids.has(a.from) && ids.has(a.to) && a.from !== a.to,
+      );
+      return { ...base, type: "food-web", organisms, arrows, legend: raw.legend !== false };
+    }
+    case "pyramid":
+      return {
+        ...base,
+        type: "pyramid",
+        levels: list(raw.levels, WEB_LIMITS.levels, (l): PyramidLevel => ({
+          id: l.id,
+          level: str(l.level).slice(0, 40),
+          name: str(l.name).slice(0, 40),
+          value: str(l.value).slice(0, 30),
+          hide: l.hide === "name" || l.hide === "value" || l.hide === "both" ? l.hide : "none",
+        })),
+      };
+    case "dichotomous-key": {
+      const lead = (value: unknown): KeyLead =>
+        isObject(value)
+          ? { next: typeof value.next === "string" && value.next ? value.next : null, organism: str(value.organism).slice(0, 40), hide: value.hide === true }
+          : { next: null, organism: "", hide: false };
+      const couplets = list(raw.couplets, KEY_LIMITS.couplets, (c) => ({ id: c.id, question: str(c.question).slice(0, 120), yes: lead(c.yes), no: lead(c.no) }));
+      // An answer pointing at a question that no longer exists becomes an (empty) organism.
+      const ids = new Set(couplets.map((c) => c.id));
+      const fix = (l: KeyLead): KeyLead => (l.next && !ids.has(l.next) ? { ...l, next: null } : l);
+      return {
+        ...base,
+        type: "dichotomous-key",
+        couplets: couplets.map((c) => ({ ...c, yes: fix(c.yes), no: fix(c.no) })),
+        style: raw.style === "tree" ? "tree" : "list",
+      };
+    }
+    case "taxonomy": {
+      const saved = Array.isArray(raw.ranks) ? raw.ranks.filter(isObject) : [];
+      return {
+        ...base,
+        type: "taxonomy",
+        organism: str(raw.organism).slice(0, 60),
+        plants: raw.plants === true,
+        // Always all eight ranks, in order.
+        ranks: TAXONOMY_RANKS.map((rank) => {
+          const found = saved.find((r) => r.rank === rank);
+          return { rank, value: str(found?.value).slice(0, 60), hide: found?.hide === true };
+        }),
+      };
     }
     default:
       return null;

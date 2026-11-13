@@ -25,6 +25,17 @@ export const BIOLOGY_INSTRUCTIONS = [
     en: "Study the pedigree: decide whether the trait is dominant or recessive, and write the genotypes of the marked people.",
   },
   { id: "order", ka: "დაალაგეთ სტადიები სწორი თანმიმდევრობით.", en: "Arrange the stages in the correct order." },
+  { id: "complement", ka: "დაწერეთ დნმ-ის კომპლემენტარული ჯაჭვი.", en: "Write the complementary DNA strand." },
+  { id: "transcribe", ka: "დაწერეთ ი-რნმ-ის თანმიმდევრობა (ტრანსკრიფცია).", en: "Write the mRNA sequence (transcription)." },
+  {
+    id: "translate",
+    ka: "გენეტიკური კოდის ცხრილის გამოყენებით განსაზღვრეთ ამინომჟავების თანმიმდევრობა.",
+    en: "Use the genetic code table to work out the sequence of amino acids.",
+  },
+  { id: "food-web", ka: "შეავსეთ კვებითი ქსელი. ისარი ენერგიის გადაცემის მიმართულებას აჩვენებს.", en: "Complete the food web. The arrows show the direction of energy flow." },
+  { id: "pyramid", ka: "შეავსეთ ეკოლოგიური პირამიდა.", en: "Complete the ecological pyramid." },
+  { id: "key", ka: "სარკვევის გამოყენებით დაასახელეთ ორგანიზმები.", en: "Use the key to identify the organisms." },
+  { id: "taxonomy", ka: "შეავსეთ ორგანიზმის სისტემატიკური რანგები.", en: "Complete the organism's classification." },
   { id: "choose", ka: "აირჩიეთ სწორი პასუხი.", en: "Choose the correct answer." },
   { id: "table", ka: "შეავსეთ ცხრილი.", en: "Complete the table." },
   { id: "graph", ka: "დააკვირდით გრაფიკს და უპასუხეთ კითხვებს.", en: "Look at the graph and answer the questions." },
@@ -43,7 +54,8 @@ export const BIOLOGY_INSTRUCTIONS = [
  * or the teacher's own pictures; stages in order; a toolbar with ♂ ♀, units,
  * magnification, Latin names in italics and chemical formulas
  * (photosynthesis, respiration); genetics: Punnett squares and pedigree
- * charts, with a genotype tool (XAXa → Xᴬ Xᵃ).
+ * charts, with a genotype tool (XAXa → Xᴬ Xᵃ); DNA / RNA sequences and the
+ * codon table; food webs and pyramids; dichotomous keys and taxonomy.
  */
 export const biologyToolkit: SubjectToolkit = {
   id: "biology",
@@ -53,7 +65,19 @@ export const biologyToolkit: SubjectToolkit = {
   formulas: true,
   chemistry: true,
   toolbar: BIOLOGY_TOOLBAR,
-  questionTypes: [...QUESTION_TYPES, "label-diagram", "punnett", "pedigree", "order"],
+  questionTypes: [
+    ...QUESTION_TYPES,
+    "label-diagram",
+    "punnett",
+    "pedigree",
+    "sequence",
+    "codon-table",
+    "food-web",
+    "pyramid",
+    "dichotomous-key",
+    "taxonomy",
+    "order",
+  ],
   diagrams: [],
   instructionTemplates: BIOLOGY_INSTRUCTIONS,
   typeLabels: {

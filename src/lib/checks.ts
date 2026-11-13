@@ -5,6 +5,8 @@
  */
 import { checkBalance } from "@/lib/chem";
 import { cross } from "@/lib/genetics";
+import { looseLeads } from "@/lib/dichotomous";
+import { readSequence } from "@/lib/molecular";
 import { buildCrossword, buildWordSearch } from "@/lib/puzzles";
 import { isTextBlock, visibleOptions } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
@@ -22,6 +24,8 @@ export type ProblemKind =
   | "noMarkers"
   | "noPicture"
   | "badGenotype"
+  | "badSequence"
+  | "looseKey"
   | "noLabels"
   | "noSource"
   | "emptyText"
@@ -99,6 +103,18 @@ export function findProblems(test: Test): Problem[] {
     }
     if (q.type === "sentence-analysis" && (q.parts.length === 0 || !q.sentence.trim())) problems.push({ kind: "fewItems", number, keyOnly: false });
     if (q.type === "punnett" && !cross(q.mother, q.father).ok) problems.push({ kind: "badGenotype", number, keyOnly: false });
+    if (q.type === "sequence") {
+      if (!readSequence(q.given).ok) problems.push({ kind: "badSequence", number, keyOnly: false });
+      else if (q.tasks.length === 0) problems.push({ kind: "fewItems", number, keyOnly: false });
+    }
+    if (q.type === "food-web" && q.organisms.length < 2) problems.push({ kind: "fewItems", number, keyOnly: false });
+    if (q.type === "food-web" && q.organisms.some((o) => !o.name.trim())) problems.push({ kind: "noAnswer", number, keyOnly: true });
+    if (q.type === "pyramid" && q.levels.length < 2) problems.push({ kind: "fewItems", number, keyOnly: false });
+    if (q.type === "dichotomous-key") {
+      if (q.couplets.length === 0) problems.push({ kind: "fewItems", number, keyOnly: false });
+      else if (looseLeads(q.couplets) > 0) problems.push({ kind: "looseKey", number, keyOnly: false });
+    }
+    if (q.type === "taxonomy" && q.ranks.some((r) => r.hide && !r.value.trim())) problems.push({ kind: "noAnswer", number, keyOnly: true });
     if (q.type === "pedigree") {
       if (q.people.length === 0) problems.push({ kind: "fewItems", number, keyOnly: false });
       else if (q.people.some((p) => p.ask && !p.answer.trim())) problems.push({ kind: "noAnswer", number, keyOnly: true });

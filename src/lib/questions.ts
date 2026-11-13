@@ -4,8 +4,11 @@
  * Pure functions are the easiest code to test and to reason about.
  */
 import { newId } from "@/lib/ids";
+import { HUMAN_TAXONOMY, sampleKey } from "@/lib/dichotomous";
+import { sampleChain, samplePyramid } from "@/lib/ecology";
 import { samplePedigree } from "@/lib/pedigree";
 import { isRichTextEmpty } from "@/lib/richText";
+import { TAXONOMY_RANKS } from "@/lib/storage/types";
 import type {
   ChoiceOption,
   LabelStyle,
@@ -40,7 +43,7 @@ export const QUESTION_TYPES: readonly QuestionType[] = [
  * Blocks that are not questions (no number, no points): reading texts and
  * poems, section headings, listening blocks, speaking cards.
  */
-const NOT_QUESTIONS: readonly QuestionType[] = ["passage", "poem", "section", "listening", "speaking"];
+const NOT_QUESTIONS: readonly QuestionType[] = ["passage", "poem", "section", "listening", "speaking", "codon-table"];
 export function isTextBlock(question: Question): boolean {
   return NOT_QUESTIONS.includes(question.type);
 }
@@ -231,6 +234,25 @@ export function createQuestion(
       return { ...base, type, points: keep.points ?? 3, mother: "Aa", father: "Aa", shown: [], blankGametes: false, showParents: true, askRatios: true, traits: {} };
     case "pedigree":
       return { ...base, type, points: keep.points ?? 3, ...samplePedigree(newId), legend: true, numbers: true };
+    case "sequence":
+      return { ...base, type, points: keep.points ?? 3, given: "TAC CGG AAA ATT", tasks: ["mrna", "protein"], strand: "template", example: false };
+    case "codon-table":
+      return { ...base, type, points: 0, legend: true };
+    case "food-web":
+      return { ...base, type, points: keep.points ?? 2, ...sampleChain(newId), legend: true };
+    case "pyramid":
+      return { ...base, type, points: keep.points ?? 2, levels: samplePyramid("energy", newId) };
+    case "dichotomous-key":
+      return { ...base, type, points: keep.points ?? 3, couplets: sampleKey(newId), style: "list" };
+    case "taxonomy":
+      return {
+        ...base,
+        type,
+        points: keep.points ?? 3,
+        organism: HUMAN_TAXONOMY.organism,
+        plants: false,
+        ranks: TAXONOMY_RANKS.map((rank) => ({ rank, value: HUMAN_TAXONOMY.ranks[rank], hide: rank === "class" || rank === "order" || rank === "family" })),
+      };
   }
 }
 

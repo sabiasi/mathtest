@@ -20,6 +20,9 @@ import { MapEditor } from "@/subjects/history/editors/MapEditor";
 import { LabelDiagramEditor } from "@/subjects/biology/LabelDiagramEditor";
 import { PedigreeEditor } from "@/subjects/biology/PedigreeEditor";
 import { PunnettEditor } from "@/subjects/biology/PunnettEditor";
+import { CodonTableEditor, SequenceEditor } from "@/subjects/biology/MolecularEditor";
+import { FoodWebEditor, PyramidEditor } from "@/subjects/biology/EcologyEditor";
+import { KeyEditor, TaxonomyEditor } from "@/subjects/biology/ClassificationEditor";
 import { OrderEditor } from "@/subjects/history/editors/OrderEditor";
 import { SourceEditor } from "@/subjects/history/editors/SourceEditor";
 import { TimelineEditor } from "@/subjects/history/editors/TimelineEditor";
@@ -70,6 +73,12 @@ const TEXT_PLACEHOLDERS: Partial<Record<QuestionType, MessageKey>> = {
   "label-diagram": "questions.labelPlaceholder",
   punnett: "questions.punnettPlaceholder",
   pedigree: "questions.pedigreePlaceholder",
+  sequence: "questions.sequencePlaceholder",
+  "codon-table": "questions.codonPlaceholder",
+  "food-web": "questions.foodWebPlaceholder",
+  pyramid: "questions.pyramidPlaceholder",
+  "dichotomous-key": "questions.keyPlaceholder",
+  taxonomy: "questions.taxonomyPlaceholder",
   passage: "questions.textBlockPlaceholder",
   poem: "questions.textBlockPlaceholder",
   "fill-blank": "questions.fillPlaceholder",
@@ -367,6 +376,12 @@ export function QuestionCard({
             )}
             {question.type === "punnett" && <PunnettEditor question={question} onChange={onChange} />}
             {question.type === "pedigree" && <PedigreeEditor question={question} onChange={onChange} />}
+            {question.type === "sequence" && <SequenceEditor question={question} onChange={onChange} />}
+            {question.type === "codon-table" && <CodonTableEditor question={question} onChange={onChange} />}
+            {question.type === "food-web" && <FoodWebEditor question={question} onChange={onChange} />}
+            {question.type === "pyramid" && <PyramidEditor question={question} onChange={onChange} />}
+            {question.type === "dichotomous-key" && <KeyEditor question={question} onChange={onChange} />}
+            {question.type === "taxonomy" && <TaxonomyEditor question={question} onChange={onChange} />}
             {question.type === "map" && (
               <MapEditor
                 question={question}
