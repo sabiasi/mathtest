@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "plans:sql": "WRITE_PLANS_SQL=1 vitest run src/lib/plans/plansSql.test.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

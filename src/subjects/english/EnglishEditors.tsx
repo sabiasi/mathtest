@@ -18,7 +18,8 @@ import { WordPicker } from "@/features/editor/questions/WordPicker";
 import { useT } from "@/i18n/language";
 import { newId } from "@/lib/ids";
 import { ACCEPTED_TYPES } from "@/lib/images/imageMath";
-import { UnsupportedImageError, addImage } from "@/lib/images/imageStore";
+import { addImage } from "@/lib/images/imageStore";
+import { useImageError } from "@/features/plans/useImageError";
 import { buildCrossword, buildWordSearch } from "@/lib/puzzles";
 import { LIMITS } from "@/lib/questions";
 import {
@@ -301,6 +302,7 @@ export function PictureMatchEditor({
   onPatch: (patch: (q: PictureMatchQuestion) => PictureMatchQuestion) => void;
 }) {
   const t = useT();
+  const imageError = useImageError();
   const fileInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -313,7 +315,7 @@ export function PictureMatchEditor({
         const { imageId, width, height } = await addImage(file);
         onPatch((q) => (q.pictures.length >= LIMITS.pictures ? q : { ...q, pictures: [...q.pictures, { id: newId(), imageId, width, height, answer: "" }] }));
       } catch (err) {
-        setError(t(err instanceof UnsupportedImageError ? "media.unsupported" : "media.failed"));
+        setError(imageError(err));
       }
     }
     setBusy(false);

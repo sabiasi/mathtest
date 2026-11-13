@@ -148,17 +148,21 @@ function shuffleOnce(test: Test, random: () => number): Question[] {
   }).map((question) => arrangeItems(question, random));
 }
 
-export function variantCount(test: Test): number {
-  return Math.min(MAX_VARIANTS, Math.max(1, test.variants.count));
+/** How many variants print: the test's setting, at most `limit` (the plan's limit, see lib/plans). */
+export function variantCount(test: Test, limit: number = MAX_VARIANTS): number {
+  return Math.min(MAX_VARIANTS, Math.max(1, limit), Math.max(1, test.variants.count));
 }
 
-/** All variants of a test: [A (original), B, C, …]. */
-export function buildVariants(test: Test): Variant[] {
+/**
+ * All variants of a test: [A (original), B, C, …]. `limit` = the most the
+ * teacher's plan allows; the test's own setting is never changed by it.
+ */
+export function buildVariants(test: Test, limit: number = MAX_VARIANTS): Variant[] {
   const original = arrangeOriginal(test);
   const variants: Variant[] = [{ label: VARIANT_LABELS[0], test: { ...test, questions: original } }];
   const seen = new Set([arrangement(original)]);
 
-  for (let i = 1; i < variantCount(test); i++) {
+  for (let i = 1; i < variantCount(test, limit); i++) {
     // Each variant gets its own random sequence, derived from the test's seed.
     const random = seededRandom(test.variants.seed + i * 0x9e3779b9);
     let questions = shuffleOnce(test, random);

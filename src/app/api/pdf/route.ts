@@ -11,9 +11,16 @@
  * per visitor per 10 minutes, for all guests together, and how many PDFs are
  * made at the same time. The invisible Chrome itself is NOT signed in: it
  * gets the test handed over, so no sign-in cookie ever leaves the browser.
+ *
+ * Plans: what the teacher's plan allows (number of variants, the "Made with
+ * MathTest" footer on Free) is worked out HERE from the database and handed
+ * to that Chrome too, so it can't be changed from the browser.
  */
 import { LANGUAGES, type Language } from "@/i18n/dictionaries";
 import { getBrowser } from "@/lib/server/chrome";
+import { serverEntitlements } from "@/lib/plans/server";
+import type { Entitlements } from "@/lib/plans/entitlements";
+import { VARIANT_LABELS } from "@/lib/variants";
 import { clientIp, createConcurrencyLimit, createRateLimiter, type LimitResult } from "@/lib/server/rateLimit";
 import { normalizeTest } from "@/lib/storage/migrate";
 import { supabaseConfigured } from "@/lib/supabase/config";
@@ -42,8 +49,9 @@ const refuse = (status: number, error: string, retryAfterSeconds?: number) =>
 export async function POST(request: Request) {
   // ---- Who is asking, and have they asked too often? ----
   let userId: string | null = null;
+  let supabase: Awaited<ReturnType<typeof createSupabaseServer>> | null = null;
   if (supabaseConfigured) {
-    const supabase = await createSupabaseServer();
+    supabase = await createSupabaseServer();
     const { data } = await supabase.auth.getClaims();
     userId = data?.claims?.sub ?? null;
   }
@@ -67,8 +75,12 @@ export async function POST(request: Request) {
   }
   const test = normalizeTest(body?.test);
   const version = body?.version === "key" ? "key" : "student";
-  // "A"…"F" or "all" — anything else falls back to "A".
-  const variant = typeof body?.variant === "string" && /^([A-F]|all)$/.test(body.variant) ? body.variant : "A";
+  // What the plan allows (guests: Free).
+  const entitlements = await serverEntitlements(supabase, userId);
+  // "A"…"F" or "all" — anything else (or a variant beyond the plan's limit) falls back to "A".
+  const allowedLabels: readonly string[] = VARIANT_LABELS.slice(0, entitlements.limits.maxVariants);
+  const asked = typeof body?.variant === "string" ? body.variant : "";
+  const variant = asked === "all" || allowedLabels.includes(asked) ? asked : "A";
   const language: Language = LANGUAGES.includes(body?.language as Language) ? (body!.language as Language) : "ka";
   if (!test) return refuse(400, "invalid test");
   if (test.questions.length > MAX_QUESTIONS) return refuse(413, "too many questions");
@@ -84,7 +96,7 @@ export async function POST(request: Request) {
   const done = parallel.tryStart();
   if (!done) return refuse(503, "busy", 5);
   try {
-    return await makePdf(request, test, version, variant, language, images);
+    return await makePdf(request, test, version, variant, language, images, entitlements);
   } finally {
     done();
   }
@@ -97,6 +109,7 @@ async function makePdf(
   variant: string,
   language: Language,
   images: Record<string, string>,
+  entitlements: Entitlements,
 ): Promise<Response> {
   let browser;
   try {
@@ -114,8 +127,8 @@ async function makePdf(
     await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]);
     // Runs before the page's own code: give this browser the test and language.
     await page.evaluateOnNewDocument(
-      (testJson, languageKey, lang, themeKey, pictures) => {
-        window.__MATHTEST_PRINT__ = { test: JSON.parse(testJson) };
+      (testJson, languageKey, lang, themeKey, pictures, allowed) => {
+        window.__MATHTEST_PRINT__ = { test: JSON.parse(testJson), entitlements: allowed };
         localStorage.setItem(languageKey, lang);
         localStorage.setItem(themeKey, "light");
         window.__MATHTEST_IMAGES__ = pictures;
@@ -125,6 +138,7 @@ async function makePdf(
       language,
       THEME_KEY,
       images,
+      entitlements,
     );
 
     const origin = new URL(request.url).origin;

@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { useT } from "@/i18n/language";
 import { newId } from "@/lib/ids";
 import { ACCEPTED_TYPES } from "@/lib/images/imageMath";
-import { UnsupportedImageError, addImage } from "@/lib/images/imageStore";
+import { addImage } from "@/lib/images/imageStore";
+import { useImageError } from "@/features/plans/useImageError";
 import { LIMITS } from "@/lib/questions";
 import type { MapMarker, MapQuestion } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
@@ -36,6 +37,7 @@ export function MapEditor({
   onPatch: (patch: (question: MapQuestion) => MapQuestion) => void;
 }) {
   const t = useT();
+  const imageError = useImageError();
   const fileInput = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export function MapEditor({
       // A new map: markers placed on the old one would point to the wrong places.
       onPatch((q) => ({ ...q, map: { imageId, width, height }, markers: q.map ? [] : q.markers }));
     } catch (err) {
-      setError(t(err instanceof UnsupportedImageError ? "media.unsupported" : "media.failed"));
+      setError(imageError(err));
     }
     setBusy(false);
   }

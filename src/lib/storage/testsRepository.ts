@@ -36,8 +36,11 @@ export type StorageKind = "cloud" | "device";
 
 declare global {
   interface Window {
-    /** Set by the PDF server: the test to print (so no sign-in is needed there). */
-    __MATHTEST_PRINT__?: { test: unknown };
+    /**
+     * Set by the PDF server: the test to print (so no sign-in is needed there)
+     * and what the teacher's plan allows (worked out on the server).
+     */
+    __MATHTEST_PRINT__?: { test: unknown; entitlements?: import("@/lib/plans/entitlements").Entitlements };
   }
 }
 

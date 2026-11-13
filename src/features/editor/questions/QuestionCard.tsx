@@ -11,7 +11,8 @@ import { RichTextInput } from "@/features/math/RichTextInput";
 import type { MessageKey } from "@/i18n/dictionaries";
 import { useT } from "@/i18n/language";
 import { newId } from "@/lib/ids";
-import { UnsupportedImageError, addImage } from "@/lib/images/imageStore";
+import { addImage } from "@/lib/images/imageStore";
+import { useImageError } from "@/features/plans/useImageError";
 import { changeQuestionType, isTextBlock } from "@/lib/questions";
 import type { Diagram, DiagramKind, LabelStyle, Question, QuestionImage, QuestionType } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
@@ -110,6 +111,7 @@ export function QuestionCard({
   onDelete: () => void;
 }) {
   const t = useT();
+  const imageError = useImageError();
   // useSortable connects this card to drag-and-drop (see QuestionList).
   const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
     useSortable({ id: question.id, transition: { duration: 220, easing: "cubic-bezier(0.2, 0, 0, 1)" } });
@@ -174,7 +176,7 @@ export function QuestionCard({
         };
         onPatch((q) => ({ ...q, images: [...q.images, placement] }));
       } catch (error) {
-        setMediaError(t(error instanceof UnsupportedImageError ? "media.unsupported" : "media.failed"));
+        setMediaError(imageError(error));
       }
     }
     setMediaBusy(false);

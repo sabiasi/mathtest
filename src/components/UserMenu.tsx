@@ -1,6 +1,6 @@
 "use client";
 
-import { LayoutGrid, LogOut, Settings } from "lucide-react";
+import { Crown, LayoutGrid, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { displayName, useAuth } from "@/features/auth/AuthProvider";
+import { usePlan } from "@/features/plans/PlanProvider";
 import { useT } from "@/i18n/language";
 import { initials } from "@/lib/auth/profile";
 
@@ -54,7 +55,10 @@ function UserMenu() {
   const t = useT();
   const router = useRouter();
   const { user, profile, signOut } = useAuth();
+  const { entitlements, ready } = usePlan();
   const name = displayName(user, profile);
+  const planLabel =
+    entitlements.state === "trial" ? t("user.trialDays", { days: entitlements.trialDaysLeft ?? 0 }) : t(`plan.${entitlements.plan}`);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
@@ -75,6 +79,13 @@ function UserMenu() {
         <DropdownMenuItem onSelect={() => router.push("/tests")}>
           <LayoutGrid aria-hidden="true" />
           {t("home.title")}
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => router.push("/settings#plan")}>
+          <Crown aria-hidden="true" />
+          {t("user.plan")}
+          {ready && (
+            <span className="ml-auto rounded-full bg-premium-soft px-2 py-0.5 text-xs font-semibold text-premium-text">{planLabel}</span>
+          )}
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => router.push("/settings")}>
           <Settings aria-hidden="true" />

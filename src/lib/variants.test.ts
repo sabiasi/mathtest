@@ -174,3 +174,15 @@ describe("gap fill in variants", () => {
     expect(shown.blanks.map((b) => b.word)).toEqual(["go", "goes"]); // gaps keep their order
   });
 });
+
+describe("buildVariants with a plan limit", () => {
+  it("prints at most `limit` variants, and the first ones are the same as without a limit", () => {
+    const test = makeTest(questions(), { count: 5 });
+    const all = buildVariants(test);
+    const limited = buildVariants(test, 2);
+    expect(limited.map((v) => v.label)).toEqual(["A", "B"]);
+    expect(limited.map((v) => ids(v.test))).toEqual(all.slice(0, 2).map((v) => ids(v.test)));
+    // The test's own setting is untouched.
+    expect(test.variants.count).toBe(5);
+  });
+});

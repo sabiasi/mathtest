@@ -50,3 +50,23 @@ export function formatDate(ymd: string, language: Language): string {
   if (language === "ka") return `${d} ${GEORGIAN_MONTHS[m - 1]} ${y}`;
   return new Intl.DateTimeFormat("en-GB", { dateStyle: "medium" }).format(new Date(y, m - 1, d));
 }
+
+/** A moment ("2026-11-27T10:00:00Z") as a day in the user's time zone: "27 ნოემბერი 2026". */
+export function formatDayOf(iso: string, language: Language): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return formatDate(`${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`, language);
+}
+
+/** File sizes: 900 → "900 B", 350 000 → "342 KB", 12 500 000 → "11.9 MB", 1 GB → "1 GB". */
+export function formatSize(bytes: number): string {
+  const units = ["B", "KB", "MB", "GB"];
+  let value = Math.max(0, bytes);
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  const rounded = value >= 10 || unit === 0 ? Math.round(value) : Math.round(value * 10) / 10;
+  return `${rounded} ${units[unit]}`;
+}

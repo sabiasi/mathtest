@@ -20,6 +20,7 @@ import { newId } from "@/lib/ids";
 import type { Test } from "@/lib/storage/types";
 import { IMAGE_BUCKET } from "@/lib/supabase/config";
 import { getSupabase } from "@/lib/supabase/client";
+import { loadImageStorage } from "@/lib/plans/subscription";
 import { ACCEPTED_TYPES, outputType, targetSize, unusedImageIds, usedImageIds } from "./imageMath";
 
 const DB_NAME = "mathtest";
@@ -153,6 +154,27 @@ function measure(blob: Blob): Promise<{ width: number; height: number }> {
 
 export class UnsupportedImageError extends Error {}
 
+/** The plan's picture space is full (the database would refuse the upload). */
+export class ImageStorageFullError extends Error {
+  constructor(readonly limitBytes: number) {
+    super("picture space full");
+  }
+}
+
+/**
+ * Asks the database whether there's room for `bytes` more. If it can't be
+ * asked (offline, or an older database), the upload is simply tried.
+ */
+async function checkRoom(bytes: number): Promise<void> {
+  let storage;
+  try {
+    storage = await loadImageStorage(getSupabase());
+  } catch {
+    return;
+  }
+  if (storage.limit > 0 && storage.used + bytes > storage.limit) throw new ImageStorageFullError(storage.limit);
+}
+
 /**
  * Saves a picture the teacher uploaded or pasted. Very large photos are
  * scaled down (see imageMath.ts); SVG drawings are kept exactly as they are,
@@ -185,6 +207,7 @@ export async function addImage(file: Blob): Promise<{ imageId: string; width: nu
   }
 
   const id = newId();
+  if (currentUserId) await checkRoom(blob.size);
   if (currentUserId) await storeAndUpload(currentUserId, id, blob);
   else await storeOnDevice(id, blob, width, height);
   return { imageId: id, width, height };

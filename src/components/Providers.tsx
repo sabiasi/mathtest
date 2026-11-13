@@ -8,6 +8,8 @@
  * - MotionConfig: animations follow the computer's "reduce motion" setting.
  * - TooltipProvider: shared timing for all tooltips.
  * - AuthProvider: who is signed in; loads their tests from the cloud.
+ * - PlanProvider: their plan (Free / Premium / School), see usePlan().
+ * - UpgradeProvider: the friendly "this is a Premium feature" window.
  * - ConfirmProvider: our Georgian "Are you sure?" dialogs.
  * - Toaster: where toasts appear.
  */
@@ -16,6 +18,8 @@ import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/features/auth/AuthProvider";
+import { PlanProvider } from "@/features/plans/PlanProvider";
+import { UpgradeProvider } from "@/features/plans/UpgradeDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConfirmProvider } from "./ConfirmDialog";
 
@@ -33,12 +37,16 @@ export function Providers({ children }: { children: ReactNode }) {
     >
       <MotionConfig reducedMotion="user" transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}>
         <AuthProvider>
-          <TooltipProvider>
-            <ConfirmProvider>
-              {children}
-              <Toaster />
-            </ConfirmProvider>
-          </TooltipProvider>
+          <PlanProvider>
+            <TooltipProvider>
+              <ConfirmProvider>
+                <UpgradeProvider>
+                  {children}
+                  <Toaster />
+                </UpgradeProvider>
+              </ConfirmProvider>
+            </TooltipProvider>
+          </PlanProvider>
         </AuthProvider>
       </MotionConfig>
     </ThemeProvider>

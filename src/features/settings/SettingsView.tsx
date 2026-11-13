@@ -11,6 +11,7 @@ import { Field, FieldLabel, SegmentedControl } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { PlanSummary } from "@/features/plans/PlanSummary";
 import { SubjectPicker } from "@/features/subjects/SubjectPicker";
 import { LANGUAGES, LANGUAGE_NAMES, type Language } from "@/i18n/dictionaries";
 import { setLanguage, useLanguage, useT } from "@/i18n/language";
@@ -38,6 +39,10 @@ export function SettingsView() {
     <PageTransition className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-10">
       <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("settings.title")}</h1>
       <p className="mt-1.5 text-[15px] text-muted-foreground">{t("settings.subtitle")}</p>
+
+      <Section title={t("plan.title")} id="plan">
+        <PlanSummary />
+      </Section>
 
       <Section title={t("settings.profile")}>
         {!profile ? (
@@ -159,9 +164,9 @@ function ProfileForm({
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ title, id, children }: { title: string; id?: string; children: ReactNode }) {
   return (
-    <section className="mt-8 rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+    <section id={id} className="mt-8 scroll-mt-20 rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
       <h2 className="mb-5 text-lg font-semibold">{title}</h2>
       {children}
     </section>

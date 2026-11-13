@@ -23,6 +23,10 @@ import { renderBlock } from "./pieces";
 import { TypographyProvider } from "./Typography";
 import { AnswerTable } from "./AnswerTable";
 import { GuestBanner } from "@/components/GuestBanner";
+import { usePlan } from "@/features/plans/PlanProvider";
+import { PremiumBadge } from "@/features/plans/PremiumBadge";
+import { useUpgrade } from "@/features/plans/UpgradeDialog";
+import { BRAND } from "@/lib/plans/plans";
 import { PdfError, downloadPdf, pdfFileName, waitForImages } from "./downloadPdf";
 import { PrintHeader, type PrintVersion } from "./PrintBlocks";
 import { BLOCK_GAP, COLUMN_GAP, HEADER_GAP, PAGE, usePrintLayout } from "./usePrintLayout";
@@ -88,9 +92,17 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
   const options = test.printOptions;
   const toolkit = getToolkit(test.subjectId);
   const zoom = useFitToWidth();
+  const upgrade = useUpgrade();
+
+  // ---- What the plan allows (the PDF server checks this again) ----
+  const plan = usePlan();
+  // While the plan loads, don't hide anything yet (avoids a flicker for Premium teachers).
+  const maxVariants = plan.ready ? plan.entitlements.limits.maxVariants : MAX_VARIANTS;
+  const brandFooter = plan.ready && !plan.entitlements.features.noPdfFooter;
+  const variantsLimited = test.variants.count > maxVariants;
 
   // ---- Which variants to show ----
-  const variants = useMemo(() => buildVariants(test), [test]);
+  const variants = useMemo(() => buildVariants(test, maxVariants), [test, maxVariants]);
   const enabled = variants.length > 1;
   const showAll = enabled && variantParam === "all";
   const current = variants.find((v) => v.label === variantParam) ?? variants[0];
@@ -200,6 +212,15 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
               {notice}
             </p>
           )}
+          {brandFooter && (
+            <p className="w-full text-right text-sm text-muted-foreground" data-footer-hint="">
+              {t("print.brandHint", { name: BRAND.name })}{" "}
+              <button type="button" onClick={() => upgrade("footer")} className="inline-flex items-center gap-1 font-semibold text-brand underline-offset-2 hover:underline">
+                {t("print.brandRemove")}
+                <PremiumBadge compact />
+              </button>
+            </p>
+          )}
         </div>
       </div>
 
@@ -265,10 +286,23 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
                 label={t("variants.count")}
                 value={String(variants.length)}
                 onChange={(v) => {
+                  // More than the plan allows: explain Premium, change nothing.
+                  if (Number(v) > maxVariants) return upgrade("variants");
                   setVariants({ count: Number(v) });
                   if (Number(v) === 1) setUrl({ variant: "A" });
                 }}
-                options={Array.from({ length: MAX_VARIANTS }, (_, i) => ({ value: String(i + 1), label: String(i + 1) }))}
+                options={Array.from({ length: MAX_VARIANTS }, (_, i) => ({
+                  value: String(i + 1),
+                  label:
+                    i + 1 > maxVariants ? (
+                      <span className="inline-flex items-center gap-1">
+                        {i + 1}
+                        <PremiumBadge compact />
+                      </span>
+                    ) : (
+                      String(i + 1)
+                    ),
+                }))}
               />
             </Option>
             {enabled && (
@@ -295,6 +329,14 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
               </>
             )}
           </div>
+          {variantsLimited && (
+            <p className="w-full text-sm text-muted-foreground" data-variants-limited="">
+              {t("variants.limited", { count: test.variants.count, max: maxVariants })}{" "}
+              <button type="button" onClick={() => upgrade("variants")} className="font-semibold text-brand underline-offset-2 hover:underline">
+                {t("plan.learnMore")}
+              </button>
+            </p>
+          )}
           {enabled && (
             <div className="flex w-full flex-wrap items-center gap-x-6 gap-y-2 text-sm">
               <Option label={t("variants.show")}>
@@ -342,6 +384,7 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
             version={version}
             // Double-sided printing: pad odd-length variants, except the very last one.
             blankAfter={showAll && test.variants.duplex && i < shown.length - 1}
+            brandFooter={brandFooter}
             onReady={reportReady}
           />
         ))}
@@ -358,12 +401,15 @@ function PrintedVariant({
   label,
   version,
   blankAfter,
+  brandFooter,
   onReady,
 }: {
   variant: Variant;
   label: string | null;
   version: PrintVersion;
   blankAfter: boolean;
+  /** Free plan: "Made with MathTest" in the footer of every page. */
+  brandFooter: boolean;
   onReady: (key: string, ready: boolean) => void;
 }) {
   const t = useT();
@@ -427,6 +473,11 @@ function PrintedVariant({
             </div>
             <footer className="sheet-footer" style={{ bottom: `${PAGE.padBottom / 2 - 2}mm` }}>
               <span>{footerName}</span>
+              {brandFooter && (
+                <span className="sheet-brand" data-brand-footer="">
+                  {t("print.madeWith", { name: BRAND.website ? `${BRAND.name} · ${BRAND.website}` : BRAND.name })}
+                </span>
+              )}
               <span>{t("print.page", { page: pageIndex + 1, pages: pages.length })}</span>
             </footer>
           </section>
