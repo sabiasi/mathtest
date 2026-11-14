@@ -186,6 +186,38 @@ Visitors can try everything without an account (guest mode).
   subject; (3) "calm light" redesign — new landing page with a live demo,
   shared backdrop, subject-coloured cards. See Tech decisions: Editor
   scrolling, Browser tests, Toolbar (Word-like), Visual design, Landing page.
+- [x] **Guest trial + reordering** (2026-11-15):
+  - **One free trial test for guests** (`lib/guestTrial.ts`,
+    `features/auth/GuestTrial.tsx`): a signed-out visitor (accounts
+    configured) may create ONE test (new / "Use as template"); then New
+    test, Duplicate and Use as template open the "უფასო ცდა გამოყენებულია"
+    window (sign up / Google / sign in). The flag lives in localStorage
+    `mathtest:guest-trial`, IndexedDB `mathtest-trial`/`flags`/`used` and
+    the cookie `mathtest_trial` (400 days); any one restores the others.
+    A guest who already has a test counts as used. `useGuestTrial()`:
+    `check()` only looks (before "which subject?"), `request()` starts the
+    trial right before creating (POST `/api/guest-trial`: per-IP daily
+    limit in memory, `GUEST_TRIALS_PER_IP_PER_DAY`, default 30 — schools
+    share IPs; 429 → the window; network errors don't block). Samples never
+    count. Signing up moves the trial test in (existing migration). Editor:
+    `TrialNote`. `/privacy` (features/legal) explains the cookie; footer
+    link. e2e: `openSampleCopy` calls `forgetGuestTrial` (leaves the editor
+    first — it saves on the way out — then clears the flags and guest
+    tests), so each copy is a fresh trial; playwright lifts the IP limit.
+  - **Reordering**: `components/ReorderArrows.tsx` (ChevronUp/Down in a
+    rounded pill, labels `list.up`/`list.down` = „ზემოთ/ქვემოთ
+    გადატანა“) on question cards (vertical, right edge, opacity 0 until
+    hover / focus-within, always on `pointer-coarse`), multiple-choice
+    options, matching pairs and every `RowControls` list (order, timeline…).
+    Cards also get a "⋯" menu (move to top / bottom, duplicate, delete) and
+    Alt+↑/↓ (`onKeyDownCapture` on the card). `TestEditor.moveQuestion`:
+    arrayMove, `moveTick` (+1 per arrow/menu/key move), Undo toast (old id
+    order, keeps edits), `useLayoutEffect` gives focus back (React moves DOM
+    nodes) and scrolls gently only when the card's top left the window.
+    The card's inner `motion.div` has `layout="position"` with
+    `layoutDependency={moveTick}`: only those moves glide (not typing, not
+    drag-and-drop; off with reduced motion). Drag handle ⋮⋮ stays.
+    `e2e/reorder.spec.ts`, `e2e/guest-trial.spec.ts`.
 - [ ] **Biology toolkit** (in phases; stop for review after each):
   - [x] **B1 — subject + "Label the diagram"**: subject id `biology` (Dna
     icon, green `--subject-biology`, Georgian typography, `chemistry: true`).
@@ -488,7 +520,9 @@ src/
 - **Never check a subject by name in shared code** (no `if (subjectId === "math")`
   in the editor/print): put the difference in the toolkit and read it via
   `getToolkit(test.subjectId)`.
-- **Guests are first-class**: anything on /tests, /editor, /print must work
+- **Guests are first-class** (but get ONE trial test, see "Guest trial"; any
+  new way to create / copy a test must call `useGuestTrial().request()`):
+  anything on /tests, /editor, /print must work
   with `useStorageKind() === "device"` (no user id, no profile). Only pages
   that really need an account go in `PROTECTED_PREFIXES`. Anything new that
   costs the server work must get a rate limit (lib/server/rateLimit.ts).

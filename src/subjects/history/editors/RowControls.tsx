@@ -1,6 +1,7 @@
 "use client";
 
-import { ArrowDown, ArrowUp, X } from "lucide-react";
+import { X } from "lucide-react";
+import { ReorderArrows } from "@/components/ReorderArrows";
 import { IconButton } from "@/components/ui/icon-button";
 import { useT } from "@/i18n/language";
 
@@ -30,13 +31,8 @@ export function RowControls({
 }) {
   const t = useT();
   return (
-    <div className="flex shrink-0 items-center">
-      <IconButton label={t("list.up")} disabled={index === 0} onClick={() => onMove(-1)} className="p-1.5">
-        <ArrowUp className="size-4" aria-hidden="true" />
-      </IconButton>
-      <IconButton label={t("list.down")} disabled={index === count - 1} onClick={() => onMove(1)} className="p-1.5">
-        <ArrowDown className="size-4" aria-hidden="true" />
-      </IconButton>
+    <div className="flex shrink-0 items-center gap-1">
+      <ReorderArrows index={index} count={count} onMove={onMove} />
       <IconButton label={t("list.remove")} tone="danger" disabled={count <= min} onClick={onRemove} className="p-1.5">
         <X className="size-4" aria-hidden="true" />
       </IconButton>

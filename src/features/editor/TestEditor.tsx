@@ -57,7 +57,8 @@ import {
 import { toast } from "sonner";
 import { AnimatePresence } from "motion/react";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState, type ReactNode, type Ref } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type Ref } from "react";
+import { arrayMove } from "@dnd-kit/sortable";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { GuestBanner } from "@/components/GuestBanner";
@@ -78,6 +79,7 @@ import { revealFocused } from "./keepVisible";
 import { QuestionList } from "./questions/QuestionList";
 import { PreviewProvider, usePreviewControl } from "./preview/PreviewContext";
 import { LivePreview } from "./preview/LivePreview";
+import { TrialNote } from "@/features/auth/GuestTrial";
 import { SubjectToolbar } from "./SubjectToolbar";
 import { TestHeaderForm } from "./TestHeaderForm";
 import { useAutosave } from "./useAutosave";
@@ -241,6 +243,48 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
     setFocusId(copy.id);
   }
 
+  // ---- Moving a question (arrows, "⋯" menu, Alt+↑/↓) ----
+  const [moveTick, setMoveTick] = useState(0);
+  // What had focus and which question moved: put back / shown after the move.
+  const moved = useRef<{ focus: Element | null; id: string } | null>(null);
+  function moveQuestion(question: Question, to: number) {
+    const from = test.questions.findIndex((q) => q.id === question.id);
+    if (from < 0 || to === from || to < 0 || to >= test.questions.length) return;
+    const before = test.questions.map((q) => q.id);
+    moved.current = { focus: document.activeElement, id: question.id };
+    updateQuestions((qs) => arrayMove(qs, qs.findIndex((q) => q.id === question.id), to));
+    setMoveTick((n) => n + 1);
+    toast(t("toast.moved", { position: to + 1 }), {
+      id: "question-moved", // one toast for a series of moves
+      action: {
+        label: t("toast.undo"),
+        // Back to the order before this move (keeping everything typed since).
+        onClick: () => {
+          moved.current = { focus: null, id: question.id };
+          updateQuestions((qs) => [...qs].sort((a, b) => orderIn(before, a.id) - orderIn(before, b.id)));
+          setMoveTick((n) => n + 1);
+        },
+      },
+    });
+  }
+  useLayoutEffect(() => {
+    const info = moved.current;
+    if (!info) return;
+    moved.current = null;
+    // React may have moved the focused element in the page: give the focus back (the cursor stays).
+    if (info.focus instanceof HTMLElement && info.focus.isConnected && document.activeElement !== info.focus) {
+      info.focus.focus({ preventScroll: true });
+    }
+    // Keep the moved question in view: scroll gently only when its top left the window.
+    const card = document.querySelector(`[data-question-card][data-question-id="${CSS.escape(info.id)}"]`)?.closest("li");
+    if (!card) return;
+    const rect = card.getBoundingClientRect(); // the <li> isn't animated: its real, new place
+    const top = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--editor-top")) || 56) + 12;
+    const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+    if (rect.top < top) window.scrollBy({ top: rect.top - top, behavior });
+    else if (rect.top > window.innerHeight - 96) window.scrollBy({ top: rect.top - window.innerHeight * 0.35, behavior });
+  }, [moveTick]);
+
   /** `position`: 1-based place in the list (for Undo). */
   async function remove(question: Question, position: number) {
     // The printed number (reading texts and poems have none).
@@ -303,7 +347,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
               </Link>
             </div>
             {sample ? (
-              <button type="button" className={buttonVariants({ size: "sm" })} onClick={() => makeCopy(test)} data-use-template="">
+              <button type="button" className={buttonVariants({ size: "sm" })} onClick={() => void makeCopy(test)} data-use-template="">
                 <Copy className="size-4" aria-hidden="true" />
                 <span className="max-sm:sr-only">{t("sample.useTemplate")}</span>
               </button>
@@ -354,7 +398,8 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
           <SplitView>
           <FollowFocus>
           <div className="mx-auto w-full max-w-3xl min-w-0 space-y-8 px-4 pt-8 sm:px-6">
-            <GuestBanner />
+            {/* Guests: their one free trial test (samples are just for looking). */}
+            {sample ? <GuestBanner /> : <TrialNote />}
             {sample && (
               <div className="flex flex-wrap items-start gap-4 rounded-2xl border border-primary-soft-border bg-primary-soft/60 p-5" data-sample-banner="">
                 <Sparkles className="mt-0.5 size-6 shrink-0 text-brand" aria-hidden="true" />
@@ -362,7 +407,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                   <h2 className="font-semibold text-foreground">{t("sample.readOnlyTitle")}</h2>
                   <p className="mt-1 text-[15px] leading-snug text-soft-foreground">{t("sample.readOnlyText")}</p>
                 </div>
-                <button type="button" className={buttonVariants()} onClick={() => makeCopy(test)}>
+                <button type="button" className={buttonVariants()} onClick={() => void makeCopy(test)}>
                   <Copy className="size-5" aria-hidden="true" />
                   {t("sample.useTemplate")}
                 </button>
@@ -406,6 +451,8 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                   onPatch={(id, patch) => updateQuestions((qs) => qs.map((q) => (q.id === id ? patch(q) : q)))}
                   onDuplicate={duplicate}
                   onDelete={remove}
+                  onMove={moveQuestion}
+                  moveTick={moveTick}
                 />
               )}
 
@@ -549,6 +596,12 @@ function SplitView({ children }: { children: ReactNode }) {
       )}
     </div>
   );
+}
+
+/** Where `id` was in `order` (unknown ids go last). */
+function orderIn(order: string[], id: string) {
+  const index = order.indexOf(id);
+  return index < 0 ? order.length : index;
 }
 
 export function EditorSkeleton({ label }: { label: string }) {

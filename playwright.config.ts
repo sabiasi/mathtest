@@ -25,5 +25,7 @@ export default defineConfig({
     url: "http://localhost:3210",
     reuseExistingServer: true,
     timeout: 300_000,
+    // Every test starts a guest trial from the same address: lift the per-IP daily limit.
+    env: { GUEST_TRIALS_PER_IP_PER_DAY: "100000" },
   },
 });

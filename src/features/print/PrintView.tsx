@@ -251,7 +251,7 @@ function PrintDocument({
           {sample && (
             <div className="flex w-full flex-wrap items-center gap-3 rounded-lg border border-primary-soft-border bg-primary-soft/60 px-3 py-2" data-sample-notice="">
               <p className="min-w-60 flex-1 text-sm text-soft-foreground">{t("sample.printNotice")}</p>
-              <Button size="sm" onClick={() => makeCopy(test)}>
+              <Button size="sm" onClick={() => void makeCopy(test)}>
                 <Copy className="size-4" aria-hidden="true" />
                 {t("sample.useTemplate")}
               </Button>

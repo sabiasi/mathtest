@@ -53,7 +53,7 @@ export function SampleCard({ subjectId }: { subjectId: SubjectId }) {
         </dl>
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-primary-soft-border px-4 py-3">
-        <button type="button" className={buttonVariants({ variant: "default", size: "sm" })} onClick={() => makeCopy(sample)} data-use-template="">
+        <button type="button" className={buttonVariants({ variant: "default", size: "sm" })} onClick={() => void makeCopy(sample)} data-use-template="">
           <Copy aria-hidden="true" />
           {t("sample.useTemplate")}
         </button>

@@ -2,8 +2,10 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Copy, GripVertical, ImagePlus, Lightbulb, Trash2, X } from "lucide-react";
-import { motion } from "motion/react";
+import { ArrowDownToLine, ArrowUpToLine, Copy, GripVertical, ImagePlus, Lightbulb, MoreHorizontal, Trash2, X } from "lucide-react";
+import { ReorderArrows } from "@/components/ReorderArrows";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { motion, useReducedMotion } from "motion/react";
 import { useState, type ClipboardEvent, type DragEvent } from "react";
 import { inputClasses } from "@/components/ui/form";
 import { IconButton } from "@/components/ui/icon-button";
@@ -113,6 +115,10 @@ export function QuestionCard({
   onPatch,
   onDuplicate,
   onDelete,
+  index,
+  count,
+  moveTick,
+  onMove,
 }: {
   question: Question;
   /** null for reading texts and poems (they have no number). */
@@ -127,8 +133,16 @@ export function QuestionCard({
   onPatch: (patch: (question: Question) => Question) => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  /** Position in the list (0-based) and the list's length: for the up / down arrows. */
+  index: number;
+  count: number;
+  /** Changes on every arrow / menu / keyboard move: the cards then glide to their new places. */
+  moveTick: number;
+  /** Move this question to position `to` (0-based). */
+  onMove: (to: number) => void;
 }) {
   const t = useT();
+  const reduceMotion = useReducedMotion();
   const imageError = useImageError();
   // The paper's language (English tests are printed in English; everything else in Georgian).
   const paperLanguage = toolkit.print.language ?? "ka";
@@ -230,10 +244,27 @@ export function QuestionCard({
       animate={{ height: "auto", opacity: 1, transitionEnd: { overflow: "visible" } }}
       exit={{ height: 0, opacity: 0, overflow: "hidden", pointerEvents: "none" }}
       transition={{ duration: 0.22, ease: [0.2, 0, 0, 1] }}
-      className="relative"
+      className="group/card relative"
     >
-      {/* pb-4 = the gap to the next card (inside the li, so it shrinks with it) */}
-      <div className="pb-4">
+      {/* pb-4 = the gap to the next card (inside the li, so it shrinks with it).
+          layout + layoutDependency: when a question is moved with the arrows, the
+          menu or Alt+↑/↓, the cards glide past each other (only then — typing or
+          drag-and-drop never trigger it). */}
+      <motion.div
+        className="pb-4"
+        layout={reduceMotion ? false : "position"}
+        layoutDependency={moveTick}
+        transition={{ duration: 0.28, ease: [0.2, 0, 0, 1] }}
+        onKeyDownCapture={(event) => {
+          // Alt+↑ / Alt+↓: move the question the cursor is in.
+          if (!event.altKey || event.shiftKey || event.metaKey || event.ctrlKey) return;
+          if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+          event.preventDefault();
+          event.stopPropagation();
+          const to = index + (event.key === "ArrowUp" ? -1 : 1);
+          if (to >= 0 && to < count) onMove(to);
+        }}
+      >
         <div
           onPasteCapture={handlePaste}
           onDragOver={(event) => {
@@ -307,9 +338,47 @@ export function QuestionCard({
               <IconButton onClick={onDelete} label={t("questions.delete")} tone="danger">
                 <Trash2 className="size-4" aria-hidden="true" />
               </IconButton>
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger
+                  aria-label={t("questions.more")}
+                  className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none data-[state=open]:bg-accent pointer-coarse:p-3"
+                  data-question-menu=""
+                >
+                  <MoreHorizontal className="size-4" aria-hidden="true" />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem disabled={index === 0} onSelect={() => onMove(0)}>
+                    <ArrowUpToLine aria-hidden="true" />
+                    {t("questions.moveTop")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem disabled={index === count - 1} onSelect={() => onMove(count - 1)}>
+                    <ArrowDownToLine aria-hidden="true" />
+                    {t("questions.moveBottom")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={onDuplicate}>
+                    <Copy aria-hidden="true" />
+                    {t("questions.duplicate")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem variant="destructive" onSelect={onDelete}>
+                    <Trash2 aria-hidden="true" />
+                    {t("questions.delete")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
+          {/* ▲▼ on the card's right edge: soft on hover / focus, always shown on touch screens. */}
+          {count > 1 && (
+            <ReorderArrows
+              vertical
+              index={index}
+              count={count}
+              what={number === null ? t(`type.${question.type}`) : t("questions.number", { number })}
+              onMove={(by) => onMove(index + by)}
+              className="absolute top-16 -right-3.5 z-10 opacity-0 transition-opacity duration-200 group-hover/card:opacity-100 focus-within:opacity-100 group-focus-within/card:opacity-100 pointer-coarse:opacity-100 [[inert]_&]:hidden"
+            />
+          )}
           <div className="space-y-4 p-4 sm:p-5">
             {question.tip && (
               // A helper note for the teacher (sample tests): shown here only, never printed.
@@ -442,7 +511,7 @@ export function QuestionCard({
             />
           </div>
         </div>
-      </div>
+      </motion.div>
     </motion.li>
   );
 }

@@ -15,6 +15,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { useGuestTrial } from "@/features/auth/GuestTrial";
 import { NewTestDialog } from "@/features/subjects/NewTestDialog";
 import { SubjectIcon } from "@/features/subjects/SubjectPicker";
 import { dictionaries } from "@/i18n/dictionaries";
@@ -59,6 +60,11 @@ export function HomeView() {
   const loadStatus = useLoadStatus();
   const { profile, guest } = useAuth();
   const [choosingSubject, setChoosingSubject] = useState(false);
+  const trial = useGuestTrial();
+  // "New test": guests who used their free trial get the sign-up window instead.
+  async function openNewTest() {
+    if (await trial.check()) setChoosingSubject(true);
+  }
   // From Settings: the subject marked "Default" in the "which subject?" window.
   const defaultSubject = subjectFromText(profile?.default_subject ?? "");
 
@@ -87,9 +93,10 @@ export function HomeView() {
     if (tests) void cleanUpImages(tests);
   }, [tests]);
 
-  function handleCreate(subjectId: SubjectId) {
+  async function handleCreate(subjectId: SubjectId) {
     if (!access.requestSubject(subjectId)) return;
     setChoosingSubject(false);
+    if (!(await trial.request())) return;
     const toolkit = getToolkit(subjectId);
     const test = createTest({
       // From Settings: the teacher's school.
@@ -115,7 +122,7 @@ export function HomeView() {
           <p className="mt-1.5 max-w-2xl text-[15px] text-muted-foreground">{t("home.subtitle")}</p>
         </div>
         {tests && tests.length > 0 && view === "all" && (
-          <Button onClick={() => setChoosingSubject(true)}>
+          <Button onClick={() => void openNewTest()}>
             <Plus className="size-5" aria-hidden="true" />
             {t("home.createNew")}
           </Button>
@@ -160,11 +167,11 @@ export function HomeView() {
                 <AllTests
                   tests={tests}
                   onOpenSubject={setView}
-                  onCreate={() => setChoosingSubject(true)}
+                  onCreate={() => void openNewTest()}
                   onOpenSample={() => router.push(`/editor/sample-${defaultSubject ?? "math"}`)}
                 />
               ) : (
-                <SubjectSection key={view} subjectId={view} tests={tests.filter((test) => test.subjectId === view)} onCreate={() => handleCreate(view)} />
+                <SubjectSection key={view} subjectId={view} tests={tests.filter((test) => test.subjectId === view)} onCreate={() => void handleCreate(view)} />
               )}
             </div>
           </div>
@@ -180,7 +187,7 @@ export function HomeView() {
         open={choosingSubject}
         onOpenChange={setChoosingSubject}
         defaultSubject={defaultSubject}
-        onPick={handleCreate}
+        onPick={(id) => void handleCreate(id)}
       />
     </PageTransition>
   );

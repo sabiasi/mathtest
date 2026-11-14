@@ -3,8 +3,32 @@ import { expect, type Locator, type Page } from "@playwright/test";
 export const SUBJECTS = ["math", "physics", "chemistry", "biology", "geography", "history", "georgian", "english"] as const;
 export type Subject = (typeof SUBJECTS)[number];
 
-/** Opens an editable copy of a subject's sample test (a long test with every question type) as a guest. */
+/**
+ * Forgets this browser's guest trial (the flag in all three places and the
+ * guest's tests), so the next copy is a new free trial. Only for tests.
+ */
+export async function forgetGuestTrial(page: Page) {
+  if (!page.url().startsWith("http")) return; // nothing opened yet: already a fresh guest
+  // Leave the editor first: it saves its test once more on the way out.
+  await page.goto("/privacy");
+  await page.context().clearCookies({ name: "mathtest_trial" });
+  await page.evaluate(async () => {
+    localStorage.removeItem("mathtest:guest-trial");
+    localStorage.removeItem("mathtest:tests:v1");
+    await new Promise((resolve) => {
+      const request = indexedDB.deleteDatabase("mathtest-trial");
+      request.onsuccess = request.onerror = request.onblocked = resolve;
+    });
+  });
+}
+
+/**
+ * Opens an editable copy of a subject's sample test (a long test with every
+ * question type) as a guest. Each copy is a new guest's free trial (see
+ * forgetGuestTrial), so a test may open several subjects one after another.
+ */
 export async function openSampleCopy(page: Page, subject: Subject) {
+  await forgetGuestTrial(page);
   await page.goto(`/editor/sample-${subject}`);
   await page.locator("[data-sample-banner] button").click();
   await page.waitForURL((url) => url.pathname.startsWith("/editor/") && !url.pathname.includes("sample-"));

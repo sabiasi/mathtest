@@ -1,6 +1,8 @@
 "use client";
 
 import { CircleAlert, Plus, X } from "lucide-react";
+import { ReorderArrows } from "@/components/ReorderArrows";
+import { move } from "@/subjects/history/editors/RowControls";
 import { RichTextInput } from "@/features/math/RichTextInput";
 import { useT } from "@/i18n/language";
 import { newId } from "@/lib/ids";
@@ -71,6 +73,12 @@ export function MultipleChoiceEditor({
                   </span>
                 )}
               </div>
+              <ReorderArrows
+                index={index}
+                count={options.length}
+                what={label}
+                onMove={(by) => onChange({ ...question, options: move(options, index, by) })}
+              />
               <button
                 type="button"
                 disabled={options.length <= MIN_OPTIONS}

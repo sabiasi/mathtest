@@ -24,7 +24,8 @@ import { questionNumbers, sectionPoints } from "@/lib/questions";
 import { QuestionCard } from "./QuestionCard";
 
 /**
- * The list of question cards, reorderable by drag-and-drop.
+ * The list of question cards, reorderable with the arrows on each card, its
+ * "⋯" menu, Alt+↑ / Alt+↓, or drag-and-drop (the ⋮⋮ handle).
  *
  * dnd-kit pieces:
  * - DndContext: watches the mouse / finger / keyboard and reports drags.
@@ -41,6 +42,8 @@ export function QuestionList({
   onPatch,
   onDuplicate,
   onDelete,
+  onMove,
+  moveTick,
 }: {
   questions: Question[];
   labelStyle: LabelStyle;
@@ -52,6 +55,10 @@ export function QuestionList({
   onPatch: (id: string, patch: (question: Question) => Question) => void;
   onDuplicate: (question: Question) => void;
   onDelete: (question: Question, number: number) => void;
+  /** Arrows, "⋯" menu, Alt+↑/↓: move a question to position `to` (0-based). */
+  onMove: (question: Question, to: number) => void;
+  /** Counts the moves made with arrows / menu / keys: only those animate the cards (not drag-and-drop). */
+  moveTick: number;
 }) {
   const t = useT();
   const numberOf = (id: string | number) => questions.findIndex((q) => q.id === id) + 1;
@@ -108,6 +115,10 @@ export function QuestionList({
               onPatch={(patch) => onPatch(question.id, patch)}
               onDuplicate={() => onDuplicate(question)}
               onDelete={() => onDelete(question, index + 1)}
+              index={index}
+              count={questions.length}
+              moveTick={moveTick}
+              onMove={(to) => onMove(question, to)}
             />
             ))}
           </AnimatePresence>

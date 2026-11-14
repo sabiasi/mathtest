@@ -1,5 +1,7 @@
 "use client";
 
+import { ReorderArrows } from "@/components/ReorderArrows";
+import { move } from "@/subjects/history/editors/RowControls";
 import { ArrowLeftRight, Plus, X } from "lucide-react";
 import { Field } from "@/components/ui/form";
 import { IconButton } from "@/components/ui/icon-button";
@@ -90,6 +92,13 @@ export function MatchingEditor({
                 ariaLabel={t("matching.right", { number: index + 1 })}
                 placeholder={question.rightTitle || t("matching.rightPlaceholder")}
                 onChange={(right) => setPair(pair.id, { right })}
+              />
+              {/* The left column prints in this order (the right one is shuffled anyway). */}
+              <ReorderArrows
+                index={index}
+                count={pairs.length}
+                what={String(index + 1)}
+                onMove={(by) => onChange({ ...question, pairs: move(pairs, index, by) })}
               />
               <IconButton
                 label={t("matching.removePair")}

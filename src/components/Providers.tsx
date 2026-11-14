@@ -11,6 +11,7 @@
  * - PlanProvider: their plan (Free / Premium / School), see usePlan().
  * - UpgradeProvider: the friendly "this is a Premium feature" window.
  * - ConfirmProvider: our Georgian "Are you sure?" dialogs.
+ * - GuestTrialProvider: guests get one free trial test, then "sign up free".
  * - Toaster: where toasts appear.
  */
 import { MotionConfig } from "motion/react";
@@ -18,6 +19,7 @@ import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/features/auth/AuthProvider";
+import { GuestTrialProvider } from "@/features/auth/GuestTrial";
 import { TeachingSubjectsProvider } from "@/features/subjects/TeachingSubjectsProvider";
 import { PlanProvider } from "@/features/plans/PlanProvider";
 import { UpgradeProvider } from "@/features/plans/UpgradeDialog";
@@ -42,7 +44,9 @@ export function Providers({ children }: { children: ReactNode }) {
             <TooltipProvider>
               <ConfirmProvider>
                 <UpgradeProvider>
-                  <TeachingSubjectsProvider>{children}</TeachingSubjectsProvider>
+                  <TeachingSubjectsProvider>
+                    <GuestTrialProvider>{children}</GuestTrialProvider>
+                  </TeachingSubjectsProvider>
                   <Toaster />
                 </UpgradeProvider>
               </ConfirmProvider>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
+import { useGuestTrial } from "@/features/auth/GuestTrial";
 
 import type { CSSProperties } from "react";
 import { Check, Clock, Copy, Folder, FolderInput, ListOrdered, MoreHorizontal, Pencil, Printer, Star, Trash2 } from "lucide-react";
@@ -37,6 +38,7 @@ export const TEST_DRAG_TYPE = "application/x-mathtest-test";
 export function TestCard({ test, folders }: { test: Test; folders?: string[] }) {
   const t = useT();
   const access = useTeachingSubjects();
+  const trial = useGuestTrial();
   const confirm = useConfirm();
   const language = useLanguage();
   const router = useRouter();
@@ -51,8 +53,10 @@ export function TestCard({ test, folders }: { test: Test; folders?: string[] }) 
     toast.success(t("home.movedTo", { folder: folder || t("home.folderNone") }));
   }
 
-  function handleDuplicate() {
+  async function handleDuplicate() {
     if (!access.requestSubject(test.subjectId)) return;
+    // Guests: the trial is one test, so no copies (the sign-up window explains).
+    if (!(await trial.request())) return;
     duplicateTest(test.id, test.title ? t("test.copyTitle", { title: test.title }) : "");
     toast.success(t("toast.duplicated"));
   }
@@ -130,7 +134,7 @@ export function TestCard({ test, folders }: { test: Test; folders?: string[] }) 
                 <Pencil aria-hidden="true" />
                 {t(access.canEdit(test.subjectId) ? "home.edit" : "teaching.readOnly")}
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={handleDuplicate}>
+              <DropdownMenuItem onSelect={() => void handleDuplicate()}>
                 <Copy aria-hidden="true" />
                 {t("home.duplicateLabel")}
               </DropdownMenuItem>

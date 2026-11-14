@@ -22,6 +22,9 @@ export function AppFooter() {
           <Link href="/about" className="rounded font-medium hover:text-foreground">
             {t("footer.about")}
           </Link>
+          <Link href="/privacy" className="rounded font-medium hover:text-foreground">
+            {t("footer.privacy")}
+          </Link>
         </div>
       </div>
     </footer>
