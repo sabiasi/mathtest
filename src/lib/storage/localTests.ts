@@ -33,6 +33,7 @@ export function readLocalTests(): Test[] {
 function writeLocalTests(tests: Test[]): void {
   if (tests.length === 0) localStorage.removeItem(STORAGE_KEY);
   else localStorage.setItem(STORAGE_KEY, JSON.stringify(tests));
+  window.dispatchEvent(new Event("mathtest:guest-tests"));
 }
 
 /**

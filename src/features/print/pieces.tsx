@@ -71,7 +71,7 @@ export function renderBlock(block: PrintBlock, context: BlockContext, firstInCol
     );
   }
   return (
-    <div key={block.key} style={pull}>
+    <div key={block.key} style={pull} data-print-block={block.key}>
       {content}
     </div>
   );

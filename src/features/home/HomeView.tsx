@@ -1,6 +1,10 @@
 "use client";
 
+import { RetainedGuestTests } from "@/features/subjects/RetainedGuestTests";
+import { TeachingSubjectsSummary, useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
+
 import { PageBackdrop } from "@/components/PageBackdrop";
+import { PlanPreviewBar } from "@/features/plans/PlanSummary";
 import { ClipboardList, CloudOff, Info, PencilLine, Plus, Printer, RotateCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -48,6 +52,7 @@ function remember(key: string, value: string) {
 /** The "My tests" page (/tests): tests organised by subject, never mixed. */
 export function HomeView() {
   const t = useT();
+  const access = useTeachingSubjects();
   const language = useLanguage();
   const router = useRouter();
   const tests = useTests();
@@ -83,6 +88,7 @@ export function HomeView() {
   }, [tests]);
 
   function handleCreate(subjectId: SubjectId) {
+    if (!access.requestSubject(subjectId)) return;
     setChoosingSubject(false);
     const toolkit = getToolkit(subjectId);
     const test = createTest({
@@ -117,6 +123,9 @@ export function HomeView() {
       </div>
 
       <GuestBanner className="mt-6" />
+      <PlanPreviewBar className="mt-6" />
+      {!guest && (access.needsSelection || access.error) && <div className="mt-6 rounded-xl border bg-card p-4"><TeachingSubjectsSummary /></div>}
+      <RetainedGuestTests />
 
       {/* A short guide while the teacher is just starting out. */}
       {tests && tests.length <= 1 && <HowItWorks />}

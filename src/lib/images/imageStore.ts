@@ -121,14 +121,15 @@ async function retryUploads(userId: string): Promise<void> {
 }
 
 /** Uploads a picture now; if that fails, keeps it marked "not uploaded" and retries in the background. */
-async function storeAndUpload(userId: string, id: string, blob: Blob): Promise<void> {
+async function storeAndUpload(userId: string, id: string, blob: Blob, confirmed = false): Promise<void> {
   const entry: CachedImage = { key: cacheKey(userId, id), userId, id, blob, uploaded: false, createdAt: Date.now() };
   await run(CACHE_STORE, "readwrite", (store) => store.put(entry)).catch(() => undefined);
   try {
     await upload(userId, id, blob);
     await run(CACHE_STORE, "readwrite", (store) => store.put({ ...entry, uploaded: true })).catch(() => undefined);
-  } catch {
-    setTimeout(() => void retryUploads(userId), 10_000);
+  } catch (error) {
+    setTimeout(() => { if (currentUserId === userId) void retryUploads(userId); }, 10_000);
+    if (confirmed) throw error;
   }
 }
 
@@ -230,7 +231,11 @@ async function getBlob(id: string): Promise<Blob | null> {
   );
   if (cached) return cached.blob;
   const { data, error } = await getSupabase().storage.from(IMAGE_BUCKET).download(`${userId}/${id}`);
-  if (error || !data) return null;
+  if (error || !data) {
+    // Guest work outside the account's teaching subjects stays on this device.
+    const own = await run<DeviceImage | undefined>(DEVICE_STORE, "readonly", (store) => store.get(id)).catch(() => undefined);
+    return own?.blob ?? null;
+  }
   const entry: CachedImage = { key: cacheKey(userId, id), userId, id, blob: data, uploaded: true, createdAt: Date.now() };
   await run(CACHE_STORE, "readwrite", (store) => store.put(entry)).catch(() => undefined);
   return data;
@@ -284,17 +289,22 @@ export async function imagesForTest(test: Test): Promise<Record<string, string>>
  * teacher's cloud folder (and the browser copy of it). If the internet is
  * down, they wait in the browser copy and are uploaded later.
  */
-export async function moveDeviceImagesToAccount(tests: Test[]): Promise<void> {
+export async function moveDeviceImagesToAccount(tests: Test[], stillCurrent: () => boolean = () => true): Promise<void> {
   const userId = requireUser();
   for (const id of usedImageIds(tests)) {
+    if (currentUserId !== userId || !stillCurrent()) throw new Error("Account changed during migration");
     const own = await run<DeviceImage | undefined>(DEVICE_STORE, "readonly", (store) => store.get(id)).catch(() => undefined);
-    if (own) await storeAndUpload(userId, id, own.blob);
+    if (!own) throw new Error("Guest picture is unavailable; keep the original test");
+    if (currentUserId !== userId || !stillCurrent()) throw new Error("Account changed during migration");
+    await storeAndUpload(userId, id, own.blob, true);
   }
 }
 
 /** Removes the guest copies of these tests' pictures (after they were moved). */
-export async function removeDeviceImages(tests: Test[]): Promise<void> {
+export async function removeDeviceImages(tests: Test[], retained: Test[] = []): Promise<void> {
+  const keep = usedImageIds(retained);
   for (const id of usedImageIds(tests)) {
+    if (keep.has(id)) continue;
     await run(DEVICE_STORE, "readwrite", (store) => store.delete(id)).catch(() => undefined);
   }
 }

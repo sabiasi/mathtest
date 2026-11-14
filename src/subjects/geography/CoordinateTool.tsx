@@ -16,6 +16,12 @@ export const SIDES = {
   en: { N: "N", S: "S", E: "E", W: "W" },
 } as const;
 
+/** The short side names on the N/S and E/W switch buttons. */
+const SIDE_BUTTONS = {
+  ka: { N: "ჩ.", S: "სამხ.", E: "აღმ.", W: "დას." },
+  en: { N: "N", S: "S", E: "E", W: "W" },
+} as const;
+
 /** 41, 43, "N" → "41°43′ ჩ. გ." (Georgian) or "41°43′N" (Latin). */
 export function formatCoordinate(degrees: number, minutes: number, side: keyof (typeof SIDES)["ka"], style: "ka" | "en"): string {
   const angle = `${degrees}°${minutes > 0 ? `${String(minutes).padStart(2, "0")}′` : ""}`;
@@ -26,8 +32,11 @@ export function formatCoordinate(degrees: number, minutes: number, side: keyof (
  * "Coordinates": latitude and longitude in degrees and minutes, inserted as
  * "41°43′ ჩ. გ., 44°47′ აღმ. გრძ." or "41°43′N, 44°47′E".
  */
-export function CoordinateTool({ insertText }: ToolbarWidgetProps) {
+export function CoordinateTool({ insertText, style }: ToolbarWidgetProps) {
   const t = useT();
+  // The tab's writing style (Georgian by default with the Georgian interface): its button comes first.
+  const first: "ka" | "en" = style === "latin" ? "en" : "ka";
+  const order: ("ka" | "en")[] = first === "ka" ? ["ka", "en"] : ["en", "ka"];
   const [lat, setLat] = useState({ d: "", m: "", side: "N" as "N" | "S" });
   const [lon, setLon] = useState({ d: "", m: "", side: "E" as "E" | "W" });
   const ready = lat.d !== "" && lon.d !== "";
@@ -47,21 +56,20 @@ export function CoordinateTool({ insertText }: ToolbarWidgetProps) {
       °
       <input inputMode="numeric" className={box} value={lat.m} placeholder="43" aria-label={t("geo.minutes")} onChange={(e) => setLat({ ...lat, m: digits(e.target.value, 59) })} />′
       <button type="button" className={toggle} onMouseDown={keepFocus} onClick={() => setLat({ ...lat, side: lat.side === "N" ? "S" : "N" })} title={t("geo.switchSide")}>
-        {lat.side}
+        {SIDE_BUTTONS[first][lat.side]}
       </button>
       <span className="ml-1 text-sm text-soft-foreground">{t("geo.longitude")}</span>
       <input inputMode="numeric" className={box} value={lon.d} placeholder="44" aria-label={t("geo.lonDegrees")} onChange={(e) => setLon({ ...lon, d: digits(e.target.value, 180) })} />
       °
       <input inputMode="numeric" className={box} value={lon.m} placeholder="47" aria-label={t("geo.minutes")} onChange={(e) => setLon({ ...lon, m: digits(e.target.value, 59) })} />′
       <button type="button" className={toggle} onMouseDown={keepFocus} onClick={() => setLon({ ...lon, side: lon.side === "E" ? "W" : "E" })} title={t("geo.switchSide")}>
-        {lon.side}
+        {SIDE_BUTTONS[first][lon.side]}
       </button>
-      <button type="button" className={button} disabled={!ready} onMouseDown={keepFocus} onClick={() => insertText(text("ka"))} title={t("geo.insertCoordinates")}>
-        {ready ? text("ka") : "— ჩ. გ."}
-      </button>
-      <button type="button" className={button} disabled={!ready} onMouseDown={keepFocus} onClick={() => insertText(text("en"))} title={t("geo.insertCoordinates")}>
-        {ready ? text("en") : "—N"}
-      </button>
+      {order.map((kind) => (
+        <button key={kind} type="button" className={button} disabled={!ready} onMouseDown={keepFocus} onClick={() => insertText(text(kind))} title={t("geo.insertCoordinates")} data-coordinate-insert={kind}>
+          {ready ? text(kind) : kind === "ka" ? "— ჩ. გ." : "—N"}
+        </button>
+      ))}
     </div>
   );
 }

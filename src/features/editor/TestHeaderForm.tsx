@@ -1,5 +1,7 @@
 "use client";
 
+import { useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
+
 import { Sparkles } from "lucide-react";
 import { DateField } from "@/components/DateField";
 import { Field, FieldLabel, SegmentedControl } from "@/components/ui/form";
@@ -21,9 +23,11 @@ export function TestHeaderForm({
   onChange: (changes: Partial<Test>) => void;
 }) {
   const t = useT();
+  const access = useTeachingSubjects();
   const toolkit = getToolkit(test.subjectId);
 
   function changeSubject(subjectId: SubjectId) {
+    if (!access.requestSubject(subjectId)) return;
     // The printed name follows the subject — unless the teacher wrote their
     // own (e.g. "ალგებრა"), which we keep.
     const oldNames = [dictionaries.ka[`subject.${test.subjectId}`], dictionaries.en[`subject.${test.subjectId}`]];
@@ -32,7 +36,7 @@ export function TestHeaderForm({
   }
 
   return (
-    <section className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+    <section className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6" data-test-header="">
       <h2 className="text-lg font-semibold">{t("header.heading")}</h2>
 
       <div className="mt-5 grid gap-5 sm:grid-cols-2">

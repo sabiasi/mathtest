@@ -1,14 +1,17 @@
 "use client";
 
-import { Crown } from "lucide-react";
+import { Crown, Eye, Undo2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
 import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage, useT } from "@/i18n/language";
 import { formatDayOf, formatSize } from "@/lib/format";
-import { ONLINE_PAYMENTS } from "@/lib/plans/plans";
-import { loadImageStorage, type ImageStorage } from "@/lib/plans/subscription";
+import { ONLINE_PAYMENTS, PLAN_PREVIEW } from "@/lib/plans/plans";
+import { loadImageStorage, setPlanPreview, type ImageStorage } from "@/lib/plans/subscription";
 import { getSupabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { usePlan } from "./PlanProvider";
@@ -86,6 +89,66 @@ export function PlanSummary() {
         </Link>
       </div>
       {!ONLINE_PAYMENTS && <p className="text-sm text-muted-foreground">{t("plan.billingSoon")}</p>}
+      {PLAN_PREVIEW && (plan !== "free" || entitlements.previewOf) && <PlanPreview />}
+    </div>
+  );
+}
+
+/** Switches "view the site as Free" on / off (database function set_plan_preview; it can only lower the plan). */
+function usePlanPreviewSwitch() {
+  const t = useT();
+  const { entitlements, refresh } = usePlan();
+  const subjects = useTeachingSubjects();
+  const [busy, setBusy] = useState(false);
+
+  async function change(free: boolean) {
+    setBusy(true);
+    try {
+      await setPlanPreview(getSupabase(), free);
+      refresh();
+      subjects.refresh();
+      toast.success(t(free ? "plan.previewStarted" : "plan.previewEnded"));
+    } catch (error) {
+      console.error("MathTest: could not change the plan preview", error);
+      toast.error(t("plan.previewError"));
+    } finally {
+      setBusy(false);
+    }
+  }
+  return { real: entitlements.previewOf, busy, change };
+}
+
+/** Settings → My plan: "View as Free" / "Back to Premium". */
+function PlanPreview() {
+  const t = useT();
+  const { real, busy, change } = usePlanPreviewSwitch();
+  return (
+    <div className="rounded-xl border border-dashed bg-muted/40 p-4" data-plan-preview={real ? "on" : "off"}>
+      <p className="font-semibold">{t("plan.previewTitle")}</p>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+        {real ? t("plan.previewActive", { plan: t(`plan.${real.plan}`) }) : t("plan.previewText")}
+      </p>
+      <Button className="mt-3" variant={real ? "default" : "outline"} disabled={busy} onClick={() => void change(!real)}>
+        {real ? <Undo2 className="size-4" aria-hidden="true" /> : <Eye className="size-4" aria-hidden="true" />}
+        {real ? t("plan.previewOff", { plan: t(`plan.${real.plan}`) }) : t("plan.previewOn")}
+      </Button>
+    </div>
+  );
+}
+
+/** A small reminder on "My tests" while previewing Free, with the way back. */
+export function PlanPreviewBar({ className }: { className?: string }) {
+  const t = useT();
+  const { real, busy, change } = usePlanPreviewSwitch();
+  if (!real) return null;
+  return (
+    <div className={cn("flex flex-wrap items-center gap-3 rounded-xl border border-dashed bg-muted/40 px-4 py-2.5 text-sm", className)} data-plan-preview-bar="">
+      <Eye className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <span className="text-soft-foreground">{t("plan.previewStarted")}</span>
+      <Button size="sm" className="ml-auto" disabled={busy} onClick={() => void change(false)}>
+        <Undo2 className="size-4" aria-hidden="true" />
+        {t("plan.previewOff", { plan: t(`plan.${real.plan}`) })}
+      </Button>
     </div>
   );
 }

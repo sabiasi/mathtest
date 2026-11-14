@@ -583,6 +583,17 @@ math-field::part(virtual-keyboard-toggle) {
   color: #555;
 }
 
+/* The editor's live paper view: the question being edited is outlined (screen only, never printed). */
+.live-preview .sheet {
+  margin-bottom: 16px;
+}
+.live-preview [data-editing] {
+  outline: 0.6mm solid var(--ring);
+  outline-offset: 1.5mm;
+  border-radius: 1mm;
+  transition: outline-color 0.2s;
+}
+
 /* Free plan: "Made with MathTest", quieter than the rest of the footer. */
 .sheet-footer .sheet-brand {
   color: #888;

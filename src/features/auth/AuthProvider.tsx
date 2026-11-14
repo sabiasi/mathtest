@@ -12,14 +12,12 @@
 import type { User } from "@supabase/supabase-js";
 import { useTheme } from "next-themes";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { toast } from "sonner";
-import { setLanguage, useLanguage, useT } from "@/i18n/language";
+import { setLanguage, useLanguage } from "@/i18n/language";
 import { loadProfile, saveProfile, type Profile, type ProfileChanges } from "@/lib/auth/profile";
 import { clearImageCache, setImageUser } from "@/lib/images/imageStore";
-import { moveGuestTestsIntoAccount } from "@/lib/onboarding";
 import { localTestsBackend } from "@/lib/storage/localTests";
 import { supabaseTestsBackend } from "@/lib/storage/supabaseTests";
-import { getLoadStatus, hasUnsavedChanges, startSync, stopSync } from "@/lib/storage/testsRepository";
+import { hasUnsavedChanges, startSync, stopSync } from "@/lib/storage/testsRepository";
 import { getSupabase } from "@/lib/supabase/client";
 import { supabaseConfigured } from "@/lib/supabase/config";
 
@@ -35,6 +33,7 @@ type Auth = {
   /** Saves profile changes (name, school, language…). Returns false on failure. */
   updateProfile: (changes: ProfileChanges) => Promise<boolean>;
   signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 };
 
 const AuthContext = createContext<Auth | null>(null);
@@ -52,13 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { setTheme } = useTheme();
   const language = useLanguage();
   const activeUserId = useRef<string | null>(null);
-  // The newest t(), for messages shown from inside the sign-in listener.
-  const t = useT();
-  const tRef = useRef(t);
-  useEffect(() => {
-    tRef.current = t;
-  });
-
   // ---- Listen for sign-in / sign-out ----
   useEffect(() => {
     // The PDF server's Chrome gets its test handed over: nothing to load.
@@ -86,17 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       await startSync(supabaseTestsBackend(supabase, next.id));
       if (activeUserId.current !== next.id) return;
-      // Tests made as a guest in this browser → into the account.
-      if (getLoadStatus() === "ready") {
-        try {
-          const moved = await moveGuestTestsIntoAccount();
-          if (moved > 0) toast.success(tRef.current("guest.moved", { count: moved }));
-        } catch (error) {
-          console.error("MathTest: could not move the guest tests", error);
-        }
-      }
-      // The profile last: "My tests" adds the sample test once it has the
-      // profile, and by then the moved tests are already there.
       const loaded = await profileLoad;
       if (loaded && activeUserId.current === next.id) setProfile(loaded);
     };
@@ -150,6 +131,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [user],
   );
 
+  const refreshProfile = useCallback(async () => {
+    if (!user) return;
+    const loaded = await loadProfile(getSupabase(), user.id, displayName(user, null));
+    if (activeUserId.current === user.id) setProfile(loaded);
+  }, [user]);
+
   const signOut = useCallback(async () => {
     await getSupabase().auth.signOut();
     stopSync();
@@ -162,8 +149,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const guest = status === "signed-out" || status === "unconfigured";
   const value = useMemo(
-    () => ({ status, guest, user, profile, updateProfile, signOut }),
-    [status, guest, user, profile, updateProfile, signOut],
+    () => ({ status, guest, user, profile, updateProfile, signOut, refreshProfile }),
+    [status, guest, user, profile, updateProfile, signOut, refreshProfile],
   );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

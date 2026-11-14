@@ -1,5 +1,8 @@
 "use client";
 
+import { isDeviceTestId } from "@/lib/auth/teachingSubjects";
+import { useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
+
 import {
   ArrowLeft,
   CloudAlert,
@@ -43,6 +46,7 @@ import {
   LoaderCircle,
   NotebookPen,
   Printer,
+  Columns2,
   TextCursorInput,
   ToggleRight,
   CloudSun,
@@ -53,7 +57,8 @@ import {
 import { toast } from "sonner";
 import { AnimatePresence } from "motion/react";
 import Link from "next/link";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode, type Ref } from "react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { GuestBanner } from "@/components/GuestBanner";
 import { buttonVariants } from "@/components/ui/button";
@@ -71,6 +76,8 @@ import { useUseAsTemplate } from "@/features/samples/useTemplate";
 import { isSampleId } from "@/samples/build";
 import { revealFocused } from "./keepVisible";
 import { QuestionList } from "./questions/QuestionList";
+import { PreviewProvider, usePreviewControl } from "./preview/PreviewContext";
+import { LivePreview } from "./preview/LivePreview";
 import { SubjectToolbar } from "./SubjectToolbar";
 import { TestHeaderForm } from "./TestHeaderForm";
 import { useAutosave } from "./useAutosave";
@@ -144,6 +151,10 @@ function AddButton({ Icon, label, hint, onClick, dataType }: { Icon: LucideIcon;
  */
 export function TestEditor({ initialTest }: { initialTest: Test }) {
   const t = useT();
+  const access = useTeachingSubjects();
+  const sample = isSampleId(initialTest.id);
+  const locked = isDeviceTestId(initialTest.id) || !access.canEdit(initialTest.subjectId);
+  const readOnly = sample || locked;
   const language = useLanguage();
   const confirm = useConfirm();
   const [test, setTest] = useState(initialTest);
@@ -167,6 +178,8 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
     const measure = () => {
       const height = bar.offsetHeight + (toolbar?.offsetHeight ?? 0);
       root.style.setProperty("--editor-top", `${height}px`);
+      // The live paper view starts right under the bar (the toolbar never covers it).
+      root.style.setProperty("--editor-bar", `${bar.offsetHeight}px`);
       // The toolbar grew (it opened, or the teacher made it taller): the box
       // being edited must not end up hidden under it. Shrinking never scrolls,
       // and scrolling doesn't change the toolbar's height — so no loop.
@@ -179,11 +192,12 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
     return () => {
       observer.disconnect();
       root.style.removeProperty("--editor-top");
+      root.style.removeProperty("--editor-bar");
     };
   }, [mathReady]);
 
   const markSaved = useCallback(() => setDirty(false), []);
-  useAutosave(test, dirty, markSaved);
+  useAutosave(test, dirty && !readOnly, markSaved);
   // "dirty" = typed but not handed to the repository yet; cloudState = on its way to the cloud.
   const cloudState = useSaveState(test.id);
   const onDevice = useStorageKind() === "device"; // a guest: saved in this browser only
@@ -200,11 +214,13 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
   }, [saveState, onDevice, t]);
 
   function update(changes: Partial<Test>) {
+    if (readOnly) return;
     setTest((prev) => ({ ...prev, ...changes }));
     setDirty(true);
   }
 
   function updateQuestions(change: (questions: Question[]) => Question[]) {
+    if (readOnly) return;
     setTest((prev) => ({ ...prev, questions: change(prev.questions) }));
     setDirty(true);
   }
@@ -256,18 +272,19 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
 
   const total = formatPoints(totalPoints(test.questions));
   // A sample test ("ნიმუში") is shown read-only: look, read the tips, or make a copy.
-  const readOnly = isSampleId(test.id);
+
   const makeCopy = useUseAsTemplate();
   // The subject's toolkit decides the toolbar and which question types are offered.
   const toolkit = getToolkit(test.subjectId);
 
   return (
     <MathEditingProvider>
+      <PreviewProvider test={test}>
       {/* lang: the browser spellchecks English tests in English. */}
       <div className="pb-24" data-editor-ready={mathReady ? "true" : "false"} lang={toolkit.contentLanguage} spellCheck>
         {/* Sticky bar: stays at the top while scrolling. */}
         <div ref={stickyRef} className="sticky top-0 z-20 border-b bg-card/85 shadow-sm backdrop-blur-md" data-editor-bar="">
-          <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
+          <BarRow>
             <Link
               href="/tests"
               // Leaving saves right away (see useAutosave); say so.
@@ -278,18 +295,19 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
               {/* On phones only the arrow shows; screen readers still hear the text. */}
               <span className="max-sm:sr-only">{t("editor.back")}</span>
             </Link>
-            <div className="flex flex-1 justify-end">
+            <div className="flex flex-1 justify-end gap-2">
+              <PaperViewButton />
               <Link href={`/print/${test.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
                 <Printer className="size-4" aria-hidden="true" />
                 <span className="max-sm:sr-only">{t("editor.printPreview")}</span>
               </Link>
             </div>
-            {readOnly ? (
+            {sample ? (
               <button type="button" className={buttonVariants({ size: "sm" })} onClick={() => makeCopy(test)} data-use-template="">
                 <Copy className="size-4" aria-hidden="true" />
                 <span className="max-sm:sr-only">{t("sample.useTemplate")}</span>
               </button>
-            ) : (
+            ) : locked ? <span className="text-sm text-muted-foreground">{t("teaching.readOnly")}</span> : (
             <span
               className={cn("flex items-center gap-1.5 text-sm", saveState === "error" ? "text-destructive-text" : "text-muted-foreground")}
               aria-live="polite"
@@ -298,12 +316,12 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
               {saveState === "error" ? (
                 <>
                   <CloudAlert className="size-4" aria-hidden="true" />
-                  <span className="max-sm:sr-only">{t("editor.saveError")}</span>
+                  <span className="max-sm:sr-only group-data-[split=true]:sr-only">{t("editor.saveError")}</span>
                 </>
               ) : saveState === "saving" ? (
                 <>
                   <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                  <span className="max-sm:sr-only">{t("editor.saving")}</span>
+                  <span className="max-sm:sr-only group-data-[split=true]:sr-only">{t("editor.saving")}</span>
                 </>
               ) : (
                 <>
@@ -312,7 +330,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                   ) : (
                     <CloudCheck className="size-4 text-success" aria-hidden="true" />
                   )}
-                  <span className="max-sm:sr-only">{t(onDevice ? "editor.savedDevice" : "editor.saved")}</span>
+                  <span className="max-sm:sr-only group-data-[split=true]:sr-only">{t(onDevice ? "editor.savedDevice" : "editor.saved")}</span>
                 </>
               )}
             </span>
@@ -320,24 +338,24 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
             <span className="rounded-full bg-primary-soft px-3 py-1 text-sm font-semibold whitespace-nowrap text-brand tabular-nums">
               {t("editor.total", { points: total })}
             </span>
-          </div>
+          </BarRow>
           {/*
             The toolbar hangs UNDER the bar as an overlay (it takes no room in
             the page). Its height is the teacher's choice, fitted to the window
             by SubjectToolbar; the max-height here is only a safety net for
             very short windows (a phone lying on its side).
           */}
-          <div ref={toolbarRef} className="absolute inset-x-0 top-full max-h-[calc(100dvh-6.5rem)] overflow-y-auto overscroll-contain">
-            {mathReady && <ToolbarWhenEditing toolkit={toolkit} />}
-          </div>
+          <ToolbarArea ref={toolbarRef}>{mathReady && <ToolbarWhenEditing toolkit={toolkit} />}</ToolbarArea>
         </div>
 
         {!mathReady ? (
           <EditorSkeleton label={t("editor.loading")} />
         ) : (
-          <div className="mx-auto max-w-3xl space-y-8 px-4 pt-8 sm:px-6">
+          <SplitView>
+          <FollowFocus>
+          <div className="mx-auto w-full max-w-3xl min-w-0 space-y-8 px-4 pt-8 sm:px-6">
             <GuestBanner />
-            {readOnly && (
+            {sample && (
               <div className="flex flex-wrap items-start gap-4 rounded-2xl border border-primary-soft-border bg-primary-soft/60 p-5" data-sample-banner="">
                 <Sparkles className="mt-0.5 size-6 shrink-0 text-brand" aria-hidden="true" />
                 <div className="min-w-60 flex-1">
@@ -350,6 +368,11 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                 </button>
               </div>
             )}
+            {!sample && locked && <div className="rounded-xl border bg-primary-soft p-4" data-subject-readonly="" role="status">
+              <h2 className="font-semibold">{t("teaching.readOnly")}</h2>
+              <p className="mt-1 text-sm">{t(isDeviceTestId(test.id) ? "teaching.retainedText" : "teaching.lockedText")}</p>
+              {!isDeviceTestId(test.id) && <button type="button" className={buttonVariants({ variant: "outline", className: "mt-3" })} onClick={access.manage}>{t("teaching.manage")}</button>}
+            </div>}
             {/* inert: a sample can be read (and its tips seen) but not changed. */}
             <div className="space-y-8" inert={readOnly}>
             <TestHeaderForm test={test} onChange={update} />
@@ -420,13 +443,114 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
             </section>
             </div>
           </div>
+          </FollowFocus>
+          </SplitView>
         )}
       </div>
+      </PreviewProvider>
     </MathEditingProvider>
   );
 }
 
 /** Grey shapes in the layout of the editor, shown while it loads. */
+/** How wide the live paper view is beside the editor. */
+const PANEL_WIDTH = "min(48vw, 62rem)";
+
+/** The bar's row: centred over the questions (with the paper view open, over the left side only). */
+function BarRow({ children }: { children: ReactNode }) {
+  const { open, split } = usePreviewControl();
+  return (
+    <div style={{ marginRight: open && split ? PANEL_WIDTH : undefined }}>
+      {/* group + data-split: with the paper view beside it, the save status shows only its icon (less room). */}
+      <div className="group mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 sm:gap-4 sm:px-6" data-split={open && split ? "true" : "false"}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/** The symbol toolbar under the bar: over the editor only, never over the paper view. */
+function ToolbarArea({ ref, children }: { ref: Ref<HTMLDivElement>; children: ReactNode }) {
+  const { open, split } = usePreviewControl();
+  return (
+    <div
+      ref={ref}
+      className="absolute inset-x-0 top-full max-h-[calc(100dvh-6.5rem)] overflow-y-auto overscroll-contain"
+      style={{ right: open && split ? PANEL_WIDTH : undefined }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/** "ქაღალდზე ნახვა": splits the screen — the editor on the left, the whole test on paper on the right. */
+function PaperViewButton() {
+  const t = useT();
+  const { open, toggle } = usePreviewControl();
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          onClick={toggle}
+          aria-pressed={open}
+          className={buttonVariants({ variant: open ? "default" : "outline", size: "sm" })}
+          data-paper-view-toggle=""
+        >
+          <Columns2 className="size-4" aria-hidden="true" />
+          <span className="max-lg:sr-only">{t("preview.show")}</span>
+        </button>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-64">{t("preview.showHint")}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Tells the paper view which question is being edited (the one that has focus), so it can show it. */
+function FollowFocus({ children }: { children: ReactNode }) {
+  const { setActiveId } = usePreviewControl();
+  return (
+    <div
+      onFocusCapture={(event) => {
+        // Also while the view is closed: opening it then shows the question last worked on.
+        const target = event.target as HTMLElement;
+        const card = target.closest<HTMLElement>("[data-question-id]");
+        setActiveId(card ? card.dataset.questionId! : target.closest("[data-test-header]") ? "header" : null);
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * The live paper view open: wide windows get a split screen — the questions
+ * on the left, the paper on the right (sticky, it scrolls on its own); small
+ * screens get the paper over the editor. The questions' elements never change
+ * shape, so opening it doesn't re-create the editors (cursor and undo stay).
+ */
+function SplitView({ children }: { children: ReactNode }) {
+  const { open, split } = usePreviewControl();
+  const side = open && split;
+  return (
+    <div className={cn(side && "flex items-start")} data-split-view={side ? "on" : "off"}>
+      <div className={cn(side && "min-w-0 flex-1")}>{children}</div>
+      {open && (
+        <aside
+          className={side ? "sticky shrink-0 self-start" : "fixed inset-x-0 bottom-0 z-30 bg-background"}
+          style={
+            side
+              ? { top: "var(--editor-bar, 3.5rem)", height: "calc(100dvh - var(--editor-bar, 3.5rem))", width: PANEL_WIDTH }
+              : { top: "var(--editor-bar, 3.5rem)" }
+          }
+        >
+          <LivePreview />
+        </aside>
+      )}
+    </div>
+  );
+}
+
 export function EditorSkeleton({ label }: { label: string }) {
   return (
     <div className="mx-auto max-w-3xl space-y-8 px-4 pt-8 sm:px-6" aria-busy="true">

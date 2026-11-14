@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { saveTest } from "@/lib/storage/testsRepository";
+import { saveTest, SubjectAccessError } from "@/lib/storage/testsRepository";
 import type { Test } from "@/lib/storage/types";
 
 /**
@@ -27,7 +27,7 @@ export function useAutosave(test: Test, dirty: boolean, markSaved: () => void, d
   useEffect(() => {
     if (!dirty) return;
     const timer = setTimeout(() => {
-      saveTest(test);
+      try { saveTest(test); } catch (error) { if (error instanceof SubjectAccessError) return; throw error; }
       dirtyRef.current = false;
       markSaved();
     }, delay);
@@ -38,7 +38,7 @@ export function useAutosave(test: Test, dirty: boolean, markSaved: () => void, d
   useEffect(() => {
     const flush = () => {
       if (dirtyRef.current) {
-        saveTest(latest.current);
+        try { saveTest(latest.current); } catch (error) { if (error instanceof SubjectAccessError) return; throw error; }
         dirtyRef.current = false;
       }
     };

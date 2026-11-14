@@ -1,5 +1,7 @@
 "use client";
 
+import { useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
+
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -12,8 +14,10 @@ import { templateTitle } from "@/samples/build";
 export function useUseAsTemplate() {
   const router = useRouter();
   const t = useT();
+  const access = useTeachingSubjects();
   const { profile } = useAuth();
   return (sample: Test) => {
+    if (!access.requestSubject(sample.subjectId)) return;
     const copy = createTestFromTemplate(sample, {
       title: templateTitle(sample.title),
       // The teacher's school (from Settings), not the sample's made-up one.

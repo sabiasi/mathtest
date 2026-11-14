@@ -30,6 +30,8 @@ export type Subscription = {
   graceEndsAt: string | null;
   /** The teacher cancelled: no renewal, the plan ends at currentPeriodEnd. */
   cancelAtPeriodEnd: boolean;
+  /** "View the site as Free" (Settings → My plan): the real plan is kept, Free applies. */
+  previewFree?: boolean;
 };
 
 /**
@@ -53,6 +55,8 @@ export type Entitlements = {
   /** When the plan renews (active), or ends (trial, ending, grace). ISO string or null. */
   renewsAt: string | null;
   endsAt: string | null;
+  /** While previewing Free: the plan the account really has (to switch back). Otherwise null. */
+  previewOf: { plan: PlanId; state: PlanState } | null;
 };
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -60,7 +64,7 @@ const DAY = 24 * 60 * 60 * 1000;
 function build(plan: PlanId, state: PlanState, extra: Partial<Entitlements> = {}): Entitlements {
   const owned = new Set(PLANS[plan].features);
   const features = Object.fromEntries(FEATURES.map((f) => [f, owned.has(f)])) as Record<Feature, boolean>;
-  return { plan, state, limits: PLANS[plan].limits, features, trialDaysLeft: null, renewsAt: null, endsAt: null, ...extra };
+  return { plan, state, limits: PLANS[plan].limits, features, trialDaysLeft: null, renewsAt: null, endsAt: null, previewOf: null, ...extra };
 }
 
 export function guestEntitlements(): Entitlements {
@@ -71,6 +75,13 @@ const time = (iso: string | null) => (iso ? Date.parse(iso) : NaN);
 
 /** What a signed-in user with this subscription (or none) may do at `now`. */
 export function entitlementsFor(subscription: Subscription | null, now: Date = new Date()): Entitlements {
+  const real = realEntitlements(subscription, now);
+  // Previewing Free only ever LOWERS what the account may do.
+  if (subscription?.previewFree && real.plan !== "free") return build("free", "free", { previewOf: { plan: real.plan, state: real.state } });
+  return real;
+}
+
+function realEntitlements(subscription: Subscription | null, now: Date): Entitlements {
   const t = now.getTime();
   if (!subscription) return build("free", "free");
   const { plan, status, trialEndsAt, currentPeriodEnd, graceEndsAt, cancelAtPeriodEnd } = subscription;

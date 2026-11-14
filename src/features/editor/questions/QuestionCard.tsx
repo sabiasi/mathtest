@@ -246,6 +246,8 @@ export function QuestionCard({
           }}
           onDrop={handleDrop}
           data-question-card=""
+          // The live paper view outlines the question being edited (TestEditor reads this on focus).
+          data-question-id={question.id}
           className={cn(
             "relative rounded-2xl border bg-card shadow-sm transition-[box-shadow,border-color,scale] duration-200 ease-out-soft",
             // The question being worked on stands out a little from the others.
@@ -444,3 +446,4 @@ export function QuestionCard({
     </motion.li>
   );
 }
+

@@ -57,8 +57,9 @@ function UserMenu() {
   const { user, profile, signOut } = useAuth();
   const { entitlements, ready } = usePlan();
   const name = displayName(user, profile);
-  const planLabel =
-    entitlements.state === "trial" ? t("user.trialDays", { days: entitlements.trialDaysLeft ?? 0 }) : t(`plan.${entitlements.plan}`);
+  const planLabel = entitlements.previewOf
+    ? t("user.previewBadge")
+    : entitlements.state === "trial" ? t("user.trialDays", { days: entitlements.trialDaysLeft ?? 0 }) : t(`plan.${entitlements.plan}`);
   return (
     <DropdownMenu>
       <DropdownMenuTrigger

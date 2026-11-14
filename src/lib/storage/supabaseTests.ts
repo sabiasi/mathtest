@@ -14,11 +14,19 @@ import type { Test } from "./types";
 export function supabaseTestsBackend(supabase: SupabaseClient, userId: string): TestsBackend {
   return {
     kind: "cloud",
+    userId,
     async list() {
-      const { data, error } = await supabase.from("tests").select("data").order("updated_at", { ascending: false });
-      if (error) throw error;
-      // Upgrade tests saved by older versions of the app to the current shape.
-      return (data ?? []).map((row) => normalizeTest(row.data)).filter((test): test is Test => test !== null);
+      const tests: Test[] = [];
+      // Load every page: incomplete lists must never feed image cleanup.
+      const pageSize = 500;
+      for (let offset = 0; ; offset += pageSize) {
+        const { data, error } = await supabase.from("tests").select("data").eq("user_id", userId)
+          .order("id").range(offset, offset + pageSize - 1);
+        if (error) throw error;
+        tests.push(...(data ?? []).map((row) => normalizeTest(row.data)).filter((test): test is Test => test !== null));
+        if (!data || data.length < pageSize) break;
+      }
+      return tests;
     },
 
     async upsert(test) {

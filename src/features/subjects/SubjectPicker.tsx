@@ -25,12 +25,14 @@ export function SubjectPicker({
   onChange,
   label,
   compact = false,
+  subjects,
 }: {
   value: SubjectId;
   onChange: (id: SubjectId) => void;
   label: string;
   /** Small chips in a row (test header) instead of cards with a hint (settings). */
   compact?: boolean;
+  subjects?: readonly SubjectId[];
 }) {
   const t = useT();
   const name = useId();
@@ -38,7 +40,7 @@ export function SubjectPicker({
     <fieldset>
       <legend className="sr-only">{label}</legend>
       <div className={cn(compact ? "flex flex-wrap gap-2" : "grid gap-2 sm:grid-cols-2")}>
-        {SUBJECTS.map(({ id }) => (
+        {SUBJECTS.filter(({ id }) => !subjects || subjects.includes(id)).map(({ id }) => (
           <label
             key={id}
             data-subject={id}

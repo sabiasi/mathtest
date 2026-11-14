@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type MouseEvent } from "react";
+import { dictionaries } from "@/i18n/dictionaries";
 import { useT } from "@/i18n/language";
 import { centuryOf, toRoman } from "@/lib/roman";
 import type { ToolbarWidgetProps } from "../types";
@@ -11,8 +12,10 @@ const keepFocus = (event: MouseEvent) => event.preventDefault();
  * "Century: [12] → XII" — type a century (12) or a year (1121) and insert
  * the Roman numeral, with or without the word "century".
  */
-export function CenturyTool({ insertText }: ToolbarWidgetProps) {
+export function CenturyTool({ insertText, style }: ToolbarWidgetProps) {
   const t = useT();
+  // "ს." or "c.": follows the tab's writing style (Georgian / English), not only the interface.
+  const word = style === "english" ? dictionaries.en["history.centuryShort"] : style === "georgian" ? dictionaries.ka["history.centuryShort"] : t("history.centuryShort");
   const [value, setValue] = useState("");
   const n = Number(value);
   // Small numbers are centuries; bigger ones are years (1121 → XII).
@@ -42,10 +45,10 @@ export function CenturyTool({ insertText }: ToolbarWidgetProps) {
         className={button}
         disabled={!roman}
         onMouseDown={keepFocus}
-        onClick={() => insertText(`${roman} ${t("history.centuryShort")}`)}
+        onClick={() => insertText(`${roman} ${word}`)}
         title={t("history.insertCentury")}
       >
-        {roman ? `${roman} ${t("history.centuryShort")}` : "—"}
+        {roman ? `${roman} ${word}` : "—"}
       </button>
       {n > 30 && roman && <span className="text-xs text-muted-foreground">{t("history.yearIsCentury", { year: n, roman })}</span>}
     </div>

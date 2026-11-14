@@ -7,8 +7,8 @@
 insert into public.plan_limits (plan, max_variants, ai_per_month, image_storage_mb, templates, features)
 values
   ('free', 2, 3, 50, 5, array[]::text[]),
-  ('premium', 6, 100, 1024, null, array['noPdfFooter', 'customHeader', 'allTemplates', 'questionBank', 'docxExport', 'sharing']::text[]),
-  ('school', 6, 100, 1024, null, array['noPdfFooter', 'customHeader', 'allTemplates', 'questionBank', 'docxExport', 'sharing', 'schoolAdmin', 'sharedBank']::text[])
+  ('premium', 6, 100, 1024, null, array['multipleSubjects', 'noPdfFooter', 'customHeader', 'allTemplates', 'questionBank', 'docxExport', 'sharing']::text[]),
+  ('school', 6, 100, 1024, null, array['multipleSubjects', 'noPdfFooter', 'customHeader', 'allTemplates', 'questionBank', 'docxExport', 'sharing', 'schoolAdmin', 'sharedBank']::text[])
 on conflict (plan) do update set
   max_variants = excluded.max_variants,
   ai_per_month = excluded.ai_per_month,

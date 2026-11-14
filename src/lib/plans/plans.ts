@@ -28,6 +28,7 @@ export type PlanId = (typeof PLAN_IDS)[number];
 
 /** On/off features. Limits (numbers) are in PlanLimits below. */
 export const FEATURES = [
+  "multipleSubjects", // more than one active teaching subject
   "noPdfFooter", // PDFs without "Made with MathTest"
   "customHeader", // school logo and own header on the paper
   "allTemplates",
@@ -52,7 +53,7 @@ export type PlanLimits = {
 
 export type Plan = { id: PlanId; limits: PlanLimits; features: readonly Feature[] };
 
-const PREMIUM_FEATURES: readonly Feature[] = ["noPdfFooter", "customHeader", "allTemplates", "questionBank", "docxExport", "sharing"];
+const PREMIUM_FEATURES: readonly Feature[] = ["multipleSubjects", "noPdfFooter", "customHeader", "allTemplates", "questionBank", "docxExport", "sharing"];
 
 export const PLANS: Record<PlanId, Plan> = {
   free: {
@@ -78,6 +79,7 @@ export const PLANS: Record<PlanId, Plan> = {
  * Switch one to true when its stage is finished.
  */
 export const READY: Record<Feature | "aiGenerator", boolean> = {
+  multipleSubjects: true,
   noPdfFooter: true,
   customHeader: false,
   allTemplates: false,
@@ -113,6 +115,13 @@ export const SCHOOL_YEAR = { firstMonth: 9, lastMonth: 6 };
  * (stage 2); until then "Buy" buttons explain that it opens soon.
  */
 export const ONLINE_PAYMENTS = false;
+
+/**
+ * Settings → My plan offers "View the site as Free" to accounts with a
+ * better plan (to compare the plans). Safe: it can only lower the plan.
+ * Set to false to hide the switch.
+ */
+export const PLAN_PREVIEW = true;
 
 // ---------------------------------------------------------------------------
 // Trial and grace period

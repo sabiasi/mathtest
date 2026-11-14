@@ -18,6 +18,7 @@ import { ThemeProvider } from "next-themes";
 import type { ReactNode } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/features/auth/AuthProvider";
+import { TeachingSubjectsProvider } from "@/features/subjects/TeachingSubjectsProvider";
 import { PlanProvider } from "@/features/plans/PlanProvider";
 import { UpgradeProvider } from "@/features/plans/UpgradeDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -41,7 +42,7 @@ export function Providers({ children }: { children: ReactNode }) {
             <TooltipProvider>
               <ConfirmProvider>
                 <UpgradeProvider>
-                  {children}
+                  <TeachingSubjectsProvider>{children}</TeachingSubjectsProvider>
                   <Toaster />
                 </UpgradeProvider>
               </ConfirmProvider>

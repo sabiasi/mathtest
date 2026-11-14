@@ -30,6 +30,17 @@ describe("entitlementsFor", () => {
     expect(entitlementsFor(sub({ status: "trialing", trialEndsAt: days(0.1) }), now).trialDaysLeft).toBe(1);
   });
 
+  it("previewing Free lowers any better plan to Free and remembers the real one", () => {
+    const trial = entitlementsFor(sub({ status: "trialing", trialEndsAt: days(5), previewFree: true }), now);
+    expect(trial).toMatchObject({ plan: "free", state: "free", previewOf: { plan: "premium", state: "trial" } });
+    expect(trial.features.multipleSubjects).toBe(false);
+    expect(trial.limits).toEqual(PLANS.free.limits);
+    expect(entitlementsFor(sub({ plan: "school", previewFree: true }), now).previewOf).toEqual({ plan: "school", state: "active" });
+    // Already Free: nothing to preview.
+    expect(entitlementsFor(sub({ status: "expired", previewFree: true }), now).previewOf).toBeNull();
+    expect(entitlementsFor(sub({}), now).previewOf).toBeNull();
+  });
+
   it("an ended trial is Free", () => {
     expect(entitlementsFor(sub({ status: "trialing", trialEndsAt: days(-1) }), now)).toMatchObject({ plan: "free", state: "free" });
   });

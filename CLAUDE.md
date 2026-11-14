@@ -269,6 +269,72 @@ Visitors can try everything without an account (guest mode).
     changes).
 - [ ] Later: backup import/export, own email service (SMTP) and hosting.
 
+## Teaching-subject access (Phase 1 complete)
+
+- `teacher_subjects` stores explicit onboarding and subject assignments, separate
+  from administrator roles. `set_teaching_subjects(chosen, preferred)` is the
+  only authenticated write path. Free selects one subject once; Premium/School
+  use the `multipleSubjects` plan feature, including existing trial/grace rules.
+- Existing `default_subject` is only a suggestion until onboarding is complete.
+  After expiration, multi-subject accounts choose one previously assigned subject.
+  Other account tests remain readable/printable and their editors are inert.
+- `TeachingSubjectsProvider` loads account assignments, handles onboarding and
+  Settings, and guards creation/template/copy/subject-change actions. The
+  repository also checks the current account's subject assignments. RLS checks
+  both the old and new test subject, preventing reclassification as a bypass.
+- Apply generated `supabase/plans.sql`, then
+  `supabase/migrations/20261114_teaching_subjects.sql` to existing installations.
+  Fresh setup: full `schema.sql`, then `plans.sql`. Never apply production SQL
+  automatically. The full schema includes the standalone migration verbatim.
+- Guest editing still works in every subject. Migration now runs in
+  `TeachingSubjectsProvider` after assignments and cloud tests load, not directly
+  in AuthProvider. Only assigned subjects migrate; confirmed picture uploads and
+  successful test saves precede removal. Other guest tests remain on the device
+  and appear in `RetainedGuestTests`; `device~<id>` editor/print routes are read-only.
+  Keep pictures used by remaining guest tests. Do not describe retained work as
+  a cloud backup. Print options for read-only tests live in local component state.
+- `auth/teachingSubjectsSql.test.ts` runs real app SQL/RLS in PGlite, with only
+  Supabase infrastructure stubbed. Account browser contracts are mocked in
+  `e2e/teaching-subjects.spec.ts`; no production accounts are modified.
+- **Plan preview ("View as Free")**: `subscriptions.preview_free` (+
+  `preview_subjects`), written only by `set_plan_preview(free)` (security
+  definer, own row). `plan_of` returns Free while it's on (the LAST `plan_of`
+  in schema.sql, from `migrations/20261115_plan_preview.sql`, is the real one).
+  Off restores the teaching subjects saved when it was switched on.
+  `Entitlements.previewOf` = the real plan; Settings → My plan switch,
+  `PlanPreviewBar` on /tests. Can only lower a plan. `PLAN_PREVIEW` flag.
+  `loadSubscription` retries without the column on old databases (42703).
+- **Phase 2 (Georgian first), done**: toolbar writing styles use
+  `features/editor/toolbarStyles.ts` (`orderedStyles`, `chosenStyle`): the
+  option with id `"georgian"` is shown first and is the default with the
+  Georgian interface (English interface: the others first); a saved choice
+  always wins. Every styled tab must have a "georgian" option
+  (toolbarStyles.test.ts). Widgets get the tab's `style` (CoordinateTool:
+  Georgian side buttons ჩ./სამხ./აღმ./დას. and the Georgian insert first;
+  CenturyTool: ს. or c. by style). Saved content is never rewritten.
+  `e2e/georgian-first.spec.ts`. Dictionary coverage: `en` is
+  `Record<MessageKey, string>`, so tsc fails on a missing or extra key.
+- **Phase 3 (live paper view), done** — changed on the owner's request
+  from a per-question preview to the WHOLE test: "ქაღალდზე ნახვა" in the
+  editor's sticky bar (`[data-paper-view-toggle]`) splits the screen
+  (≥ 64rem, `SPLIT_QUERY`): editor left, A4 pages right (`PANEL_WIDTH`
+  min(48vw, 62rem), sticky under the bar via `--editor-bar`, scrolls on
+  its own); narrower windows: the pages cover the editor (fixed). The pages
+  are the print page's own `PrintedVariant` (exported; new props `zoom` —
+  only the sheets are zoomed, never the measuring copy — and `highlight`),
+  variant A, plan footer, subject print class + `LanguageOverride` +
+  `TypographyProvider`. `features/editor/preview/`: `PreviewProvider` (TWO
+  contexts: control vs. the live test), `LivePreview` (student / key, link to
+  /print; redraws 250 ms after the last change + `useDeferredValue`; old
+  pages stay while measuring). `FollowFocus` in TestEditor sets the edited
+  question from `[data-question-id]` (cards) / `[data-test-header]`; the
+  paper outlines it (`.live-preview [data-editing]`, screen only) and
+  scrolls ONLY its own panel to it. `SplitView`, `BarRow`, `ToolbarArea`
+  keep the same elements open or closed (editors are never re-created); the
+  symbol toolbar never covers the paper. Every printed block carries
+  `data-print-block={key}`. `e2e/live-preview.spec.ts` compares the paper
+  view with the print page for every sample (student + key, page count). Stop for the owner's review between phases.
+
 ## Tech decisions
 
 | Area | Decision |
@@ -287,7 +353,7 @@ Visitors can try everything without an account (guest mode).
 | Shuffled items | Order and matching items are shuffled in EVERY variant, A included: `buildVariants` puts `shownOrder` on the printed copies (seed = test seed ^ question id for A), never equal to the answer order. Print code reads `shownOrder`; answers (`orderAnswer`, `matchingAnswers`) are computed from it, so key + answer table always match the paper Colours: `--subject-<id>` tokens. Profile `default_subject` stores a subject id |
 | Math rendering | MathLive `convertLatexToMarkup` (same engine as input). Fonts/styles: `mathlive/fonts.css` + `mathlive/static.css` imported in `layout.tsx`, bundled and self-hosted; `MathfieldElement.fontsDirectory = null` |
 | Accounts | Supabase Auth via `@supabase/ssr` (sign-in kept in cookies). `src/proxy.ts` refreshes the sign-in and redirects (protected: only /settings; /tests, /editor, /print are open to guests). `/auth/callback` swaps email/Google links for a session. Only the publishable key (`NEXT_PUBLIC_SUPABASE_*` in `.env.local`), never a secret key |
-| Guests | Signed out (or Supabase not configured) = guest: `AuthProvider` starts the repository with `localTestsBackend()` (localStorage key `mathtest:tests:v1`) and `setImageUser(null)` (pictures in IndexedDB store `images`). On sign-in: `stopSync()` → cloud → `moveGuestTestsIntoAccount()` (lib/onboarding.ts): upload pictures, `importTests` (newer local version of an existing id → added as a copy), then after `waitUntilSaved` remove the browser copies. `useAuth().guest`, `useStorageKind()` ("cloud" / "device") |
+| Guests | Signed out (or Supabase not configured) = guest: `AuthProvider` starts the repository with `localTestsBackend()` (localStorage key `mathtest:tests:v1`) and `setImageUser(null)` (pictures in IndexedDB store `images`). On sign-in: `stopSync()` → cloud → teaching-subject selection → `moveGuestTestsIntoAccount(allowedSubjects)` (lib/onboarding.ts; after subject onboarding): upload pictures, `importTests` (newer local version of an existing id → added as a copy), then after `waitUntilSaved` remove the browser copies. `useAuth().guest`, `useStorageKind()` ("cloud" / "device") |
 | Storage | Supabase Postgres: `profiles`, `tests` (whole test as JSON in `data`, PK user_id+id), Row Level Security on everything (`supabase/schema.sql`). Pictures: Storage bucket `images`, path `<user id>/<picture id>`, plus a browser copy in IndexedDB store `cache` |
 | Chemistry | `lib/chem.ts`: `chemLatex`/`chemSource` (\ce wrapper), `fixCharges`, `parseEquation`, `countAtoms`, `checkBalance`. In `MathNode.ts` a node whose LaTeX starts with `\ce{` gets `chemNodeView` (input[data-chem] + preview) instead of a math-field. `MathEditingContext.insertChem` types into the last focused chemistry box or starts one (`startChem`). Toolbar buttons with `chem: "..."` type mhchem code; toolkit flag `chemistry` shows the button. Elements in `subjects/chemistry/elements.ts` |
 | Diagrams | Stored as DATA inside `QuestionImage.diagram` (with `imageId: ""`), so they reuse picture placement (above/right, size %) and print layout. Kinds: circuit, forces (physics), structure (chemistry, `subjects/chemistry/structure/`). Grid gaps "h:x:y"/"v:x:y" via `lib/gridEdges.ts`. Drawn as inline SVG by `subjects/physics/diagrams/DiagramView.tsx` (the shared entry point) (page font → Georgian labels work; black on white). Pure geometry in `geometry.ts`, validation/defaults in `normalize.ts` (called from migrate.ts). Editors open in `DiagramDialog` and work on a draft (Cancel = no change). `diagramSize()` sets width/height (aspect ratio) on save |

@@ -66,6 +66,7 @@ export function PricingView() {
     { text: t("pricing.f.footer", { name: BRAND.name }) },
   ];
   const premiumBullets: Bullet[] = [
+    { text: t("teaching.multiple") },
     { text: t("pricing.f.everythingFree") },
     { text: t("pricing.f.variantsAll", { labels: variantLabels(premium.maxVariants) }) },
     { text: t("pricing.f.noFooter"), soon: !READY.noPdfFooter },
@@ -349,7 +350,7 @@ function Comparison() {
   const templates = (n: number | "all") => (n === "all" ? t("pricing.all") : String(n));
 
   const rows: { key: string; cells: Cell[]; soon?: boolean }[] = [
-    { key: "subjects", cells: [true, true, true] },
+    { key: "subjects", cells: ["1", t("pricing.all"), t("pricing.all")] },
     { key: "tests", cells: ["unlimited", "unlimited", "unlimited"] },
     { key: "print", cells: [true, true, true] },
     { key: "variants", cells: each((p) => String(p.limits.maxVariants)) },

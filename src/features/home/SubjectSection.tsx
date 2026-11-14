@@ -1,5 +1,7 @@
 "use client";
 
+import { useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
+
 import { Check, Folder, FolderPlus, MoreHorizontal, Pencil, Plus, Trash2, X } from "lucide-react";
 import Link from "next/link";
 import { useState, type DragEvent, type ReactNode } from "react";
@@ -109,11 +111,13 @@ function FolderBar({
 }) {
   const t = useT();
   const confirm = useConfirm();
+  const access = useTeachingSubjects();
   const [adding, setAdding] = useState(false);
   const [renaming, setRenaming] = useState<string | null>(null);
   const countIn = (name: string) => tests.filter((test) => test.folder === name).length;
 
   function moveInto(event: DragEvent, folder: string) {
+    if (!access.requestSubject(subjectId)) return;
     const id = event.dataTransfer.getData(TEST_DRAG_TYPE);
     if (!id) return;
     event.preventDefault();
@@ -128,6 +132,7 @@ function FolderBar({
   }
 
   function rename(from: string, to: string) {
+    if (!access.requestSubject(subjectId)) return;
     setRenaming(null);
     const clean = cleanFolderName(to);
     if (!clean || clean === from) return;
@@ -137,6 +142,7 @@ function FolderBar({
   }
 
   async function remove(name: string) {
+    if (!access.requestSubject(subjectId)) return;
     const ok = await confirm({ title: t("home.deleteFolder"), message: t("home.deleteFolderConfirm", { name }), confirmLabel: t("dialog.delete"), danger: true });
     if (!ok) return;
     for (const test of tests) if (test.folder === name) setTestFolder(test.id, "");

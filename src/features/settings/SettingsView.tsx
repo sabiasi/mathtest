@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { PlanSummary } from "@/features/plans/PlanSummary";
+import { TeachingSubjectsSummary, useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
 import { SubjectPicker } from "@/features/subjects/SubjectPicker";
 import { LANGUAGES, LANGUAGE_NAMES, type Language } from "@/i18n/dictionaries";
 import { setLanguage, useLanguage, useT } from "@/i18n/language";
@@ -46,6 +47,8 @@ export function SettingsView() {
         <PlanSummary />
       </Section>
 
+      <Section title={t("teaching.settingsTitle")}><TeachingSubjectsSummary /></Section>
+
       <Section title={t("settings.profile")}>
         {!profile ? (
           <div className="space-y-5">
@@ -55,7 +58,7 @@ export function SettingsView() {
           </div>
         ) : (
           // key: a fresh form if a different account's profile arrives
-          <ProfileForm key={profile.id} profile={profile} email={user?.email ?? ""} onSave={updateProfile} />
+          <ProfileForm key={`${profile.id}:${profile.default_subject}`} profile={profile} email={user?.email ?? ""} onSave={updateProfile} />
         )}
       </Section>
 
@@ -113,6 +116,7 @@ function ProfileForm({
   onSave: (changes: ProfileChanges) => Promise<boolean>;
 }) {
   const t = useT();
+  const access = useTeachingSubjects();
   // The form starts with the saved values; typing only changes this copy until "Save".
   const [form, setForm] = useState({
     full_name: profile.full_name,
@@ -155,6 +159,7 @@ function ProfileForm({
         <FieldLabel hint={t("settings.subjectHint")}>{t("settings.subject")}</FieldLabel>
         <SubjectPicker
           value={form.default_subject}
+          subjects={access.subjects}
           onChange={(default_subject) => setForm({ ...form, default_subject })}
           label={t("settings.subject")}
         />

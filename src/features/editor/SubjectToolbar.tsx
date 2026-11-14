@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useActiveFormats, useMathEditing } from "@/features/math/MathEditingContext";
+import { chosenStyle, orderedStyles } from "./toolbarStyles";
 import { useLanguage, useT } from "@/i18n/language";
 import { cn } from "@/lib/utils";
 import { buttonKey, type SubjectToolkit, type ToolbarButton } from "@/subjects/types";
@@ -101,7 +102,8 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
   // Tabs with writing styles (units: Latin / Georgian): which one is chosen.
   const [styleIds, setStyleIds] = useState<Record<string, string>>({});
   const styleId = tab?.styles ? (styleIds[tab.styles.storageKey] ?? readStyle(tab.styles.storageKey)) : null;
-  const style = tab?.styles?.options.find((o) => o.id === styleId) ?? tab?.styles?.options[0];
+  // Georgian first: with the Georgian interface the Georgian style is the default (toolbarStyles.ts).
+  const style = tab?.styles ? chosenStyle(tab.styles.options, styleId, language) : undefined;
   function chooseStyle(storageKey: string, id: string) {
     setStyleIds((current) => ({ ...current, [storageKey]: id }));
     try {
@@ -264,7 +266,7 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
     // ---- The chosen tab ----
     panel = (
       <>
-        {tab?.Widget && <tab.Widget insertText={insertText} insertChem={insertChem} insertMath={insert} />}
+        {tab?.Widget && <tab.Widget insertText={insertText} insertChem={insertChem} insertMath={insert} style={style?.id} />}
         {tab?.styles && (
           <div
             role="group"
@@ -272,7 +274,7 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
             className="mr-1.5 flex h-10 items-center gap-0.5 rounded-lg bg-muted p-0.5 pointer-coarse:h-11"
             data-toolbar-styles=""
           >
-            {tab.styles.options.map((option) => (
+            {orderedStyles(tab.styles.options, language).map((option) => (
               <button
                 key={option.id}
                 type="button"

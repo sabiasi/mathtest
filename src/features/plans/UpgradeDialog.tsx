@@ -21,7 +21,7 @@ import { useT } from "@/i18n/language";
 import { BRAND, PLANS, TRIAL_DAYS } from "@/lib/plans/plans";
 
 /** Why the window opened: picks the title and the sentence. */
-export type UpgradeReason = "variants" | "images" | "footer";
+export type UpgradeReason = "variants" | "images" | "footer" | "subjects";
 
 const UpgradeContext = createContext<((reason: UpgradeReason) => void) | null>(null);
 

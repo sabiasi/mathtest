@@ -1,10 +1,13 @@
 "use client";
 
+import { isDeviceTestId } from "@/lib/auth/teachingSubjects";
+import { useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
+
 import { ArrowLeft, Copy, Download, LoaderCircle, Printer, SearchX, Shuffle, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { cloneElement, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { PageTransition } from "@/components/PageTransition";
@@ -41,6 +44,7 @@ export function PrintView() {
   const version: PrintVersion = params.get("version") === "key" ? "key" : "student";
   const variant = params.get("variant") ?? "A";
   const lookup = useTest(id);
+  const access = useTeachingSubjects();
 
   if (lookup.status === "loading") return <PrintSkeleton />;
   if (lookup.status === "missing") {
@@ -62,7 +66,7 @@ export function PrintView() {
   const autoPrint = params.get("print") === "1";
   return (
     <PageTransition>
-      {isSampleId(lookup.test.id) ? (
+      {isSampleId(lookup.test.id) || isDeviceTestId(lookup.test.id) || !access.canEdit(lookup.test.subjectId) ? (
         <SampleDocument key={lookup.test.id} sample={lookup.test} version={version} variantParam={variant} autoPrint={autoPrint} />
       ) : (
         <PrintDocument test={lookup.test} version={version} variantParam={variant} autoPrint={autoPrint} />
@@ -441,14 +445,19 @@ function PrintDocument({
   );
 }
 
-/** One variant (or the only version): measured, split into pages, drawn as A4 sheets. */
-function PrintedVariant({
+/**
+ * One variant (or the only version): measured, split into pages, drawn as A4 sheets.
+ * Also used by the editor's live paper view (features/editor/preview/LivePreview.tsx).
+ */
+export function PrintedVariant({
   variant,
   label,
   version,
   blankAfter,
   brandFooter,
   onReady,
+  zoom,
+  highlight = null,
 }: {
   variant: Variant;
   label: string | null;
@@ -457,6 +466,10 @@ function PrintedVariant({
   /** Free plan: "Made with MathTest" in the footer of every page. */
   brandFooter: boolean;
   onReady: (key: string, ready: boolean) => void;
+  /** Live paper view: the sheets drawn smaller (the invisible measuring copy keeps the real size). */
+  zoom?: number;
+  /** Live paper view: the question being edited, outlined on the paper (never printed). */
+  highlight?: string | null;
 }) {
   const t = useT();
   const language = useLanguage();
@@ -480,20 +493,22 @@ function PrintedVariant({
   const blockFor = (key: string, indexInColumn: number) => {
     const block = blocks.get(key);
     if (!block) return null;
+    const active = highlight !== null && block.question.id === highlight ? { "data-editing": "" } : {};
     const drawn = renderBlock(block, { test, version, optionColumns: optionColumns ?? {}, lineStarts }, indexInColumn === 0);
     // Taller than a whole page: drawn smaller so it fits (see usePrintLayout).
     return shrink[key] ? (
-      <div key={key} style={{ zoom: shrink[key] }} data-shrunk="">
+      <div key={key} style={{ zoom: shrink[key] }} data-shrunk="" {...active}>
         {drawn}
       </div>
+    ) : highlight !== null ? (
+      cloneElement(drawn, active)
     ) : (
       drawn
     );
   };
 
-  return (
+  const sheets = (
     <>
-      {measurer}
       {!pages ? (
         <p className="flex items-center justify-center gap-2 py-16 text-muted-foreground print:hidden">
           <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
@@ -539,6 +554,14 @@ function PrintedVariant({
       )}
       {/* For double-sided printing: an empty back page so the next variant starts on a new sheet. */}
       {blankAfter && pages && pages.length % 2 === 1 && <section className="sheet" aria-hidden="true" />}
+    </>
+  );
+
+  return (
+    <>
+      {measurer}
+      {/* Only the live view wraps the sheets: on the print page they must stay siblings (.sheet:last-child). */}
+      {zoom === undefined ? sheets : <div style={{ zoom }}>{sheets}</div>}
     </>
   );
 }

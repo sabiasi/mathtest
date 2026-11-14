@@ -1,5 +1,7 @@
 "use client";
 
+import { useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
+
 import type { CSSProperties } from "react";
 import { Check, Clock, Copy, Folder, FolderInput, ListOrdered, MoreHorizontal, Pencil, Printer, Star, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -34,6 +36,7 @@ export const TEST_DRAG_TYPE = "application/x-mathtest-test";
  */
 export function TestCard({ test, folders }: { test: Test; folders?: string[] }) {
   const t = useT();
+  const access = useTeachingSubjects();
   const confirm = useConfirm();
   const language = useLanguage();
   const router = useRouter();
@@ -43,16 +46,19 @@ export function TestCard({ test, folders }: { test: Test; folders?: string[] }) 
   const tags = [test.subject || t(`subject.${test.subjectId}`), test.level, test.grade].filter(Boolean);
 
   function moveTo(folder: string) {
+    if (!access.requestSubject(test.subjectId)) return;
     setTestFolder(test.id, folder);
     toast.success(t("home.movedTo", { folder: folder || t("home.folderNone") }));
   }
 
   function handleDuplicate() {
+    if (!access.requestSubject(test.subjectId)) return;
     duplicateTest(test.id, test.title ? t("test.copyTitle", { title: test.title }) : "");
     toast.success(t("toast.duplicated"));
   }
 
   async function handleDelete() {
+    if (!access.requestSubject(test.subjectId)) return;
     const ok = await confirm({
       title: t("home.delete"),
       message: t("home.deleteConfirm", { title }),
@@ -62,14 +68,14 @@ export function TestCard({ test, folders }: { test: Test; folders?: string[] }) 
     if (!ok) return;
     deleteTest(test.id);
     toast(t("toast.testDeleted", { title }), {
-      action: { label: t("toast.undo"), onClick: () => restoreTest(test) },
+      action: { label: t("toast.undo"), onClick: () => { if (access.requestSubject(test.subjectId)) restoreTest(test); } },
     });
   }
 
   return (
     <article
       // Drag the card onto a folder (My tests). The menu below does the same without a mouse.
-      draggable={folders !== undefined}
+      draggable={folders !== undefined && access.canEdit(test.subjectId)}
       onDragStart={(e) => {
         e.dataTransfer.setData(TEST_DRAG_TYPE, test.id);
         e.dataTransfer.effectAllowed = "move";
@@ -93,6 +99,7 @@ export function TestCard({ test, folders }: { test: Test; folders?: string[] }) 
                 {title}
               </Link>
             </h2>
+            {!access.canEdit(test.subjectId) && <p className="mt-1 text-sm text-muted-foreground">{t("teaching.readOnly")}</p>}
             {(tags.length > 0 || test.folder) && (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {tags.map((tag) => (
@@ -121,7 +128,7 @@ export function TestCard({ test, folders }: { test: Test; folders?: string[] }) 
             <DropdownMenuContent align="end" className="min-w-60 [&_[role=menuitem]]:whitespace-nowrap">
               <DropdownMenuItem onSelect={() => router.push(editUrl)}>
                 <Pencil aria-hidden="true" />
-                {t("home.edit")}
+                {t(access.canEdit(test.subjectId) ? "home.edit" : "teaching.readOnly")}
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={handleDuplicate}>
                 <Copy aria-hidden="true" />
@@ -177,7 +184,7 @@ export function TestCard({ test, folders }: { test: Test; folders?: string[] }) 
       <div className="flex items-center gap-2 border-t px-4 py-3">
         <Link href={editUrl} className={buttonVariants({ variant: "soft", size: "sm", className: "relative z-10" })}>
           <Pencil aria-hidden="true" />
-          {t("home.edit")}
+          {t(access.canEdit(test.subjectId) ? "home.edit" : "teaching.readOnly")}
         </Link>
         <Tooltip>
           <TooltipTrigger asChild>

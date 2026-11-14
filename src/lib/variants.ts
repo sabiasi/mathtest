@@ -118,9 +118,14 @@ export function arrangeItems(question: Question, random: () => number): Question
   return question;
 }
 
+/** One question exactly as variant A prints it (its items shuffled once, repeatably). Used by the question preview too. */
+export function variantAQuestion(test: Test, question: Question): Question {
+  return arrangeItems(question, seededRandom(test.variants.seed ^ seedFromString(question.id)));
+}
+
 /** Variant A: everything in the teacher's order, except order/matching items (shuffled once, repeatably). */
 function arrangeOriginal(test: Test): Question[] {
-  return test.questions.map((q) => arrangeItems(q, seededRandom(test.variants.seed ^ seedFromString(q.id))));
+  return test.questions.map((q) => variantAQuestion(test, q));
 }
 
 /**

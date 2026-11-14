@@ -18,7 +18,7 @@
  */
 import { newId } from "@/lib/ids";
 import { isSampleId } from "@/samples/build";
-import { DEFAULT_SUBJECT } from "@/subjects/ids";
+import { type SubjectId, DEFAULT_SUBJECT } from "@/subjects/ids";
 import { duplicateQuestion } from "@/lib/questions";
 import { normalizeTest, seedFromString } from "./migrate";
 import { DEFAULT_PRINT_OPTIONS, DEFAULT_VARIANTS, type Test } from "./types";
@@ -27,6 +27,8 @@ import { DEFAULT_PRINT_OPTIONS, DEFAULT_VARIANTS, type Test } from "./types";
 export type TestsBackend = {
   /** "cloud" = the teacher's account; "device" = this browser only (guests). */
   kind: StorageKind;
+  /** Present for real account backends; used to prevent cross-account client writes. */
+  userId?: string;
   list(): Promise<Test[]>;
   upsert(test: Test): Promise<void>;
   remove(id: string): Promise<void>;
@@ -64,6 +66,22 @@ const sending = new Set<string>();
 const failed = new Set<string>();
 let retryTimer: ReturnType<typeof setTimeout> | null = null;
 let retryDelay = 2000;
+
+let accessUser: string | null = null;
+let allowedSubjects: readonly SubjectId[] = [];
+export class SubjectAccessError extends Error {}
+
+export function setSubjectWriteAccess(userId: string | null, subjects: readonly SubjectId[]) {
+  accessUser = userId;
+  allowedSubjects = [...subjects];
+}
+
+function assertSubjectAccess(subject: SubjectId) {
+  if (backend?.kind === "cloud" && backend.userId &&
+      (accessUser !== backend.userId || !allowedSubjects.includes(subject))) {
+    throw new SubjectAccessError("Subject is read-only for this account");
+  }
+}
 
 const listeners = new Set<() => void>();
 function notify() {
@@ -197,6 +215,7 @@ export function createTest(defaults: Partial<Omit<Test, "id">> = {}): Test {
     createdAt: now,
     updatedAt: now,
   };
+  assertSubjectAccess(test.subjectId);
   setTests([test, ...tests]);
   enqueue(test.id, { kind: "upsert", test });
   return test;
@@ -207,6 +226,7 @@ export function createTest(defaults: Partial<Omit<Test, "id">> = {}): Test {
  * isn't in the list) with new ids, a fresh variant seed and today's dates.
  */
 export function createTestFromTemplate(template: Test, changes: Partial<Pick<Test, "title" | "schoolName" | "folder">> = {}): Test {
+  assertSubjectAccess(template.subjectId);
   const now = new Date().toISOString();
   const id = newId();
   const copy: Test = {
@@ -227,6 +247,7 @@ export function createTestFromTemplate(template: Test, changes: Partial<Pick<Tes
 export function duplicateTest(id: string, title: string): Test | undefined {
   const original = getTest(id);
   if (!original) return undefined;
+  assertSubjectAccess(original.subjectId);
   const now = new Date().toISOString();
   const copy: Test = {
     ...original,
@@ -245,6 +266,15 @@ export function duplicateTest(id: string, title: string): Test | undefined {
 export function saveTest(test: Test): Test {
   // Sample tests are read-only data from src/samples: never saved or uploaded.
   if (isSampleId(test.id)) return test;
+  try {
+    assertSubjectAccess(test.subjectId);
+    const previous = getTest(test.id);
+    if (previous) assertSubjectAccess(previous.subjectId);
+  } catch (error) {
+    failed.add(test.id);
+    notify();
+    throw error;
+  }
   const saved: Test = { ...test, updatedAt: new Date().toISOString() };
   setTests([saved, ...tests.filter((t) => t.id !== test.id)]);
   enqueue(saved.id, { kind: "upsert", test: saved });
@@ -258,6 +288,7 @@ export function saveTest(test: Test): Test {
 export function setTestFolder(id: string, folder: string): void {
   const test = getTest(id);
   if (!test || isSampleId(id) || test.folder === folder) return;
+  assertSubjectAccess(test.subjectId);
   const moved: Test = { ...test, folder };
   setTests(tests.map((t) => (t.id === id ? moved : t)));
   enqueue(id, { kind: "upsert", test: moved });
@@ -271,6 +302,7 @@ export function deleteTest(id: string): void {
 /** Puts a just-deleted test back, unchanged ("Undo"). */
 export function restoreTest(test: Test): void {
   if (getTest(test.id)) return;
+  assertSubjectAccess(test.subjectId);
   setTests([...tests, test]);
   enqueue(test.id, { kind: "upsert", test });
 }
@@ -282,6 +314,7 @@ export function restoreTest(test: Test): void {
  * version is lost.
  */
 export function importTests(incoming: Test[]): Test[] {
+  incoming.forEach((test) => assertSubjectAccess(test.subjectId));
   const added: Test[] = [];
   for (const test of incoming) {
     const existing = getTest(test.id) ?? added.find((t) => t.id === test.id);

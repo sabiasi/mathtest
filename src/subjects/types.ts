@@ -70,6 +70,8 @@ export type ToolbarWidgetProps = {
   /** Inserts a formula (LaTeX). */
   insertMath: (latex: string) => void;
   insertChem: (text: string, caretBack?: number) => void;
+  /** The tab's writing style in use (e.g. "georgian" / "latin"), when the tab has `styles`. */
+  style?: string;
 };
 export type ToolbarTab = {
   id: string;
@@ -79,7 +81,9 @@ export type ToolbarTab = {
   /**
    * Optional: the same tab in different writing styles (e.g. units in Latin
    * "m/s" or Georgian "მ/წმ"). A small switch appears in the tab; the choice
-   * is remembered in this browser under `storageKey`. The first is the default.
+   * is remembered in this browser under `storageKey`. Give the Georgian option
+   * the id "georgian": with the Georgian interface it is shown first and is the
+   * default (features/editor/toolbarStyles.ts); otherwise the others come first.
    */
   styles?: {
     storageKey: string;

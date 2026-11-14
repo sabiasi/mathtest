@@ -66,7 +66,8 @@ export function PlanProvider({ children }: { children: ReactNode }) {
       refresh();
     };
     document.addEventListener("visibilitychange", onVisible);
-    return () => document.removeEventListener("visibilitychange", onVisible);
+    const timer = setInterval(refresh, REFRESH_GAP_MS);
+    return () => { document.removeEventListener("visibilitychange", onVisible); clearInterval(timer); };
   }, [userId, refresh]);
 
   const injected = typeof window !== "undefined" ? window.__MATHTEST_PRINT__?.entitlements : undefined;
