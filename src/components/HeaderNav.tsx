@@ -2,11 +2,16 @@
 
 import { LayoutGrid } from "lucide-react";
 import Link from "next/link";
+import { useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useT } from "@/i18n/language";
 import { useTests } from "@/lib/storage/useTests";
 import { cn } from "@/lib/utils";
+
+const noSubscription = () => () => {};
+const clientSnapshot = () => true;
+const serverSnapshot = () => false;
 
 function NavLink({ active }: { active: boolean }) {
   const t = useT();
@@ -33,8 +38,11 @@ export function HeaderNav() {
   const pathname = usePathname();
   const { status, guest } = useAuth();
   const tests = useTests();
+  // Auth can finish loading before this Suspense boundary hydrates. Keep
+  // its first client render identical to the empty server header.
+  const hydrated = useSyncExternalStore(noSubscription, clientSnapshot, serverSnapshot);
   const show = status === "signed-in" || (guest && (tests?.length ?? 0) > 0);
-  if (!show) return null;
+  if (!hydrated || !show) return null;
   return (
     <nav className="ml-1 sm:ml-3">
       <NavLink active={pathname === "/tests"} />
