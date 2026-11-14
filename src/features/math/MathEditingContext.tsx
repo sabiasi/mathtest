@@ -12,6 +12,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import type { TextMark } from "@/lib/richText";
 import { startChem, typeIntoChem } from "./MathNode";
 import type { MathfieldElement } from "./mathlive";
+import { closeHistory } from "@tiptap/pm/history";
 
 type MathEditing = {
   /** The rich-text box used last (null until the teacher clicks into one). */
@@ -35,6 +36,14 @@ type MathEditing = {
 };
 
 const MathEditingContext = createContext<MathEditing | null>(null);
+
+/**
+ * Starts a new undo step. Without it, a symbol inserted from the toolbar
+ * right after typing is glued to that typing, and one Undo removes both.
+ */
+function newUndoStep(editor: Editor) {
+  editor.view.dispatch(closeHistory(editor.state.tr));
+}
 
 export function MathEditingProvider({ children }: { children: ReactNode }) {
   const [activeEditor, setActiveEditor] = useState<Editor | null>(null);
@@ -78,6 +87,7 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
         mf.insert(latex, { selectionMode: "placeholder", focus: true });
       } else {
         // The cursor is in normal text: create a new formula with the template.
+        newUndoStep(editor);
         editor.chain().focus().insertMath(latex).run();
       }
     },
@@ -93,6 +103,7 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
       const { from } = editor.state.selection;
       const before = from > 1 ? editor.state.doc.textBetween(from - 1, from, "", " ") : "";
       const needsSpace = /[\p{L}\p{N}.,;:)“”»]/u.test(before) && /^[\p{L}\p{N}„«(]/u.test(text);
+      newUndoStep(editor);
       if (marks?.length) {
         // e.g. an italic Latin name, then a plain space so typing goes on in normal text.
         editor

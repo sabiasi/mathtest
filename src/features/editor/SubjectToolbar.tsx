@@ -80,21 +80,18 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
 
   return (
     <motion.div
-      className="overflow-x-clip border-t"
+      // A solid background: the page text behind it must not show through.
+      className="overflow-x-clip border-y bg-card shadow-md"
       role="toolbar"
       aria-label={t("math.toolbarLabel")}
       data-math-toolbar=""
       data-subject-toolbar={toolkit.id}
-      // Slides open quickly. Only opacity + height, so nothing jumps sideways.
+      // Slides open quickly. It is an overlay under the sticky bar, so the
+      // page content never moves (TestEditor keeps the edited box uncovered).
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: "auto" }}
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.18, ease: [0.2, 0, 0, 1] }}
-      // Once open, the top bar is taller: make sure the box the teacher just
-      // clicked isn't hidden underneath it.
-      onAnimationComplete={() =>
-        (document.activeElement as HTMLElement | null)?.scrollIntoView?.({ block: "nearest" })
-      }
     >
       <Tabs value={tab?.id ?? ""} onValueChange={setTabId} className="mx-auto max-w-5xl gap-0 px-4 sm:px-6">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
@@ -176,6 +173,8 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
                     onMouseDown={keepFocus}
                     onClick={() => press(button)}
                     aria-label={button[language]}
+                    // What a click does (browser tests use it): format | chem | text | math.
+                    data-kind={button.format ? "format" : button.chem !== undefined ? "chem" : button.text !== undefined ? "text" : "math"}
                     className="flex h-10 min-w-10 items-center justify-center rounded-lg border bg-card px-2 text-foreground shadow-xs transition-[background-color,border-color,transform] duration-150 hover:border-primary-soft-border hover:bg-primary-soft motion-safe:active:scale-95 pointer-coarse:h-11 pointer-coarse:min-w-11"
                   >
                     {button.html === null ? (

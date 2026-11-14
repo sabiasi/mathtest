@@ -9,5 +9,7 @@ export default defineConfig({
   test: {
     // jsdom is a fake browser, so tests can use localStorage, window, etc.
     environment: "jsdom",
+    // e2e/ holds the Playwright browser tests (npm run test:e2e), not unit tests.
+    exclude: ["e2e/**", "node_modules/**", ".next/**"],
   },
 });

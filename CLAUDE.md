@@ -304,6 +304,8 @@ Visitors can try everything without an account (guest mode).
 | Built-in pictures | `lib/images/builtinPictures.ts`: image id `builtin:<name>` (georgia-map, room, triangle-abc, umbrella, clock, key, cup), original SVG, black on white, no words; `getImageUrl` returns a data URL, `usedImageIds` skips them (never uploaded, cleaned up or counted). Georgia outline from lon/lat (`georgiaPoint`, `georgiaPercent`, `GEORGIA_PLACES`) |
 | Tips | `QuestionBase.tip`: a note for the teacher shown in the question card (dismissable in own tests), never printed |
 | My tests | `lib/myTests.ts` (pure: counts, filter, sort, grades, folders, groups), `features/home/` HomeView, SubjectNav, SubjectSection (FolderBar), FilterBar, CardGrid, SampleCard, TestCard (`TEST_DRAG_TYPE`), `folders.ts` (empty-folder store) |
+| Editor scrolling | The page moves only when the cursor is really hidden, by the minimum (`features/editor/keepVisible.ts`: `scrollNeeded`, `reveal`, `revealFocused`). The subject toolbar is an OVERLAY hanging under the sticky bar (`absolute top-full`, solid background, `max-h-[55vh]`): opening / closing it or switching tabs never shifts the content. `--editor-top` (bar + toolbar height, set by TestEditor) feeds `scroll-margin-top` on focusable things in the editor — never a page-wide `scroll-padding` (things inside the sticky bar can't move, so focusing them made the page jump up). RichTextInput replaces ProseMirror's scrolling via `handleScrollToSelection`. Toolbar inserts start a new undo step (`closeHistory`) |
+| Browser tests | Playwright (`npm run test:e2e`, config `playwright.config.ts`, tests in `e2e/`): builds, serves on :3210, uses the installed Chrome (`channel: "chrome"`), runs as a guest. `e2e/helpers.ts`: `openSampleCopy(page, subject)` (a long editable test), `editor(page)` = the VISIBLE editor (hidden Activity pages stay in the DOM), `boxContent` (text + formula LaTeX + chemistry). Toolbar buttons carry `data-kind` (format / chem / text / math). vitest excludes `e2e/` |
 | Tests | Vitest + jsdom (`npm test`) |
 
 Next.js 16 notes (see AGENTS.md: read `node_modules/next/dist/docs/` before
@@ -568,6 +570,13 @@ src/
   the dictionaries. Drawings have no words on them; keep them black/grey on
   white. To check a drawing, bundle drawings.ts with `npx rolldown` and
   render it in headless Chrome.
+- Never set `scroll-padding-top` on the page for a sticky bar: focusing or
+  scrolling-into-view anything INSIDE the bar then scrolls the whole page up.
+- Playwright on a Mac: `End` scrolls the page (use `Meta+ArrowDown` for the
+  cursor); Playwright's own `click()` scrolls elements into view, so a
+  "nothing scrolled" check also catches scroll-padding mistakes.
+- The key's answer (`.print-key-answer`) is in the flow and the line grows
+  with it; one long formula can't wrap, so write several short ones.
 - SQL in schema.sql can be tried locally in Docker (postgres image) with
   small stand-ins for `auth.users`, `auth.uid()` and `storage.objects`.
 
@@ -578,6 +587,7 @@ npm run dev     # start the dev server at http://localhost:3000
 npm test        # run unit tests once (npm run test:watch to keep watching)
 npm run lint    # check code style and common mistakes
 npm run build   # production build (also type-checks)
+npm run test:e2e   # browser tests (Playwright): builds the app, then clicks through it in Chrome
 npm run plans:sql  # regenerate supabase/plans.sql after changing lib/plans/plans.ts
 ```
 

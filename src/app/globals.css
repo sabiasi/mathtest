@@ -621,10 +621,15 @@ math-field::part(virtual-keyboard-toggle) {
   min-height: 1.6em;
   border-bottom: 0.3mm solid #000;
 }
+/* A long key answer may use the whole width instead of spilling over. */
+.print-answer-line:has(.print-key-answer) {
+  max-width: none;
+}
+/* The key's answer sits ON the line and the line grows with it: a long
+   answer wraps downward (it used to be absolute and ran over the question). */
 .print-key-answer {
-  position: absolute;
-  bottom: 0.5mm;
-  left: 2mm;
+  display: block;
+  padding: 0 2mm 0.5mm;
   font-weight: 700;
 }
 .print-line {
@@ -1357,6 +1362,7 @@ math-field::part(virtual-keyboard-toggle) {
   border-radius: 1.5mm;
   font-size: 1.05em;
   font-weight: 700;
+  white-space: nowrap;
 }
 .print-header {
   position: relative;
@@ -1364,8 +1370,9 @@ math-field::part(virtual-keyboard-toggle) {
 /* With a badge, the centered lines leave room on BOTH sides (so they stay
    centered) and a long title wraps instead of running under the badge. */
 .print-header.has-variant :is(.print-key-banner, .print-school, .print-title, .print-meta) {
-  margin-right: 30mm;
-  margin-left: 30mm;
+  /* "ვარიანტი A" is about 32 mm wide: 30 mm let it touch the answer-key box. */
+  margin-right: 36mm;
+  margin-left: 36mm;
 }
 
 /* Answer table for all variants */
@@ -1391,4 +1398,18 @@ math-field::part(virtual-keyboard-toggle) {
 .answer-table .is-open {
   color: #777;
   font-size: 0.85em;
+}
+
+/*
+ * The editor's sticky bar (+ the toolbar under it) covers the top of the
+ * window: when the browser scrolls a focused box into view, keep it clear of
+ * them (--editor-top is set by TestEditor). NOT for things inside the bar:
+ * they can't move, so the page itself would jump (the old "page scrolls up
+ * when I click a symbol" bug came from a page-wide scroll-padding).
+ */
+[data-editor-ready] :where(input, textarea, select, button, a, summary, math-field, [contenteditable="true"], [tabindex]) {
+  scroll-margin-top: calc(var(--editor-top, 4rem) + 16px);
+}
+[data-editor-bar] :where(*) {
+  scroll-margin-top: 0;
 }

@@ -63,8 +63,9 @@ const givenFind: Question = {
   ),
   type: "given-find",
   lines: 8,
-  given: rt(m("v_{0}=0;\\ a=2\\,\\text{მ/წმ}^{2};\\ t=5\\,\\text{წმ}")),
-  find: rt(m("v-?;\\ s-?")),
+  // Separate formulas (not one long one), so the narrow "Given" column can wrap between them.
+  given: rt(m("v_{0}=0"), "; ", m("a=2\\,\\text{მ/წმ}^{2}"), "; ", m("t=5\\,\\text{წმ}")),
+  find: rt(m("v-?"), "; ", m("s-?")),
   solution: rt(m("v=v_{0}+at=2\\cdot5=10\\,\\text{მ/წმ}"), "; ", m("s=\\frac{at^{2}}{2}=\\frac{2\\cdot5^{2}}{2}=25\\,\\text{მ}")),
   answer: rt(m("v=10\\,\\text{მ/წმ};\\ s=25\\,\\text{მ}")),
 };

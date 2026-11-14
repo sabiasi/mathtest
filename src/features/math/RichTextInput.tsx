@@ -5,6 +5,7 @@
  * Used for question text, multiple-choice options and short answers.
  */
 import { Extension } from "@tiptap/core";
+import { reveal } from "@/features/editor/keepVisible";
 import Bold from "@tiptap/extension-bold";
 import Document from "@tiptap/extension-document";
 import Italic from "@tiptap/extension-italic";
@@ -76,6 +77,20 @@ export function RichTextInput({
         role: "textbox",
         "aria-multiline": String(!singleLine),
         class: "rich-text-editor",
+      },
+      // Typing or inserting a symbol must never make the page jump. Instead
+      // of ProseMirror's own scrolling (which doesn't know about the sticky
+      // toolbar), scroll only when the cursor is really hidden — and only by
+      // the little that shows it again. Inside windows (dialogs) keep the default.
+      handleScrollToSelection: (view) => {
+        if (view.dom.closest('[role="dialog"]')) return false;
+        try {
+          const caret = view.coordsAtPos(view.state.selection.head);
+          reveal(caret.top, caret.bottom);
+        } catch {
+          // The position isn't drawn yet: nothing to do.
+        }
+        return true;
       },
     },
     onUpdate: ({ editor }) => onChangeRef.current(docToRichText(editor.getJSON())),

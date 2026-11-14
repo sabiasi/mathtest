@@ -69,6 +69,7 @@ import { getToolkit } from "@/subjects/registry";
 import type { SubjectToolkit } from "@/subjects/types";
 import { useUseAsTemplate } from "@/features/samples/useTemplate";
 import { isSampleId } from "@/samples/build";
+import { revealFocused } from "./keepVisible";
 import { QuestionList } from "./questions/QuestionList";
 import { SubjectToolbar } from "./SubjectToolbar";
 import { TestHeaderForm } from "./TestHeaderForm";
@@ -150,20 +151,35 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
   const [focusId, setFocusId] = useState<string | null>(null);
   const mathReady = useMathLiveReady();
 
-  // Tell the browser how tall the sticky bar is, so when it scrolls something
-  // into view (e.g. the box you clicked) it doesn't end up hidden underneath.
+  // The sticky bar and the toolbar hanging under it cover the top of the
+  // window. Their height goes into --editor-top, so focused boxes are never
+  // scrolled underneath (see keepVisible.ts and globals.css). The toolbar is
+  // an overlay: opening it, closing it or switching its tabs never moves the
+  // page content.
   const stickyRef = useRef<HTMLDivElement>(null);
+  const toolbarRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const bar = stickyRef.current;
+    const toolbar = toolbarRef.current;
     if (!bar) return;
     const root = document.documentElement;
-    const observer = new ResizeObserver(() => (root.style.scrollPaddingTop = `${bar.offsetHeight + 16}px`));
+    let last = 0;
+    const measure = () => {
+      const height = bar.offsetHeight + (toolbar?.offsetHeight ?? 0);
+      root.style.setProperty("--editor-top", `${height}px`);
+      // The toolbar grew (it opened, or a tab has more rows): the box being
+      // edited must not end up hidden under it.
+      if (height > last) revealFocused();
+      last = height;
+    };
+    const observer = new ResizeObserver(measure);
     observer.observe(bar);
+    if (toolbar) observer.observe(toolbar);
     return () => {
       observer.disconnect();
-      root.style.scrollPaddingTop = "";
+      root.style.removeProperty("--editor-top");
     };
-  }, []);
+  }, [mathReady]);
 
   const markSaved = useCallback(() => setDirty(false), []);
   useAutosave(test, dirty, markSaved);
@@ -249,7 +265,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
       {/* lang: the browser spellchecks English tests in English. */}
       <div className="pb-24" data-editor-ready={mathReady ? "true" : "false"} lang={toolkit.contentLanguage} spellCheck>
         {/* Sticky bar: stays at the top while scrolling. */}
-        <div ref={stickyRef} className="sticky top-0 z-20 border-b bg-card/85 shadow-sm backdrop-blur-md">
+        <div ref={stickyRef} className="sticky top-0 z-20 border-b bg-card/85 shadow-sm backdrop-blur-md" data-editor-bar="">
           <div className="mx-auto flex h-14 max-w-3xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
             <Link
               href="/tests"
@@ -304,7 +320,10 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
               {t("editor.total", { points: total })}
             </span>
           </div>
-          {mathReady && <ToolbarWhenEditing toolkit={toolkit} />}
+          {/* The toolbar hangs UNDER the bar as an overlay (it takes no room in the page). */}
+          <div ref={toolbarRef} className="absolute inset-x-0 top-full max-h-[55vh] overflow-y-auto overscroll-contain">
+            {mathReady && <ToolbarWhenEditing toolkit={toolkit} />}
+          </div>
         </div>
 
         {!mathReady ? (
