@@ -12,27 +12,25 @@ const txt = (text: string, ka: string, en: string, extra: Partial<ToolbarButton>
   en,
   ...extra,
 });
-const fmt = (mark: NonNullable<ToolbarButton["format"]>, label: string, ka: string, en: string): ToolbarButton => ({
-  latex: "",
-  display: label,
-  format: mark,
-  ka,
-  en,
-});
-
 const GAPS_TAB: ToolbarTab = {
   id: "gaps",
-  ka: "გამოტოვება და ფორმატი",
-  en: "Gaps and formatting",
+  ka: "გამოტოვება და ნიშნები",
+  en: "Gaps and marks",
   buttons: [
-    fmt("bold", "B", "მუქი (⌘/Ctrl + B)", "Bold (⌘/Ctrl + B)"),
-    fmt("italic", "I", "დახრილი (⌘/Ctrl + I)", "Italic (⌘/Ctrl + I)"),
-    fmt("underline", "U", "ხაზგასმული (⌘/Ctrl + U)", "Underline (⌘/Ctrl + U)"),
-    fmt("box", "▭ box", "ჩარჩოში ჩასმა (სიტყვების ყუთი): მონიშნეთ სიტყვები და დააჭირეთ", "Word box: select the words, then click"),
-    txt("______", "ცარიელი ხაზი", "Blank line", { group: { ka: "ხაზები:", en: "Lines:" } }),
+    txt("______", "ცარიელი ხაზი", "Blank line"),
     txt("(1) ______", "დანომრილი გამოტოვება", "Numbered gap"),
     txt(" / ", "გამყოფი (სიტყვების ჩამონათვალში)", "Separator (in a list of words)"),
     txt("0 ", "მაგალითი (0)", "Example (0)"),
+    { ...txt("“”", "ინგლისური ბრჭყალები “…”", "English quotation marks “…”", { group: { ka: "ნიშნები:", en: "Marks:" } }), caretBack: 1 },
+    txt("’", "აპოსტროფი (don’t)", "Apostrophe (don’t)"),
+    txt("–", "ტირე (შუალედი: 5–10)", "En dash (ranges: 5–10)"),
+    txt("—", "გრძელი ტირე", "Em dash"),
+    txt("…", "სამწერტილი", "Ellipsis"),
+    txt("→", "ისარი", "Arrow"),
+    txt("✓", "სწორია", "Correct (tick)"),
+    txt("✗", "არასწორია", "Wrong (cross)"),
+    txt("£", "ფუნტი სტერლინგი", "Pound sterling"),
+    txt("€", "ევრო", "Euro"),
   ],
 };
 

@@ -1,7 +1,7 @@
 import { Sigma } from "lucide-react";
 import { QUESTION_TYPES } from "@/lib/questions";
 import type { SubjectToolkit } from "../types";
-import { MATH_TOOLBAR } from "./toolbar";
+import { MATH_SHORTCUTS, MATH_TOOLBAR } from "./toolbar";
 
 /** Mathematics: the full formula toolbar (7 tabs). */
 export const mathToolkit: SubjectToolkit = {
@@ -11,6 +11,7 @@ export const mathToolkit: SubjectToolkit = {
   status: "ready",
   formulas: true,
   toolbar: MATH_TOOLBAR,
+  typingShortcuts: MATH_SHORTCUTS,
   questionTypes: QUESTION_TYPES,
   diagrams: [],
   print: { className: "subject-math" },

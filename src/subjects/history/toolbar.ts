@@ -22,6 +22,8 @@ const MARKS: ToolbarButton[] = [
   { ...txt("„“", "ციტატის ბრჭყალები „…“", "Georgian quotation marks „…“"), caretBack: 1 },
   txt("…", "გამოტოვებული ტექსტი", "Text left out"),
   txt("[…]", "ციტატიდან გამოტოვებული ნაწილი", "Part left out of a quote"),
+  txt("→", "ისარი (მიზეზი → შედეგი)", "Arrow (cause → effect)"),
+  txt("(?)", "საეჭვო ან უცნობი თარიღი", "Uncertain or unknown date"),
 ];
 
 const GEORGIAN: ToolbarButton[] = [
@@ -36,6 +38,11 @@ const GEORGIAN: ToolbarButton[] = [
   txt("I ნახევარი", "საუკუნის პირველი ნახევარი", "First half of the century"),
   txt("II ნახევარი", "საუკუნის მეორე ნახევარი", "Second half of the century"),
   txt("დაახლ.", "დაახლოებით", "About (circa)"),
+  txt("დაიბ.", "დაიბადა", "Born", { group: { ka: "ცხოვრების წლები:", en: "Life dates:" } }),
+  txt("გარდ.", "გარდაიცვალა", "Died"),
+  txt("მეფ.", "მეფობდა: მეფ. 1089–1125", "Reigned: r. 1089–1125"),
+  txt("წწ.", "წლები: 1089–1125 წწ.", "Years: 1089–1125"),
+  txt("სს.", "საუკუნეები: XI–XII სს.", "Centuries: XI–XII"),
   ...MARKS,
 ];
 
@@ -49,6 +56,9 @@ const ENGLISH: ToolbarButton[] = [
   txt("millennium", "ათასწლეული", "Millennium"),
   txt("1st half", "პირველი ნახევარი", "First half"),
   txt("2nd half", "მეორე ნახევარი", "Second half"),
+  txt("b.", "დაიბადა (born)", "Born", { group: { ka: "ცხოვრების წლები:", en: "Life dates:" } }),
+  txt("d.", "გარდაიცვალა (died)", "Died"),
+  txt("r.", "მეფობდა (reigned): r. 1089–1125", "Reigned: r. 1089–1125"),
   ...MARKS,
 ];
 

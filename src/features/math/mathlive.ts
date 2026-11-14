@@ -26,6 +26,15 @@ export function loadMathLive(): Promise<void> {
 
 export type { MathfieldElement };
 
+/** Function names typed as plain letters inside a formula (upright, like sin and cos). */
+const GEORGIAN_SHORTCUTS = {
+  tg: "\\operatorname{tg}",
+  ctg: "\\operatorname{ctg}",
+  arctg: "\\operatorname{arctg}",
+  arcctg: "\\operatorname{arcctg}",
+  lg: "\\lg",
+};
+
 /** Settings applied to every formula box we create. */
 export function configureMathfield(mf: MathfieldElement) {
   // We show our own Georgian toolbar instead of MathLive's keyboard and menu.
@@ -36,6 +45,9 @@ export function configureMathfield(mf: MathfieldElement) {
   // "smart" behaviours that surprise people who don't know LaTeX:
   mf.smartMode = false; // don't switch to text mode on its own
   mf.smartFence = true; // typing "(" adds the matching ")"
+  // Typing shortcuts, like Word's: MathLive already turns "sqrt", "pi",
+  // "alpha", "<=", "/" … into symbols. Georgian schools write tg / ctg / lg.
+  mf.inlineShortcuts = { ...mf.inlineShortcuts, ...GEORGIAN_SHORTCUTS };
   // Screen readers announce this; <html lang> tells us the current language.
   const language: Language = document.documentElement.lang === "en" ? "en" : "ka";
   mf.setAttribute("aria-label", dictionaries[language]["math.formulaLabel"]);

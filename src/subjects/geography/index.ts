@@ -1,7 +1,8 @@
 import { Earth } from "lucide-react";
 import { QUESTION_TYPES } from "@/lib/questions";
 import type { SubjectToolkit } from "../types";
-import { GEOGRAPHY_TOOLBAR } from "./toolbar";
+import { MATH_SHORTCUTS } from "../math/toolbar";
+import { GEOGRAPHY_SEARCH_EXTRA, GEOGRAPHY_TOOLBAR } from "./toolbar";
 
 /** One-click instructions (the paper is Georgian; `en` for English-language tests). */
 export const GEOGRAPHY_INSTRUCTIONS = [
@@ -27,6 +28,8 @@ export const geographyToolkit: SubjectToolkit = {
   status: "ready",
   formulas: true,
   toolbar: GEOGRAPHY_TOOLBAR,
+  searchExtra: GEOGRAPHY_SEARCH_EXTRA,
+  typingShortcuts: MATH_SHORTCUTS,
   questionTypes: [...QUESTION_TYPES, "map", "scale-calc", "climate-chart"],
   diagrams: [],
   instructionTemplates: GEOGRAPHY_INSTRUCTIONS,

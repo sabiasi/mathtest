@@ -40,7 +40,28 @@ export type ToolbarButton = {
    * "(aq)", "^2+") instead of a math formula. `display` is LaTeX for the button.
    */
   chem?: string;
+  /**
+   * Run a MathLive command in the formula being edited instead of inserting
+   * something (matrices: "addRowAfter", "addColumnAfter", "removeRow"…).
+   * The button shows `label` (words) instead of a formula.
+   */
+  command?: string;
+  label?: { ka: string; en: string };
+  /** Extra words the symbol search should find it by (both languages, e.g. "sqrt root ფესვი"). */
+  keywords?: string;
 };
+
+/** A stable name for a button (recently-used list, search results, React keys). */
+export function buttonKey(button: ToolbarButton): string {
+  if (button.format) return `f:${button.format}`;
+  if (button.command) return `c:${button.command}`;
+  if (button.chem !== undefined) return `h:${button.chem}`;
+  if (button.text !== undefined) return `t:${button.text}`;
+  return `m:${button.latex}`;
+}
+
+/** One line of the "typing shortcuts" help: what to type → what appears. */
+export type TypingShortcut = { keys: string; display: string; ka: string; en: string };
 
 /** A small tool shown at the start of a tab (e.g. century → Roman numeral). */
 export type ToolbarWidgetProps = {
@@ -85,6 +106,10 @@ export interface SubjectToolkit {
   chemistry?: boolean;
   /** The toolbar's tabs while a question box is being edited ([] and no formulas = no toolbar). */
   toolbar: ToolbarTab[];
+  /** "You can simply type sqrt, pi, a/b…": shown by the toolbar's "typing shortcuts" button (subjects with formulas). */
+  typingShortcuts?: TypingShortcut[];
+  /** Tabs that aren't shown but whose symbols the search still finds (e.g. the math tabs a subject left out). */
+  searchExtra?: ToolbarTab[];
   /** Question types offered in this subject: the common ones plus any special ones. */
   questionTypes: readonly QuestionType[];
   /** Diagrams teachers can draw in a question ("circuit", "forces"); [] = none. */

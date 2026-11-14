@@ -30,6 +30,8 @@ type MathEditing = {
   insertChem: (text: string, caretBack?: number) => void;
   /** Turns bold / italic / underline / word box on or off for the selected text. */
   toggleFormat: (mark: TextMark) => void;
+  /** Runs a MathLive command in the formula being edited (e.g. "addRowAfter" in a matrix); false if no formula is. */
+  runCommand: (command: string) => boolean;
   /** Inserts plain text at the cursor (e.g. "ძვ. წ." from the history toolbar). */
   /** `marks` (e.g. ["italic"]): the inserted text gets them; the cursor continues in plain text. */
   insertText: (text: string, caretBack?: number, marks?: TextMark[]) => void;
@@ -136,6 +138,19 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
     [activeEditor],
   );
 
+  /** Runs a MathLive command in the formula that was being edited (matrix: add a row…). False if there is none. */
+  const runCommand = useCallback(
+    (command: string): boolean => {
+      const editor = activeEditor;
+      const mf = lastMathfield.current;
+      if (!editor || editor.isDestroyed || !mf?.isConnected || !editor.view.dom.contains(mf)) return false;
+      mf.focus();
+      // MathLive lists its commands as a fixed set of names; ours come from the toolbar data.
+      return mf.executeCommand(command as unknown as "addRowAfter");
+    },
+    [activeEditor],
+  );
+
   const toggleFormat = useCallback(
     (mark: TextMark) => {
       const editor = activeEditor;
@@ -146,8 +161,8 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ activeEditor, reportFocus, forget, insert, insertText, insertChem, toggleFormat }),
-    [activeEditor, reportFocus, forget, insert, insertText, insertChem, toggleFormat],
+    () => ({ activeEditor, reportFocus, forget, insert, insertText, insertChem, toggleFormat, runCommand }),
+    [activeEditor, reportFocus, forget, insert, insertText, insertChem, toggleFormat, runCommand],
   );
   return <MathEditingContext.Provider value={value}>{children}</MathEditingContext.Provider>;
 }

@@ -4,7 +4,7 @@
  * letters (the choice is remembered), plus the basic math tab for
  * calculations (scale, density, temperature change).
  */
-import { MATH_TOOLBAR } from "../math/toolbar";
+import { mathTab, mathTabsExcept } from "../math/toolbar";
 import type { ToolbarButton, ToolbarTab } from "../types";
 import { CoordinateTool } from "./CoordinateTool";
 
@@ -49,6 +49,13 @@ const UNITS_KA: ToolbarButton[] = [
   txt("მ ზ. დ.", "მეტრი ზღვის დონიდან", "Metres above sea level"),
   txt("მმ ვწყ. სვ.", "ვერცხლისწყლის სვეტის მილიმეტრი (წნევა)", "Millimetres of mercury (pressure)"),
   txt("კაცი/კმ²", "მოსახლეობის სიმჭიდროვე", "Population density"),
+  txt("ათ.", "ათასი", "thousand", { group: { ka: "რიცხვები:", en: "Numbers:" } }),
+  txt("მლნ", "მილიონი", "million"),
+  txt("მლრდ", "მილიარდი", "billion"),
+  txt("≈", "დაახლოებით", "approximately"),
+  txt("↑", "იზრდება", "increases"),
+  txt("↓", "კლებულობს", "decreases"),
+  txt("UTC+4", "სასაათო სარტყელი (საქართველო: UTC+4)", "time zone (Georgia: UTC+4)"),
   txt("1 : ", "რიცხვითი მასშტაბი: 1 : 50 000", "Numeric scale: 1 : 50 000", { group: { ka: "მასშტაბი:", en: "Scale:" } }),
   txt("1 სმ-ში  კმ", "სახელობითი მასშტაბი", "Scale in words", { caretBack: 3 }),
 ];
@@ -66,6 +73,13 @@ const UNITS_LATIN: ToolbarButton[] = [
   txt("m a.s.l.", "მეტრი ზღვის დონიდან", "Metres above sea level"),
   txt("hPa", "ჰექტოპასკალი (წნევა)", "Hectopascal (pressure)"),
   txt("people/km²", "მოსახლეობის სიმჭიდროვე", "Population density"),
+  txt("thsd", "ათასი", "thousand", { group: { ka: "რიცხვები:", en: "Numbers:" } }),
+  txt("mln", "მილიონი", "million"),
+  txt("bn", "მილიარდი", "billion"),
+  txt("≈", "დაახლოებით", "approximately"),
+  txt("↑", "იზრდება", "increases"),
+  txt("↓", "კლებულობს", "decreases"),
+  txt("UTC+4", "სასაათო სარტყელი (საქართველო: UTC+4)", "time zone (Georgia: UTC+4)"),
   txt("1 : ", "რიცხვითი მასშტაბი", "Numeric scale", { group: { ka: "მასშტაბი:", en: "Scale:" } }),
   txt("1 cm =  km", "სახელობითი მასშტაბი", "Scale in words", { caretBack: 3 }),
 ];
@@ -99,6 +113,6 @@ const UNITS_TAB: ToolbarTab = {
   },
 };
 
-const mathTab = (id: string) => MATH_TOOLBAR.find((tab) => tab.id === id)!;
-
 export const GEOGRAPHY_TOOLBAR: ToolbarTab[] = [COORDINATES_TAB, UNITS_TAB, mathTab("basic")];
+/** The other math symbols: not shown as tabs, but the search finds them. */
+export const GEOGRAPHY_SEARCH_EXTRA: ToolbarTab[] = mathTabsExcept("basic");

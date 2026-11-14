@@ -6,7 +6,7 @@
  * (m/s, N) or Georgian school letters (მ/წმ, ნ). Words inside formulas are
  * written with \text{…}; numbers use a comma for decimals, as in Georgia.
  */
-import { MATH_TOOLBAR } from "../math/toolbar";
+import { mathTab, mathTabsExcept } from "../math/toolbar";
 import type { ToolbarButton, ToolbarTab } from "../types";
 
 const b = (latex: string, display: string, ka: string, en: string): ToolbarButton => ({ latex, display, ka, en });
@@ -39,6 +39,16 @@ const LATIN_UNITS: ToolbarButton[] = [
   unit("{}^{\\circ}\\mathrm{C}", "გრადუსი ცელსიუსი", "degree Celsius"),
   unit("\\mathrm{K}", "კელვინი", "kelvin"),
   unit("\\mathrm{eV}", "ელექტრონვოლტი", "electronvolt"),
+  unit("\\mathrm{g}", "გრამი", "gram"),
+  unit("\\mathrm{cm}", "სანტიმეტრი", "centimetre"),
+  unit("\\mathrm{km}", "კილომეტრი", "kilometre"),
+  unit("\\mathrm{min}", "წუთი", "minute"),
+  unit("\\mathrm{h}", "საათი", "hour"),
+  unit("\\mathrm{L}", "ლიტრი", "litre"),
+  unit("\\mathrm{mol}", "მოლი (ნივთიერების რაოდენობა)", "mole (amount of substance)"),
+  unit("\\mathrm{T}", "ტესლა (მაგნიტური ინდუქცია)", "tesla (magnetic field)"),
+  unit("\\mathrm{F}", "ფარადი (ტევადობა)", "farad (capacitance)"),
+  unit("\\mathrm{kW{\\cdot}h}", "კილოვატსაათი", "kilowatt-hour"),
 ];
 
 const PREFIXES_GROUP = { ka: "თავსართები:", en: "Prefixes:" };
@@ -71,6 +81,16 @@ const GEORGIAN_UNITS: ToolbarButton[] = [
   unit("{}^{\\circ}\\mathrm{C}", "გრადუსი ცელსიუსი", "degree Celsius"),
   unit("\\mathrm{K}", "კელვინი", "kelvin"),
   geo("ევ", "ელექტრონვოლტი", "electronvolt"),
+  geo("გ", "გრამი", "gram"),
+  geo("სმ", "სანტიმეტრი", "centimetre"),
+  geo("კმ", "კილომეტრი", "kilometre"),
+  geo("წთ", "წუთი", "minute"),
+  geo("სთ", "საათი", "hour"),
+  geo("ლ", "ლიტრი", "litre"),
+  geo("მოლი", "მოლი (ნივთიერების რაოდენობა)", "mole (amount of substance)"),
+  geo("ტლ", "ტესლა (მაგნიტური ინდუქცია)", "tesla (magnetic field)"),
+  geo("ფ", "ფარადი (ტევადობა)", "farad (capacitance)"),
+  geo("კვტ·სთ", "კილოვატსაათი", "kilowatt-hour"),
 ];
 
 const GEORGIAN_PREFIXES: ToolbarButton[] = [
@@ -108,15 +128,10 @@ const VECTORS_TAB: ToolbarTab = {
     sym("\\Delta t", "დროის ცვლილება", "Change in time"),
     sym("\\Delta x", "კოორდინატის ცვლილება", "Change in position"),
     sym("\\Delta v", "სიჩქარის ცვლილება", "Change in speed"),
-    b("#?\\cdot10^{#?}", `a\\cdot10^{n}`, "რიცხვის სტანდარტული ჩანაწერი: a · 10ⁿ", "Scientific notation: a · 10ⁿ"),
     b("#?\\times10^{#?}", `a\\times10^{n}`, "რიცხვის სტანდარტული ჩანაწერი: a × 10ⁿ", "Scientific notation: a × 10ⁿ"),
     b("10^{#?}", `10^{n}`, "ათის ხარისხი", "Power of ten"),
-    sym("\\approx", "დაახლოებით ტოლია", "Approximately equal"),
-    sym("\\sim", "რიგის სიდიდე", "Of the order of"),
     sym("\\propto", "პროპორციულია", "Proportional to"),
     sym("\\Rightarrow", "გამომდინარეობს", "Therefore / implies"),
-    sym("\\perp", "მართობულია", "Perpendicular"),
-    sym("\\parallel", "პარალელურია", "Parallel"),
     sym("\\uparrow\\downarrow", "საპირისპიროდ მიმართული", "Opposite directions"),
   ],
 };
@@ -138,6 +153,9 @@ const CONSTANTS_TAB: ToolbarTab = {
     sym("N_{A}", "ავოგადროს რიცხვი: N_A ≈ 6,02 · 10²³ მოლ⁻¹", "Avogadro constant: N_A ≈ 6.02 · 10²³ mol⁻¹"),
     sym("R", "აირის უნივერსალური მუდმივა: R ≈ 8,31 ჯ/(მოლ·K)", "Gas constant: R ≈ 8.31 J/(mol·K)"),
     sym("\\varepsilon_{0}", "ელექტრული მუდმივა: ε₀ ≈ 8,85 · 10⁻¹² კ²/(ნ·მ²)", "Electric constant: ε₀ ≈ 8.85 · 10⁻¹² C²/(N·m²)"),
+    sym("\\mu_{0}", "მაგნიტური მუდმივა: μ₀ = 4π · 10⁻⁷ ნ/ა²", "Magnetic constant: μ₀ = 4π · 10⁻⁷ N/A²"),
+    sym("m_{p}", "პროტონის მასა: mₚ ≈ 1,67 · 10⁻²⁷ კგ", "Proton mass: mₚ ≈ 1.67 · 10⁻²⁷ kg"),
+    sym("p_{0}", "ნორმალური ატმოსფერული წნევა: p₀ ≈ 101 325 პა (760 მმ ვწყ. სვ.)", "Standard atmospheric pressure: p₀ ≈ 101 325 Pa (760 mmHg)"),
   ],
 };
 
@@ -173,20 +191,27 @@ const FORMULAS_TAB: ToolbarTab = {
     formula("P=UI", "დენის სიმძლავრე", "Electric power"),
     formula("Q=I^2Rt", "ჯოულ-ლენცის კანონი", "Joule's law of heating"),
     formula("T=2\\pi\\sqrt{\\frac{l}{g}}", "მათემატიკური ქანქარის რხევის პერიოდი", "Period of a pendulum"),
+    formula("a=\\frac{v^2}{R}", "ცენტრისკენული აჩქარება", "Centripetal acceleration"),
+    formula("F=\\mu N", "ხახუნის ძალა", "Friction force"),
+    formula("M=Fl", "ძალის მომენტი", "Moment of a force"),
+    formula("\\eta=\\frac{A_1}{A_2}\\cdot100\\%", "მარგი ქმედების კოეფიციენტი (მქკ)", "Efficiency"),
+    formula("I=\\frac{q}{t}", "დენის ძალა", "Electric current"),
+    formula("U=\\frac{A}{q}", "ძაბვა", "Voltage"),
+    formula("R=\\rho\\frac{l}{S}", "გამტარის წინაღობა", "Resistance of a wire"),
+    formula("F=BIl\\sin\\alpha", "ამპერის ძალა", "Force on a current (Ampère)"),
+    formula("\\nu=\\frac{1}{T}", "სიხშირე და პერიოდი", "Frequency and period"),
     formula("\\lambda=vT", "ტალღის სიგრძე", "Wavelength"),
+    formula("n=\\frac{c}{v}", "გარდატეხის მაჩვენებელი", "Refractive index"),
+    formula("\\frac{\\sin\\alpha}{\\sin\\beta}=n", "სინათლის გარდატეხის კანონი", "Law of refraction"),
+    formula("\\frac{1}{F}=\\frac{1}{d}+\\frac{1}{f}", "თხელი ლინზის ფორმულა", "Thin lens formula"),
     formula("E=h\\nu", "ფოტონის ენერგია", "Photon energy"),
     formula("E=mc^2", "მასისა და ენერგიის კავშირი", "Mass–energy equivalence"),
   ],
 };
 
-const mathTab = (id: string) => MATH_TOOLBAR.find((tab) => tab.id === id)!;
+/** The math tabs a physics teacher uses most; the rest (brackets, matrices, sets, arrows) are found by the search. */
+const SHOWN_MATH = ["algebra", "trig", "calculus", "geometry", "greek"];
 
 /** Basic first (as in math), then the physics tabs, then the rest of math. */
-export const PHYSICS_TOOLBAR: ToolbarTab[] = [
-  mathTab("basic"),
-  UNITS_TAB,
-  VECTORS_TAB,
-  CONSTANTS_TAB,
-  FORMULAS_TAB,
-  ...MATH_TOOLBAR.filter((tab) => tab.id !== "basic"),
-];
+export const PHYSICS_TOOLBAR: ToolbarTab[] = [mathTab("basic"), UNITS_TAB, VECTORS_TAB, CONSTANTS_TAB, FORMULAS_TAB, ...SHOWN_MATH.map(mathTab)];
+export const PHYSICS_SEARCH_EXTRA: ToolbarTab[] = mathTabsExcept("basic", ...SHOWN_MATH);

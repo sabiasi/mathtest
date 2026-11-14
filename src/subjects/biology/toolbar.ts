@@ -5,7 +5,7 @@
  * into chemistry formulas like in the chemistry toolkit. Plus the basic
  * math tab for calculations.
  */
-import { MATH_TOOLBAR } from "../math/toolbar";
+import { mathTab, mathTabsExcept } from "../math/toolbar";
 import type { ToolbarButton, ToolbarTab } from "../types";
 import { GenotypeTool, LatinNameTool } from "./BioTools";
 
@@ -33,6 +33,10 @@ function biologyButtons(units: [string, string, string][]): ToolbarButton[] {
     math("\\rightleftharpoons", "\\rightleftharpoons", "შექცევადი პროცესი", "reversible process"),
     text("×", "გამრავლება / შეჯვარება (Aa × Aa)", "times / cross (Aa × Aa)"),
     text("%", "პროცენტი", "percent"),
+    text("↑", "იზრდება / მატულობს", "increases"),
+    text("↓", "კლებულობს", "decreases"),
+    text("°C", "გრადუსი ცელსიუსი", "degree Celsius"),
+    text("≈", "დაახლოებით", "approximately"),
     ...units.map(([value, ka, en], i) => text(value, ka, en, i === 0 ? { group: UNITS } : {})),
     math(
       "\\text{გადიდება}=\\frac{\\text{გამოსახულების ზომა}}{\\text{რეალური ზომა}}",
@@ -51,6 +55,10 @@ const LATIN_BUTTONS = biologyButtons([
   ["nm", "ნანომეტრი", "nanometre"],
   ["mm", "მილიმეტრი", "millimetre"],
   ["cm", "სანტიმეტრი", "centimetre"],
+  ["ml", "მილილიტრი", "millilitre"],
+  ["g", "გრამი", "gram"],
+  ["kJ", "კილოჯოული (ენერგია)", "kilojoule (energy)"],
+  ["kcal", "კილოკალორია", "kilocalorie"],
 ]);
 
 const BIOLOGY_TAB: ToolbarTab = {
@@ -72,6 +80,10 @@ const BIOLOGY_TAB: ToolbarTab = {
           ["ნმ", "ნანომეტრი", "nanometre"],
           ["მმ", "მილიმეტრი", "millimetre"],
           ["სმ", "სანტიმეტრი", "centimetre"],
+          ["მლ", "მილილიტრი", "millilitre"],
+          ["გ", "გრამი", "gram"],
+          ["კჯ", "კილოჯოული (ენერგია)", "kilojoule (energy)"],
+          ["კკალ", "კილოკალორია", "kilocalorie"],
         ]),
       },
     ],
@@ -127,7 +139,6 @@ const GENETICS_TAB: ToolbarTab = {
     math("\\mathrm{F}_1", "\\mathrm{F}_1", "პირველი თაობა (F₁)", "first generation (F₁)"),
     math("\\mathrm{F}_2", "\\mathrm{F}_2", "მეორე თაობა (F₂)", "second generation (F₂)"),
     math("\\mathrm{G}", "\\mathrm{G}", "გამეტები (G)", "gametes (G)"),
-    math("\\times", "\\times", "შეჯვარება (×)", "cross (×)"),
     math("#?:#?", "a:b", "თანაფარდობა (3:1)", "ratio (3:1)", { group: RATIOS }),
     math("#?:#?:#?", "a:b:c", "თანაფარდობა (1:2:1)", "ratio (1:2:1)"),
     math("9:3:3:1", "9:3:3:1", "დიჰიბრიდული შეჯვარება: 9:3:3:1", "dihybrid cross: 9:3:3:1"),
@@ -140,6 +151,6 @@ const GENETICS_TAB: ToolbarTab = {
   ],
 };
 
-const mathTab = (id: string) => MATH_TOOLBAR.find((tab) => tab.id === id)!;
-
 export const BIOLOGY_TOOLBAR: ToolbarTab[] = [BIOLOGY_TAB, GENETICS_TAB, CHEMISTRY_TAB, mathTab("basic")];
+/** The other math symbols: not shown as tabs, but the search finds them. */
+export const BIOLOGY_SEARCH_EXTRA: ToolbarTab[] = mathTabsExcept("basic");

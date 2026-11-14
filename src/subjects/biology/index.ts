@@ -1,7 +1,8 @@
 import { Dna } from "lucide-react";
 import { QUESTION_TYPES } from "@/lib/questions";
 import type { SubjectToolkit } from "../types";
-import { BIOLOGY_TOOLBAR } from "./toolbar";
+import { MATH_SHORTCUTS } from "../math/toolbar";
+import { BIOLOGY_SEARCH_EXTRA, BIOLOGY_TOOLBAR } from "./toolbar";
 
 /** One-click instructions. The paper is Georgian, so `ka` goes into the question (`en` for English-language tests). */
 export const BIOLOGY_INSTRUCTIONS = [
@@ -65,6 +66,8 @@ export const biologyToolkit: SubjectToolkit = {
   formulas: true,
   chemistry: true,
   toolbar: BIOLOGY_TOOLBAR,
+  searchExtra: BIOLOGY_SEARCH_EXTRA,
+  typingShortcuts: MATH_SHORTCUTS,
   questionTypes: [
     ...QUESTION_TYPES,
     "label-diagram",
