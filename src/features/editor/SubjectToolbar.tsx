@@ -148,7 +148,7 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
     </Tooltip>
   );
 
-  const rowLabel = (text: string) => <span className="flex h-10 items-center text-sm font-medium text-muted-foreground pointer-coarse:h-11">{text}</span>;
+  const rowLabel = (text: string) => <span className="flex h-10 shrink-0 items-center text-sm font-medium whitespace-nowrap text-muted-foreground pointer-coarse:h-11">{text}</span>;
 
   let panel: ReactNode;
   if (searching) {
@@ -366,16 +366,42 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
           </TabsList>
         )}
 
-        {/* Recently used: one click for the symbols this teacher needs most */}
-        {recentButtons.length > 0 && !searching && !showShortcuts && (
-          <div className="flex flex-wrap gap-1 pt-2" data-recent="">
+        {/*
+          Recently used: one click for the symbols this teacher needs most.
+          The row is always there (with a hint while empty) and never wraps,
+          so the toolbar keeps its height — the first click can't push it
+          over the box being edited.
+        */}
+        {!searching && !showShortcuts && (
+          <div className="flex h-12 items-end gap-1 overflow-x-auto overflow-y-hidden pointer-coarse:h-13 max-sm:hidden" data-recent="">
             {rowLabel(t("toolbar.recent"))}
-            {recentButtons.map((button) => renderButton(button, "recent"))}
+            {recentButtons.length === 0 ? (
+              <span className="flex h-10 items-center text-sm whitespace-nowrap text-muted-foreground/80 pointer-coarse:h-11">{t("toolbar.recentEmpty")}</span>
+            ) : (
+              recentButtons.map((button) => renderButton(button, "recent"))
+            )}
           </div>
         )}
 
-        {/* The chosen tab, the search results or the shortcuts list */}
-        <div role="tabpanel" aria-label={searching ? t("toolbar.results") : tab?.[language]} className="flex flex-wrap gap-1 pt-2 pb-2.5">
+        {/*
+          The chosen tab, the search results or the shortcuts list. With
+          several tabs the height is FIXED (two rows, the rest scrolls
+          inside): switching tabs never changes how much of the page is covered.
+        */}
+        <div
+          role="tabpanel"
+          aria-label={searching ? t("toolbar.results") : tab?.[language]}
+          className={cn(
+            "mt-2 mb-2.5 flex flex-wrap content-start gap-1 overflow-y-auto overscroll-contain",
+            // Search results and the shortcuts list also take the place of the "recently used" row (3rem; hidden on phones to save room).
+            tabs.length <= 1
+              ? "max-h-[6.5rem] pointer-coarse:max-h-[7rem]"
+              : searching || showShortcuts
+                ? "h-[9.5rem] pointer-coarse:h-[10.25rem] max-sm:h-[7rem]"
+                : "h-[6.5rem] pointer-coarse:h-[7rem]",
+          )}
+          data-toolbar-panel=""
+        >
           {panel}
         </div>
       </Tabs>

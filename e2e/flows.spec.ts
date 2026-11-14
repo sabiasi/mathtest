@@ -8,6 +8,7 @@ test("typing and leaving at once loses nothing (autosave on leave)", async ({ pa
   await openSampleCopy(page, "history");
   const url = page.url();
   await editor(page).locator('[data-add-type="short-answer"]').click();
+  await expect(typingArea(questionBox(page, (await cards(page).count()) - 1))).toBeFocused();
   await page.keyboard.type("ბოლო წამის ცვლილება");
   // No waiting for the autosave delay: go back straight away.
   await editor(page).getByRole("link", { name: "ჩემი ტესტები" }).first().click();

@@ -10,6 +10,7 @@
  */
 
 const GAP = 12; // px of air between the bar and the thing we reveal
+const SLACK = 12; // extra px when a box is moved out from under the toolbar
 
 /** The height (px) covered at the top of the window by the editor's bar + toolbar. */
 export function coveredTop(): number {
@@ -42,5 +43,8 @@ export function revealFocused() {
   if (!active || active === document.body || active.closest("[data-editor-bar]")) return;
   const rect = active.getBoundingClientRect();
   // Only the top matters here: a tall box may reach below the window, that's fine.
-  if (rect.top < coveredTop() + GAP) reveal(rect.top, rect.top);
+  // A little extra air (SLACK): a formula typed into the box later is a few
+  // pixels taller than a line of text, and must not start a second tiny scroll.
+  const limit = coveredTop() + GAP;
+  if (rect.top < limit) window.scrollBy({ top: Math.round(rect.top - limit - SLACK), behavior: "instant" });
 }

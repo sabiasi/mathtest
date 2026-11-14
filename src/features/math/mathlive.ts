@@ -41,13 +41,20 @@ export function configureMathfield(mf: MathfieldElement) {
   mf.mathVirtualKeyboardPolicy = "manual";
   // menuItems can only be set once the box is on the page ("mounted"),
   // otherwise MathLive throws "Mathfield not mounted".
-  mf.addEventListener("mount", () => (mf.menuItems = []), { once: true });
+  // The same goes for READING inlineShortcuts (the typing shortcuts, like
+  // Word's: MathLive already turns "sqrt", "pi", "alpha", "<=", "/" … into
+  // symbols; Georgian schools also write tg / ctg / lg).
+  mf.addEventListener(
+    "mount",
+    () => {
+      mf.menuItems = [];
+      mf.inlineShortcuts = { ...mf.inlineShortcuts, ...GEORGIAN_SHORTCUTS };
+    },
+    { once: true },
+  );
   // "smart" behaviours that surprise people who don't know LaTeX:
   mf.smartMode = false; // don't switch to text mode on its own
   mf.smartFence = true; // typing "(" adds the matching ")"
-  // Typing shortcuts, like Word's: MathLive already turns "sqrt", "pi",
-  // "alpha", "<=", "/" … into symbols. Georgian schools write tg / ctg / lg.
-  mf.inlineShortcuts = { ...mf.inlineShortcuts, ...GEORGIAN_SHORTCUTS };
   // Screen readers announce this; <html lang> tells us the current language.
   const language: Language = document.documentElement.lang === "en" ? "en" : "ka";
   mf.setAttribute("aria-label", dictionaries[language]["math.formulaLabel"]);

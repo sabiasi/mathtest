@@ -3,6 +3,7 @@ import { dictionaries } from "@/i18n/dictionaries";
 import { QUESTION_TYPES } from "@/lib/questions";
 import { SUBJECT_IDS, subjectFromText } from "./ids";
 import { SUBJECTS, getToolkit } from "./registry";
+import { buttonKey } from "./types";
 
 describe("subject toolkits", () => {
   it("has one toolkit per subject id, in picker order", () => {
@@ -25,13 +26,15 @@ describe("subject toolkits", () => {
   });
 
   it("math keeps the full formula toolbar", () => {
-    expect(getToolkit("math").toolbar.map((tab) => tab.id)).toEqual(["basic", "algebra", "trig", "calculus", "geometry", "sets", "greek"]);
+    expect(getToolkit("math").toolbar.map((tab) => tab.id)).toEqual(["basic", "algebra", "brackets", "trig", "calculus", "matrices", "geometry", "sets", "greek", "arrows"]);
   });
 
-  it("physics has every math tab plus its own, and its special tools", () => {
+  it("physics shows its own tabs and the math it uses most; the search reaches the other math tabs", () => {
     const physics = getToolkit("physics");
     const ids = physics.toolbar.map((tab) => tab.id);
-    for (const tab of getToolkit("math").toolbar) expect(ids).toContain(tab.id);
+    for (const id of ["basic", "algebra", "trig", "calculus", "geometry", "greek"]) expect(ids).toContain(id);
+    const reachable = [...ids, ...(physics.searchExtra ?? []).map((tab) => tab.id)];
+    for (const tab of getToolkit("math").toolbar) expect(reachable).toContain(tab.id);
     for (const id of ["units", "vectors", "constants", "formulas"]) expect(ids).toContain(id);
     expect(physics.questionTypes).toContain("given-find");
     expect(physics.diagrams).toEqual(["circuit", "forces"]);
@@ -50,7 +53,7 @@ describe("subject toolkits", () => {
     for (const toolkit of SUBJECTS) {
       for (const tab of toolkit.toolbar) {
         for (const buttons of [tab.buttons, ...(tab.styles?.options.map((o) => o.buttons) ?? [])]) {
-          const keys = buttons.map((b) => b.latex + b.display);
+          const keys = buttons.map((b) => buttonKey(b) + b.display);
           expect(new Set(keys).size).toBe(keys.length);
         }
       }

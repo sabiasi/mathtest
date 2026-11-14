@@ -306,6 +306,7 @@ Visitors can try everything without an account (guest mode).
 | My tests | `lib/myTests.ts` (pure: counts, filter, sort, grades, folders, groups), `features/home/` HomeView, SubjectNav, SubjectSection (FolderBar), FilterBar, CardGrid, SampleCard, TestCard (`TEST_DRAG_TYPE`), `folders.ts` (empty-folder store) |
 | Editor scrolling | The page moves only when the cursor is really hidden, by the minimum (`features/editor/keepVisible.ts`: `scrollNeeded`, `reveal`, `revealFocused`). The subject toolbar is an OVERLAY hanging under the sticky bar (`absolute top-full`, solid background, `max-h-[55vh]`): opening / closing it or switching tabs never shifts the content. `--editor-top` (bar + toolbar height, set by TestEditor) feeds `scroll-margin-top` on focusable things in the editor — never a page-wide `scroll-padding` (things inside the sticky bar can't move, so focusing them made the page jump up). RichTextInput replaces ProseMirror's scrolling via `handleScrollToSelection`. Toolbar inserts start a new undo step (`closeHistory`) |
 | Browser tests | Playwright (`npm run test:e2e`, config `playwright.config.ts`, tests in `e2e/`): builds, serves on :3210, uses the installed Chrome (`channel: "chrome"`), runs as a guest. `e2e/helpers.ts`: `openSampleCopy(page, subject)` (a long editable test), `editor(page)` = the VISIBLE editor (hidden Activity pages stay in the DOM), `boxContent` (text + formula LaTeX + chemistry). Toolbar buttons carry `data-kind` (format / chem / text / math). vitest excludes `e2e/` |
+| Toolbar (Word-like) | `SubjectToolbar`: top row = Σ Formula / chemistry button, B I U ▭ (`FORMAT_BUTTONS`, every subject — toolkits no longer list them), symbol search, "typing shortcuts" help; then tabs, a "recently used" row (`mathtest:recent:<subject>`, 12 buttons, this browser only) and the panel (tab / search results / shortcuts). `features/editor/toolbarSearch.ts` (pure): `allButtons(toolkit)` = shown tabs + `toolkit.searchExtra` (math tabs a subject doesn't show are still FOUND), `searchButtons` (Georgian + English names, `keywords`, LaTeX; Enter inserts the best match), `pushRecent`. `buttonKey(button)` (`subjects/types.ts`) names a button (`m:` formula, `t:` text, `h:` chemistry, `f:` format, `c:` command) — also `data-key` in the DOM. A button may run a MathLive `command` on the formula being edited (matrix: add / remove row or column; shows `label`, toast when no formula is open). Typing shortcuts are MathLive's inline shortcuts + ours (tg, ctg, arctg, arcctg, lg in `mathlive.ts`); the list teachers see is `MATH_SHORTCUTS` (`toolkit.typingShortcuts`), and `e2e/shortcuts.spec.ts` types each one. `toolbars.test.ts`: every button has ka + en names, draws, inserts drawable LaTeX, and sits in ONE tab per subject (`ALLOWED_TWICE` for deliberate repeats) |
 | Tests | Vitest + jsdom (`npm test`) |
 
 Next.js 16 notes (see AGENTS.md: read `node_modules/next/dist/docs/` before
@@ -577,6 +578,22 @@ src/
   "nothing scrolled" check also catches scroll-padding mistakes.
 - The key's answer (`.print-key-answer`) is in the flow and the line grows
   with it; one long formula can't wrap, so write several short ones.
+- Math tabs: `mathTab(id)` / `mathTabsExcept(...ids)` (math/toolbar.ts) — a
+  subject shows a few math tabs and puts the rest in `searchExtra`; a test
+  checks every subject with formulas can still reach every math symbol.
+- MathLive: READING `mf.inlineShortcuts` before the field is mounted throws
+  "Mathfield not mounted" too (it crashed every test with a formula): set
+  shortcuts in the `mount` event, next to `menuItems`.
+- The toolbar keeps ONE height per subject: the "recently used" row is always
+  there (a hint while empty; hidden on phones) and the panel has a fixed
+  height with its own scrolling (two rows). A toolbar that grows covers the
+  box being edited and makes the page move. `revealFocused` leaves 12 px of
+  extra room so a formula (taller than a text line) doesn't cause a 3 px scroll.
+- Browser tests: after a click that focuses a box, wait for `toBeFocused()`
+  before typing, or the first letter is lost. If many fail with timeouts, the
+  computer is overloaded: `npx playwright test --workers=3`.
+- Toolbar command buttons have no LaTeX: compare buttons with `buttonKey`,
+  never `latex + display`.
 - SQL in schema.sql can be tried locally in Docker (postgres image) with
   small stand-ins for `auth.users`, `auth.uid()` and `storage.objects`.
 

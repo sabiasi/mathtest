@@ -37,7 +37,7 @@ test("a formula is inserted at the cursor and typing continues inside it", async
   const order = await box.evaluate((el) => [...el.querySelector(".ProseMirror p")!.childNodes].map((n) => (n.nodeType === 3 ? n.textContent : (n as HTMLElement).className)).filter((x) => x && !String(x).includes("separator")));
   expect(order).toEqual(["A", "math-node", "B"]);
   // A second symbol goes into the SAME formula, at its cursor.
-  await toolbar(page).locator('[role="tab"]').nth(6).click(); // Greek letters
+  await toolbar(page).getByRole("tab", { name: "ბერძნული ასოები" }).click();
   await toolbar(page).locator('[role="tabpanel"] button[data-kind="math"]').first().click(); // α
   expect(JSON.parse(await boxContent(box)).math).toHaveLength(1);
   expect(JSON.parse(await boxContent(box)).math[0]).toContain("\\alpha");
