@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { Check, Clock, Copy, Folder, FolderInput, ListOrdered, MoreHorizontal, Pencil, Printer, Star, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -74,7 +75,10 @@ export function TestCard({ test, folders }: { test: Test; folders?: string[] }) 
         e.dataTransfer.effectAllowed = "move";
       }}
       data-test-card={test.id}
-      className="group relative flex h-full flex-col rounded-2xl border bg-card shadow-sm transition-[border-color,box-shadow,translate] duration-200 ease-out-soft hover:border-primary-soft-border hover:shadow-md motion-safe:hover:-translate-y-0.5">
+      // The card lights up in its subject's colour on hover (.accent-card in globals.css).
+      style={{ "--accent-color": `var(--subject-${test.subjectId})` } as CSSProperties}
+      className="accent-card group flex h-full flex-col rounded-2xl border bg-card shadow-sm"
+    >
       <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start gap-3">
           {/* The subject's icon; its name is read out for screen readers. */}

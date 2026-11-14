@@ -8,7 +8,7 @@ import { HeaderAccount } from "./UserMenu";
 
 export function AppHeader() {
   return (
-    <header className="border-b bg-card/80 backdrop-blur-md print:hidden">
+    <header className="glass relative z-30 border-b print:hidden">
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-2 px-4 sm:gap-4 sm:px-6">
         <Link
           href="/about"

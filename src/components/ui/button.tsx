@@ -22,7 +22,8 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover",
+        // A thin highlight along the top edge and a soft glow on hover.
+        default: "bg-primary text-primary-foreground shadow-[inset_0_1px_0_rgb(255_255_255/0.2),var(--elevation-sm)] hover:bg-primary-hover hover:shadow-[inset_0_1px_0_rgb(255_255_255/0.2),0_8px_22px_-8px_var(--glow)]",
         destructive: "bg-destructive text-white shadow-sm hover:bg-destructive/90",
         outline: "border border-input bg-card text-foreground shadow-xs hover:bg-accent",
         secondary: "bg-secondary text-foreground hover:bg-accent",

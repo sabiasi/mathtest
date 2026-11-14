@@ -307,6 +307,8 @@ Visitors can try everything without an account (guest mode).
 | Editor scrolling | The page moves only when the cursor is really hidden, by the minimum (`features/editor/keepVisible.ts`: `scrollNeeded`, `reveal`, `revealFocused`). The subject toolbar is an OVERLAY hanging under the sticky bar (`absolute top-full`, solid background, `max-h-[55vh]`): opening / closing it or switching tabs never shifts the content. `--editor-top` (bar + toolbar height, set by TestEditor) feeds `scroll-margin-top` on focusable things in the editor — never a page-wide `scroll-padding` (things inside the sticky bar can't move, so focusing them made the page jump up). RichTextInput replaces ProseMirror's scrolling via `handleScrollToSelection`. Toolbar inserts start a new undo step (`closeHistory`) |
 | Browser tests | Playwright (`npm run test:e2e`, config `playwright.config.ts`, tests in `e2e/`): builds, serves on :3210, uses the installed Chrome (`channel: "chrome"`), runs as a guest. `e2e/helpers.ts`: `openSampleCopy(page, subject)` (a long editable test), `editor(page)` = the VISIBLE editor (hidden Activity pages stay in the DOM), `boxContent` (text + formula LaTeX + chemistry). Toolbar buttons carry `data-kind` (format / chem / text / math). vitest excludes `e2e/` |
 | Toolbar (Word-like) | `SubjectToolbar`: top row = Σ Formula / chemistry button, B I U ▭ (`FORMAT_BUTTONS`, every subject — toolkits no longer list them), symbol search, "typing shortcuts" help; then tabs, a "recently used" row (`mathtest:recent:<subject>`, 12 buttons, this browser only) and the panel (tab / search results / shortcuts). `features/editor/toolbarSearch.ts` (pure): `allButtons(toolkit)` = shown tabs + `toolkit.searchExtra` (math tabs a subject doesn't show are still FOUND), `searchButtons` (Georgian + English names, `keywords`, LaTeX; Enter inserts the best match), `pushRecent`. `buttonKey(button)` (`subjects/types.ts`) names a button (`m:` formula, `t:` text, `h:` chemistry, `f:` format, `c:` command) — also `data-key` in the DOM. A button may run a MathLive `command` on the formula being edited (matrix: add / remove row or column; shows `label`, toast when no formula is open). Typing shortcuts are MathLive's inline shortcuts + ours (tg, ctg, arctg, arcctg, lg in `mathlive.ts`); the list teachers see is `MATH_SHORTCUTS` (`toolkit.typingShortcuts`), and `e2e/shortcuts.spec.ts` types each one. `toolbars.test.ts`: every button has ka + en names, draws, inserts drawable LaTeX, and sits in ONE tab per subject (`ALLOWED_TWICE` for deliberate repeats) |
+| Visual design ("calm light", Linear-style) | White / soft grey, ONE indigo accent + the subject colours, thin borders, soft glow. Screen-only helpers in globals.css: tokens `--glow`, `--glass`; classes `.bg-grid` (faded grid), `.glass` (frosted: header, hero demo), `.text-gradient` (headline words), `.accent-card` (set `--accent-color`, e.g. `var(--subject-<id>)`: border, top line and glow take that colour on hover — test cards, subject and feature cards), `.hero-in`, `.demo-caret`. The primary button has a top highlight and a glow on hover. Font stays Noto Sans Georgian everywhere (the paper needs it; one family keeps the site fast). Animations 150–320 ms; none are needed to read the page |
+| Landing page | `features/landing/LandingView.tsx`: hero (CSS fade `.hero-in`, never JavaScript — the headline is the first big thing a slow phone paints) → `HeroDemo` + tilted paper → subject cards (open the sample paper) → features → steps → pricing teaser (numbers from `lib/plans`) → testimonials → call to action. `HeroDemo.tsx`: a pretend editor driven by ONE counter (`tick`, 55 ms): text types, a toolbar button is pressed, the formula and answers appear; scenes math → physics → chemistry. `aria-hidden`; runs only while on screen and the tab is visible; "reduce motion" shows a finished question; the server renders a finished question too. TESTIMONIALS ARE PLACEHOLDERS (`data-landing-testimonials="placeholder"`, texts `landing.testimonial*`): replace them with real reviews, never invent any. Lighthouse (`/about`, production build): desktop 96 / 100 / 100 / 100; simulated slow phone 80 (it was 76 before the redesign) |
 | Tests | Vitest + jsdom (`npm test`) |
 
 Next.js 16 notes (see AGENTS.md: read `node_modules/next/dist/docs/` before
@@ -344,7 +346,8 @@ src/
   components/           Shared UI: AppHeader/HeaderNav/AppFooter, Providers (theme, motion,
                         tooltips, confirm, toaster), ThemeSwitcher, PageTransition,
                         EmptyState, ConfirmDialog, DateField, GuestBanner, ui/ (shadcn)
-  features/landing/     LandingView (hero, try button, subjects, paper preview, features)
+  features/landing/     LandingView (hero, subjects, features, steps, pricing teaser, testimonial
+                        placeholders), HeroDemo (the animated "test being built")
   lib/onboarding.ts     guestTestCount, moveGuestTestsIntoAccount (guest → account)
   i18n/                 dictionaries.ts (ka + en text), language.ts (useT, useLanguage)
   features/editor/      EditorView → TestEditor (state + autosave), TestHeaderForm,
@@ -581,6 +584,13 @@ src/
 - Math tabs: `mathTab(id)` / `mathTabsExcept(...ids)` (math/toolbar.ts) — a
   subject shows a few math tabs and puts the rest in `searchExtra`; a test
   checks every subject with formulas can still reach every math symbol.
+- Content above the fold must not start at `opacity: 0` waiting for Motion
+  (`whileInView` / `initial`): it stays invisible until all scripts load
+  (7 s on a slow phone). Use a CSS animation there; `Reveal` is for sections
+  further down. Full-page screenshots must scroll first, or those sections
+  look empty.
+- `buttonVariants({ className })` doesn't merge conflicting classes: to
+  recolour a button, mark the overrides important (`bg-white! text-…!`).
 - MathLive: READING `mf.inlineShortcuts` before the field is mounted throws
   "Mathfield not mounted" too (it crashed every test with a formula): set
   shortcuts in the `mount` event, next to `menuItems`.
