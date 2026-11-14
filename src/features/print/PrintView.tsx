@@ -461,7 +461,7 @@ function PrintedVariant({
   const t = useT();
   const language = useLanguage();
   const test = variant.test;
-  const { measurer, pages, optionColumns, lineStarts, ready } = usePrintLayout(test, version, language, label);
+  const { measurer, pages, optionColumns, lineStarts, shrink, ready } = usePrintLayout(test, version, language, label);
 
   useEffect(() => {
     onReady(variant.label, ready);
@@ -480,7 +480,15 @@ function PrintedVariant({
   const blockFor = (key: string, indexInColumn: number) => {
     const block = blocks.get(key);
     if (!block) return null;
-    return renderBlock(block, { test, version, optionColumns: optionColumns ?? {}, lineStarts }, indexInColumn === 0);
+    const drawn = renderBlock(block, { test, version, optionColumns: optionColumns ?? {}, lineStarts }, indexInColumn === 0);
+    // Taller than a whole page: drawn smaller so it fits (see usePrintLayout).
+    return shrink[key] ? (
+      <div key={key} style={{ zoom: shrink[key] }} data-shrunk="">
+        {drawn}
+      </div>
+    ) : (
+      drawn
+    );
   };
 
   return (

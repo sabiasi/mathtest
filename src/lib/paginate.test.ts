@@ -21,6 +21,12 @@ describe("paginate", () => {
     expect(pages.map((p) => p.columns[0])).toEqual([["q1"], ["q2", "q3"]]);
   });
 
+  it("page 1, second column: a block that only fits a full-height column moves to page 2", () => {
+    // page 1 columns have 900 - 300 = 600; q2 (700) would run under the footer there
+    const pages = paginate({ blocks: blocks(500, 700, 100), columnHeight: 900, columns: 2, gap: 10, firstPageTop: 300 });
+    expect(pages).toEqual([{ columns: [["q1"], []] }, { columns: [["q2", "q3"], []] }]);
+  });
+
   it("fills the left column, then the right one, then a new page", () => {
     const pages = paginate({ blocks: blocks(400, 400, 400, 400, 400), columnHeight: 900, columns: 2, gap: 10, firstPageTop: 0 });
     expect(pages).toEqual([

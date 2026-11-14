@@ -21,7 +21,8 @@ export const TEXT_MARKS: readonly TextMark[] = ["bold", "italic", "underline", "
 
 export type RichTextSegment =
   | { type: "text"; text: string; marks?: TextMark[] }
-  | { type: "math"; latex: string };
+  // A formula can sit inside a word box (or an underlined phrase) too: it then carries the same marks.
+  | { type: "math"; latex: string; marks?: TextMark[] };
 
 const sameMarks = (a: TextMark[] | undefined, b: TextMark[] | undefined) =>
   (a ?? []).length === (b ?? []).length && (a ?? []).every((mark) => (b ?? []).includes(mark));
@@ -29,6 +30,14 @@ const sameMarks = (a: TextMark[] | undefined, b: TextMark[] | undefined) =>
 /** A text piece, with `marks` only when there are some (so plain text stays as before). */
 const textSegment = (text: string, marks?: TextMark[]): RichTextSegment =>
   marks && marks.length ? { type: "text", text, marks: [...marks].sort() } : { type: "text", text };
+
+/** A formula piece, with `marks` only when there are some (so plain formulas stay as before). */
+const mathSegment = (latex: string, marks?: TextMark[]): RichTextSegment =>
+  marks && marks.length ? { type: "math", latex, marks: [...marks].sort() } : { type: "math", latex };
+
+/** The valid formatting names in a list read from storage or from the editor. */
+const readMarks = (raw: unknown): TextMark[] | undefined =>
+  Array.isArray(raw) ? raw.map((m) => (typeof m === "string" ? m : (m as { type?: unknown } | null)?.type)).filter((m): m is TextMark => TEXT_MARKS.includes(m as TextMark)) : undefined;
 
 export type RichText = RichTextSegment[];
 
@@ -75,10 +84,9 @@ export function normalizeRichText(raw: unknown): RichText {
     if (typeof item !== "object" || item === null) continue;
     const s = item as Record<string, unknown>;
     if (s.type === "text" && typeof s.text === "string") {
-      const marks = Array.isArray(s.marks) ? (s.marks.filter((m) => TEXT_MARKS.includes(m as TextMark)) as TextMark[]) : undefined;
-      segments.push(textSegment(s.text, marks));
+      segments.push(textSegment(s.text, readMarks(s.marks)));
     }
-    if (s.type === "math" && typeof s.latex === "string") segments.push({ type: "math", latex: s.latex });
+    if (s.type === "math" && typeof s.latex === "string") segments.push(mathSegment(s.latex, readMarks(s.marks)));
   }
   return cleanRichText(segments);
 }
@@ -100,7 +108,9 @@ export function richTextToDoc(value: RichText): DocNode {
   const paragraphs: DocNode[][] = [[]];
   for (const segment of value) {
     if (segment.type === "math") {
-      paragraphs[paragraphs.length - 1].push({ type: "math", attrs: { latex: segment.latex } });
+      const node: DocNode = { type: "math", attrs: { latex: segment.latex } };
+      if (segment.marks?.length) node.marks = segment.marks.map((mark) => ({ type: mark }));
+      paragraphs[paragraphs.length - 1].push(node);
       continue;
     }
     segment.text.split("\n").forEach((line, i) => {
@@ -125,10 +135,9 @@ export function docToRichText(doc: DocNode): RichText {
     if (i > 0) segments.push({ type: "text", text: "\n" });
     for (const node of paragraph.content ?? []) {
       if (node.type === "text" && node.text) {
-        const marks = (node.marks ?? []).map((m) => m.type).filter((m): m is TextMark => TEXT_MARKS.includes(m as TextMark));
-        segments.push(textSegment(node.text, marks));
+        segments.push(textSegment(node.text, readMarks(node.marks)));
       }
-      if (node.type === "math") segments.push({ type: "math", latex: String(node.attrs?.latex ?? "") });
+      if (node.type === "math") segments.push(mathSegment(String(node.attrs?.latex ?? ""), readMarks(node.marks)));
     }
   });
   // Remove line breaks at the very end (empty last paragraphs).

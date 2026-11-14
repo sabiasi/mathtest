@@ -21,7 +21,7 @@
   border: 0.3mm solid #000;
   padding: 1mm 3mm;
   text-align: center;
-  min-width: 34mm;
+  min-width: 31mm; /* three columns must fit a two-column paper (about 85 mm) */
 }
 .print-scale-table th:first-child,
 .print-scale-table td:first-child {
@@ -77,6 +77,7 @@
 }
 .print-climate-tasks {
   margin-top: 2mm;
+  container-type: inline-size;
 }
 .print-climate-tasks li {
   display: flex;
@@ -88,4 +89,16 @@
 .print-scale-convert .print-answer-line {
   min-width: 38mm;
   white-space: nowrap;
+}
+/* A narrow (two-column) paper: the answer line follows the words (on the next line when there is no room). */
+@container (max-width: 80mm) {
+  .print-climate-tasks li {
+    display: block;
+  }
+  .print-climate-tasks .print-answer-line {
+    display: inline-block;
+    min-width: 30mm;
+    margin-left: 2mm;
+    vertical-align: bottom;
+  }
 }

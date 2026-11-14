@@ -34,6 +34,19 @@ describe("richTextToDoc / docToRichText", () => {
     ]);
   });
 
+  it("keeps a formula inside a word box (the box mark is saved on the formula too)", () => {
+    const boxed: RichText = [
+      { type: "text", text: "x = ", marks: ["box"] },
+      { type: "math", latex: "\\frac{1}{2}", marks: ["box"] },
+      { type: "text", text: " cm", marks: ["bold", "box"] },
+    ];
+    expect(docToRichText(richTextToDoc(boxed))).toEqual(boxed);
+    expect(normalizeRichText(JSON.parse(JSON.stringify(boxed)))).toEqual(boxed);
+    // Old saved formulas (no marks) stay exactly as they were.
+    expect(normalizeRichText([{ type: "math", latex: "x^2" }])).toEqual([{ type: "math", latex: "x^2" }]);
+    expect(normalizeRichText([{ type: "math", latex: "x^2", marks: ["sparkle"] }])).toEqual([{ type: "math", latex: "x^2" }]);
+  });
+
   it("puts each line in its own paragraph", () => {
     const doc = richTextToDoc(sample);
     expect(doc.content).toHaveLength(2);

@@ -8,8 +8,9 @@
  * without passing it down through every component in between.
  */
 import type { Editor } from "@tiptap/core";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { TextMark } from "@/lib/richText";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { rememberEditing } from "@/features/editor/keepVisible";
+import { TEXT_MARKS, type TextMark } from "@/lib/richText";
 import { startChem, typeIntoChem } from "./MathNode";
 import type { MathfieldElement } from "./mathlive";
 import { closeHistory } from "@tiptap/pm/history";
@@ -17,6 +18,8 @@ import { closeHistory } from "@tiptap/pm/history";
 type MathEditing = {
   /** The rich-text box used last (null until the teacher clicks into one). */
   activeEditor: Editor | null;
+  /** True while the cursor is inside a formula or a chemistry formula (bold, italic… don't apply there). */
+  inFormula: boolean;
   /** Called by a rich-text box when anything inside it gets focus. */
   reportFocus: (editor: Editor, target: EventTarget) => void;
   /** Called when a rich-text box goes away. */
@@ -54,11 +57,17 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
   // The chemistry text box that had focus last (if the cursor was in one).
   const lastChem = useRef<HTMLInputElement | null>(null);
 
+  const [inFormula, setInFormula] = useState(false);
+
   const reportFocus = useCallback((editor: Editor, target: EventTarget) => {
     setActiveEditor(editor);
     lastMathfield.current =
       target instanceof HTMLElement && target.tagName === "MATH-FIELD" ? (target as MathfieldElement) : null;
     lastChem.current = target instanceof HTMLInputElement && target.dataset.chem !== undefined ? target : null;
+    setInFormula(lastMathfield.current !== null || lastChem.current !== null);
+    // The page keeps THIS box clear of the toolbar, also while the keyboard
+    // focus is on the toolbar itself (its search box, its resize handle).
+    rememberEditing(editor.view.dom.closest<HTMLElement>(".rich-text-input") ?? editor.view.dom);
   }, []);
 
   // Clicking or tabbing into anything that isn't a question/answer box (or the
@@ -69,6 +78,8 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
       // [data-keep-editing]: windows opened from the toolbar (e.g. the periodic table).
       if (target?.closest?.(".rich-text-input, [data-math-toolbar], [data-keep-editing]")) return;
       setActiveEditor(null);
+      setInFormula(false);
+      rememberEditing(null);
     };
     document.addEventListener("focusin", onFocusIn);
     return () => document.removeEventListener("focusin", onFocusIn);
@@ -76,6 +87,7 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
 
   const forget = useCallback((editor: Editor) => {
     setActiveEditor((current) => (current === editor ? null : current));
+    if (editor.view.dom.contains(lastMathfield.current) || editor.view.dom.contains(lastChem.current)) setInFormula(false);
   }, []);
 
   const insert = useCallback(
@@ -154,15 +166,16 @@ export function MathEditingProvider({ children }: { children: ReactNode }) {
   const toggleFormat = useCallback(
     (mark: TextMark) => {
       const editor = activeEditor;
-      if (!editor || editor.isDestroyed) return;
+      // Inside a formula there is no text to format: its letters follow the rules of maths.
+      if (!editor || editor.isDestroyed || inFormula) return;
       editor.chain().focus().toggleMark(mark).run();
     },
-    [activeEditor],
+    [activeEditor, inFormula],
   );
 
   const value = useMemo(
-    () => ({ activeEditor, reportFocus, forget, insert, insertText, insertChem, toggleFormat, runCommand }),
-    [activeEditor, reportFocus, forget, insert, insertText, insertChem, toggleFormat, runCommand],
+    () => ({ activeEditor, inFormula, reportFocus, forget, insert, insertText, insertChem, toggleFormat, runCommand }),
+    [activeEditor, inFormula, reportFocus, forget, insert, insertText, insertChem, toggleFormat, runCommand],
   );
   return <MathEditingContext.Provider value={value}>{children}</MathEditingContext.Provider>;
 }
@@ -171,6 +184,49 @@ export function useMathEditing(): MathEditing {
   const value = useContext(MathEditingContext);
   if (!value) throw new Error("useMathEditing must be used inside <MathEditingProvider>");
   return value;
+}
+
+const NO_FORMATS: ReadonlySet<TextMark> = new Set();
+const noSubscription = () => () => {};
+
+/**
+ * Which formatting (bold, italic, underline, word box) is ON where the
+ * teacher is typing — read from the editor itself, never from a separate
+ * "was the button clicked" flag, so it is always true:
+ *
+ *  - only a cursor (nothing selected): the formatting the NEXT typed letter
+ *    will get — the marks around the cursor, or the ones just switched on /
+ *    off with a button or ⌘/Ctrl + B, I, U ("stored marks");
+ *  - a selection: ON only when ALL the selected text has it. A selection
+ *    that is partly bold shows the button OFF, and a click then makes all of
+ *    it bold (the same rule as Word); a second click removes it.
+ *
+ * It follows every change of the editor (typing, arrow keys, clicks, undo /
+ * redo, shortcuts) and of the box being edited; nothing is active when no
+ * box is, or while the cursor is inside a formula.
+ */
+export function useActiveFormats(): ReadonlySet<TextMark> {
+  const { activeEditor, inFormula } = useMathEditing();
+  const editor = activeEditor && !activeEditor.isDestroyed && !inFormula ? activeEditor : null;
+  const subscribe = useCallback(
+    (changed: () => void) => {
+      if (!editor) return () => {};
+      // "transaction" = anything that happened in the box: typing, moving the
+      // cursor, selecting, formatting, undo and redo.
+      editor.on("transaction", changed);
+      return () => {
+        editor.off("transaction", changed);
+      };
+    },
+    [editor],
+  );
+  // A short text like "bold,underline": React re-draws only when it changes.
+  const snapshot = useSyncExternalStore(
+    editor ? subscribe : noSubscription,
+    () => (editor && !editor.isDestroyed ? TEXT_MARKS.filter((mark) => editor.isActive(mark)).join(",") : ""),
+    () => "",
+  );
+  return useMemo(() => (snapshot ? new Set(snapshot.split(",") as TextMark[]) : NO_FORMATS), [snapshot]);
 }
 
 /** True once MathLive has loaded in the browser. */

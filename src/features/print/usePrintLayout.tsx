@@ -78,6 +78,13 @@ function countPassageLines(root: HTMLElement): Record<string, number> {
   return starts;
 }
 
+/**
+ * How much smaller a too-tall block is drawn (CSS `zoom`). The width stays
+ * the same, so smaller letters also mean fewer lines: the real height ends up
+ * a little under the page. Never below 0.5 (it must stay readable).
+ */
+export const shrinkToFit = (height: number, available: number) => Math.max(0.5, Math.floor((available / height) * 100) / 100);
+
 export function usePrintLayout(test: Test, version: PrintVersion, language: string, variant: string | null) {
   // Fonts (Georgian, math) can finish loading late and change sizes:
   // count those events so we measure again when it happens.
@@ -95,7 +102,7 @@ export function usePrintLayout(test: Test, version: PrintVersion, language: stri
   const probeRef = useRef<HTMLDivElement>(null);
   const measureRef = useRef<HTMLDivElement>(null);
   const [optionColumns, setOptionColumns] = useState<{ signature: string; value: OptionColumns } | null>(null);
-  const [pages, setPages] = useState<{ signature: string; value: Page[]; lineStarts: Record<string, number> } | null>(null);
+  const [pages, setPages] = useState<{ signature: string; value: Page[]; lineStarts: Record<string, number>; shrink: Record<string, number> } | null>(null);
   const { columns, fontSize } = test.printOptions;
 
   // Step 1: option widths → option columns.
@@ -134,21 +141,32 @@ export function usePrintLayout(test: Test, version: PrintVersion, language: stri
       const list = printBlocks(test.questions, version);
       const flowing = new Set(list.filter(flowsOn).map((b) => b.key));
       const keepers = new Set(list.filter(keepsWithNext).map((b) => b.key));
-      const blocks = [...root.querySelectorAll<HTMLElement>("[data-block]")].map((el) => ({
-        key: el.dataset.block!,
-        height: el.getBoundingClientRect().height,
-        gap: flowing.has(el.dataset.block!) ? 0 : undefined,
-        keepWithNext: keepers.has(el.dataset.block!),
-      }));
+      // 2px of safety for rounding differences between screen and print.
+      const columnHeight = mmToPx(CONTENT_HEIGHT) - 2;
+      // A question is never split, so one that is taller than a whole page
+      // (e.g. a long task list on a two-column paper with large letters) is
+      // drawn smaller until it fits, instead of running under the footer.
+      const shrink: Record<string, number> = {};
+      const firstPageTop = header.getBoundingClientRect().height + mmToPx(HEADER_GAP);
+      const blocks = [...root.querySelectorAll<HTMLElement>("[data-block]")].map((el, index) => {
+        const key = el.dataset.block!;
+        let height = el.getBoundingClientRect().height;
+        // The very first block sits under the test header, so it has less room.
+        const room = index === 0 ? columnHeight - firstPageTop : columnHeight;
+        if (height > room) {
+          shrink[key] = shrinkToFit(height, room);
+          height = room;
+        }
+        return { key, height, gap: flowing.has(key) ? 0 : undefined, keepWithNext: keepers.has(key) };
+      });
       const value = paginate({
         blocks,
-        // 2px of safety for rounding differences between screen and print.
-        columnHeight: mmToPx(CONTENT_HEIGHT) - 2,
+        columnHeight,
         columns,
         gap: mmToPx(BLOCK_GAP),
-        firstPageTop: header.getBoundingClientRect().height + mmToPx(HEADER_GAP),
+        firstPageTop,
       });
-      setPages({ signature, value, lineStarts: countPassageLines(root) });
+      setPages({ signature, value, lineStarts: countPassageLines(root), shrink });
     });
     return () => {
       alive = false;
@@ -205,6 +223,7 @@ export function usePrintLayout(test: Test, version: PrintVersion, language: stri
     measurer,
     pages: pages?.value ?? null,
     lineStarts: pages?.lineStarts ?? {},
+    shrink: pages?.shrink ?? {},
     optionColumns: currentColumns ?? optionColumns?.value ?? null,
     ready,
   };

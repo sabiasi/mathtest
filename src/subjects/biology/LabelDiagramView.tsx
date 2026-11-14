@@ -94,7 +94,7 @@ export function LabelDiagramPrint({ question, labelStyle, answerKey }: { questio
 
   return (
     <div className="print-label-diagram">
-      <div style={{ width: `${question.pictureWidth}%`, margin: "0 auto" }}>
+      <div className="print-label-picture" style={{ width: `${question.pictureWidth}%`, margin: "0 auto" }}>
         <LabelArea
           question={question}
           renderLabel={(label, index) =>

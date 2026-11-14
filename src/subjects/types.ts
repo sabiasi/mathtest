@@ -51,7 +51,7 @@ export type ToolbarButton = {
   keywords?: string;
 };
 
-/** A stable name for a button (recently-used list, search results, React keys). */
+/** A stable name for a button (search results, React keys, `data-key` in the DOM). */
 export function buttonKey(button: ToolbarButton): string {
   if (button.format) return `f:${button.format}`;
   if (button.command) return `c:${button.command}`;

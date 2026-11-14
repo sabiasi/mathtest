@@ -39,7 +39,7 @@ export function MatchingPrint({ question, labelStyle, answerKey }: { question: M
   const right = matchingRightColumn(question);
   const answers = matchingAnswers(question, labelStyle);
   return (
-    <div>
+    <div className="print-match-area">
       <div className="print-match">
         <div>
           {question.leftTitle && <p className="print-match-title">{question.leftTitle}</p>}

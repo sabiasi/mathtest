@@ -80,21 +80,32 @@ export function TimelinePrint({ question, answerKey }: { question: TimelineQuest
       <RichTextView value={value} />
     );
   return (
-    <div className="print-timeline">
-      <div className="print-timeline-row is-labels" style={columns}>
+    <div className="print-timeline-area">
+      {/* A narrow (two-column) paper has no room for names side by side: the line runs downward there (CSS shows one of the two). */}
+      <ol className="print-timeline-down">
         {events.map((e) => (
-          <div key={e.id}>{cell(e.label, e.hide === "label", false)}</div>
+          <li key={e.id}>
+            <span className="print-timeline-down-date">{cell(e.date, e.hide === "date", true)}</span>
+            <span>{cell(e.label, e.hide === "label", true)}</span>
+          </li>
         ))}
-      </div>
-      <div className="print-timeline-line" style={columns}>
-        {events.map((e) => (
-          <div key={e.id} className="print-timeline-tick" />
-        ))}
-      </div>
-      <div className="print-timeline-row is-dates" style={columns}>
-        {events.map((e) => (
-          <div key={e.id}>{cell(e.date, e.hide === "date", true)}</div>
-        ))}
+      </ol>
+      <div className="print-timeline">
+        <div className="print-timeline-row is-labels" style={columns}>
+          {events.map((e) => (
+            <div key={e.id}>{cell(e.label, e.hide === "label", false)}</div>
+          ))}
+        </div>
+        <div className="print-timeline-line" style={columns}>
+          {events.map((e) => (
+            <div key={e.id} className="print-timeline-tick" />
+          ))}
+        </div>
+        <div className="print-timeline-row is-dates" style={columns}>
+          {events.map((e) => (
+            <div key={e.id}>{cell(e.date, e.hide === "date", true)}</div>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -7,6 +7,10 @@ import { Mark } from "@tiptap/core";
 
 export const BoxMark = Mark.create({
   name: "box",
+  // Before bold / italic / underline (their priority is 100): the box is the
+  // OUTER wrapper, so a boxed phrase with one bold word is still ONE box —
+  // not a row of little boxes, one per piece of formatting.
+  priority: 200,
   parseHTML() {
     return [{ tag: "span.rt-box" }];
   },

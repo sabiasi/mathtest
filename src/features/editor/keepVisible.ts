@@ -36,15 +36,28 @@ export function reveal(top: number, bottom: number) {
   if (by !== 0) window.scrollBy({ top: by, behavior: "instant" });
 }
 
+// The question / answer box being edited (set by MathEditingContext). While
+// the keyboard focus is on the toolbar itself (its search box, its resize
+// handle), this is the box that must stay visible.
+let editing: HTMLElement | null = null;
+export function rememberEditing(element: HTMLElement | null) {
+  editing = element;
+}
+
 /** Makes sure the element with the keyboard focus isn't hidden under the toolbar (e.g. after it opened or grew). */
 export function revealFocused() {
-  const active = document.activeElement as HTMLElement | null;
-  // Things inside the bar are always visible (and can't be scrolled anyway).
-  if (!active || active === document.body || active.closest("[data-editor-bar]")) return;
+  let active = document.activeElement as HTMLElement | null;
+  // Things inside the bar are always visible (and can't be scrolled anyway):
+  // there, look after the box the toolbar is working for.
+  const inBar = active?.closest("[data-editor-bar]") != null;
+  if (inBar) active = editing?.isConnected ? editing : null;
+  if (!active || active === document.body) return;
   const rect = active.getBoundingClientRect();
   // Only the top matters here: a tall box may reach below the window, that's fine.
   // A little extra air (SLACK): a formula typed into the box later is a few
   // pixels taller than a line of text, and must not start a second tiny scroll.
   const limit = coveredTop() + GAP;
+  // A box the teacher has scrolled away from (above the window) is left alone: no surprise jumps back to it.
+  if (rect.bottom <= 0) return;
   if (rect.top < limit) window.scrollBy({ top: Math.round(rect.top - limit - SLACK), behavior: "instant" });
 }

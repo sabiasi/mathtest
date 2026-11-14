@@ -167,8 +167,9 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
     const measure = () => {
       const height = bar.offsetHeight + (toolbar?.offsetHeight ?? 0);
       root.style.setProperty("--editor-top", `${height}px`);
-      // The toolbar grew (it opened, or a tab has more rows): the box being
-      // edited must not end up hidden under it.
+      // The toolbar grew (it opened, or the teacher made it taller): the box
+      // being edited must not end up hidden under it. Shrinking never scrolls,
+      // and scrolling doesn't change the toolbar's height — so no loop.
       if (height > last) revealFocused();
       last = height;
     };
@@ -320,8 +321,13 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
               {t("editor.total", { points: total })}
             </span>
           </div>
-          {/* The toolbar hangs UNDER the bar as an overlay (it takes no room in the page). */}
-          <div ref={toolbarRef} className="absolute inset-x-0 top-full max-h-[55vh] overflow-y-auto overscroll-contain">
+          {/*
+            The toolbar hangs UNDER the bar as an overlay (it takes no room in
+            the page). Its height is the teacher's choice, fitted to the window
+            by SubjectToolbar; the max-height here is only a safety net for
+            very short windows (a phone lying on its side).
+          */}
+          <div ref={toolbarRef} className="absolute inset-x-0 top-full max-h-[calc(100dvh-6.5rem)] overflow-y-auto overscroll-contain">
             {mathReady && <ToolbarWhenEditing toolkit={toolkit} />}
           </div>
         </div>

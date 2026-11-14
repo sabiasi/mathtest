@@ -278,22 +278,47 @@ export function changeQuestionType(question: Question, type: QuestionType): Ques
   return createQuestion(type, question);
 }
 
-/** A copy with fresh ids (also for the options), so the copy is independent. */
-export function duplicateQuestion(question: Question): Question {
-  // The copy points to the same stored pictures, with its own placement ids.
-  const images = question.images.map((image) => ({ ...image, id: newId() }));
-  if (question.type === "multiple-choice") {
-    const options = question.options.map((option) => ({ ...option, id: newId() }));
-    const correctIndex = question.options.findIndex((o) => o.id === question.correctOptionId);
-    return {
-      ...question,
-      id: newId(),
-      images,
-      options,
-      correctOptionId: correctIndex >= 0 ? options[correctIndex].id : null,
-    };
+/** Ids shorter than this are fixed names, not random ids: they (and whatever points at them) are left alone. */
+const RANDOM_ID_LENGTH = 8;
+
+/** Calls `visit` for every object inside a value (the value itself included). */
+function eachObject(value: unknown, visit: (object: Record<string, unknown>) => void) {
+  if (Array.isArray(value)) value.forEach((item) => eachObject(item, visit));
+  else if (typeof value === "object" && value !== null) {
+    visit(value as Record<string, unknown>);
+    Object.values(value).forEach((item) => eachObject(item, visit));
   }
-  return { ...question, id: newId(), images };
+}
+
+/**
+ * An independent copy with fresh ids — for the question AND for everything
+ * inside it that has an id (options, pairs, events, parts, markers, people,
+ * organisms, picture placements…). Whatever points at one of those ids (the
+ * correct option, a couple's children, a food web's arrows, a key's "go to
+ * question…") points at the new id, so the copy means exactly the same.
+ *
+ * Why not keep the inner ids: some become ids of form fields on the page, and
+ * two fields with one id confuse the browser (a click on the copy's label
+ * used to land in the original question).
+ *
+ * The copy still points to the same stored pictures (`imageId` is not an id
+ * of the question — it names the picture file).
+ */
+export function duplicateQuestion(question: Question): Question {
+  const copy = structuredClone(question);
+  const renamed = new Map<string, string>();
+  eachObject(copy, (object) => {
+    if (typeof object.id === "string" && object.id.length >= RANDOM_ID_LENGTH && !renamed.has(object.id)) renamed.set(object.id, newId());
+  });
+  const rename = (value: unknown, key: string): unknown => (key !== "imageId" && typeof value === "string" ? (renamed.get(value) ?? value) : value);
+  eachObject(copy, (object) => {
+    for (const [key, value] of Object.entries(object)) {
+      object[key] = Array.isArray(value) ? value.map((item) => rename(item, key)) : rename(value, key);
+    }
+  });
+  // The question's own id is always new, even a short fixed one.
+  if (copy.id === question.id) copy.id = newId();
+  return copy;
 }
 
 /**

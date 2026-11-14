@@ -691,7 +691,15 @@ math-field::part(virtual-keyboard-toggle) {
   align-items: baseline;
 }
 .print-option-label {
+  flex: none;
   font-weight: 600;
+  white-space: nowrap;
+}
+/* The text next to the letter may shrink to the column: a very long word
+   breaks instead of sticking out (two-column papers are narrow). */
+.print-option > :not(.print-option-label) {
+  min-width: 0;
+  overflow-wrap: break-word;
 }
 .print-option.is-correct {
   font-weight: 700;
@@ -723,9 +731,23 @@ math-field::part(virtual-keyboard-toggle) {
 .print-answer-line {
   position: relative;
   flex: 1;
+  min-width: 0;
   max-width: 90mm;
   min-height: 1.6em;
   border-bottom: 0.3mm solid #000;
+}
+/* Two-column paper, answer key: an answer with a formula gets its own row
+   under "Answer:", so a long formula has the whole column. */
+.print-short-area {
+  container-type: inline-size;
+}
+@container (max-width: 80mm) {
+  .print-short {
+    flex-wrap: wrap;
+  }
+  .print-short .print-answer-line:has(.math-static) {
+    flex-basis: 100%;
+  }
 }
 /* A long key answer may use the whole width instead of spilling over. */
 .print-answer-line:has(.print-key-answer) {
@@ -735,7 +757,8 @@ math-field::part(virtual-keyboard-toggle) {
    answer wraps downward (it used to be absolute and ran over the question). */
 .print-key-answer {
   display: block;
-  padding: 0 2mm 0.5mm;
+  /* No padding on the right: a long formula is fitted to the edge of the question. */
+  padding: 0 0 0.5mm 2mm;
   font-weight: 700;
 }
 .print-line {
@@ -781,8 +804,21 @@ math-field::part(virtual-keyboard-toggle) {
 /* Matching: two columns */
 .print-match {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  /* minmax(0, …): a long word must not push the right column out of a narrow
+     (two-column) paper; it breaks instead. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   column-gap: 8mm;
+}
+/* On a narrow (two-column) paper the two lists go one under the other:
+   side by side every second word would be cut in the middle. */
+.print-match-area {
+  container-type: inline-size;
+}
+@container (max-width: 80mm) {
+  .print-match {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 2.5mm;
+  }
 }
 .print-match ol {
   display: grid;
@@ -802,6 +838,10 @@ math-field::part(virtual-keyboard-toggle) {
   column-gap: 2mm;
   text-align: center;
   line-height: 1.3;
+}
+/* A word longer than its place on the line breaks instead of running into its neighbour. */
+.print-timeline-row > div {
+  overflow-wrap: break-word;
 }
 .print-timeline-row.is-labels {
   align-items: end;
@@ -842,6 +882,56 @@ math-field::part(virtual-keyboard-toggle) {
   width: 0.45mm;
   height: 100%;
   background: #000;
+}
+/* The same timeline running downward: date | line with a dot | name. */
+.print-timeline-area {
+  container-type: inline-size;
+}
+.print-timeline-down {
+  display: none;
+  margin: 1mm 0;
+}
+.print-timeline-down li {
+  display: grid;
+  grid-template-columns: 15mm minmax(0, 1fr);
+  column-gap: 6mm;
+  align-items: end;
+  position: relative;
+  padding: 1.6mm 0;
+  overflow-wrap: break-word;
+}
+.print-timeline-down-date {
+  font-weight: 600;
+  text-align: right;
+}
+.print-timeline-down li::before {
+  content: "";
+  position: absolute;
+  left: 17.8mm;
+  top: 0;
+  bottom: 0;
+  border-left: 0.45mm solid #000;
+}
+.print-timeline-down li::after {
+  content: "";
+  position: absolute;
+  left: 17mm;
+  bottom: 2.6mm;
+  width: 2mm;
+  height: 2mm;
+  border-radius: 50%;
+  background: #000;
+}
+.print-timeline-down .print-blank {
+  width: 100%;
+}
+@container (max-width: 100mm) {
+  .print-timeline {
+    display: none;
+  }
+  .print-timeline-down {
+    display: block;
+  }
 }
 .print-blank {
   display: inline-block;
@@ -1105,6 +1195,15 @@ math-field::part(virtual-keyboard-toggle) {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 3mm 8mm;
+}
+/* A narrow (two-column) paper: one part per line, so the answer line stays long enough. */
+.print-parts-area {
+  container-type: inline-size;
+}
+@container (max-width: 80mm) {
+  .print-parts {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* Chemistry: balance the equation (a box before every substance) */

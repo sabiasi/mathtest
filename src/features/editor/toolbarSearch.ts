@@ -1,6 +1,5 @@
 /**
- * The toolbar's "find a symbol" search and "recently used" list (pure — no
- * React). A teacher types "ფესვი", "root", "sqrt" or "alpha" and gets the
+ * The toolbar's "find a symbol" search (pure — no React). A teacher types "ფესვი", "root", "sqrt" or "alpha" and gets the
  * matching buttons from every tab of the subject.
  */
 import type { Language } from "@/i18n/dictionaries";
@@ -57,31 +56,4 @@ export function searchButtons(index: readonly IndexedButton[], query: string, la
     scored.push({ item, score });
   });
   return scored.sort((a, b) => a.score - b.score).slice(0, limit).map((s) => s.item);
-}
-
-// ---------------------------------------------------------------------------
-// Recently used (per subject, remembered in this browser)
-// ---------------------------------------------------------------------------
-
-export const RECENT_LIMIT = 12;
-const recentKey = (subject: string) => `mathtest:recent:${subject}`;
-
-/** Puts a button at the front of the list (no doubles, at most RECENT_LIMIT). */
-export const pushRecent = (list: readonly string[], key: string): string[] => [key, ...list.filter((k) => k !== key)].slice(0, RECENT_LIMIT);
-
-export function readRecent(subject: string): string[] {
-  try {
-    const raw: unknown = JSON.parse(localStorage.getItem(recentKey(subject)) ?? "[]");
-    return Array.isArray(raw) ? raw.filter((k): k is string => typeof k === "string").slice(0, RECENT_LIMIT) : [];
-  } catch {
-    return [];
-  }
-}
-
-export function writeRecent(subject: string, list: readonly string[]) {
-  try {
-    localStorage.setItem(recentKey(subject), JSON.stringify(list));
-  } catch {
-    // storage blocked: remembered until the page is closed
-  }
 }

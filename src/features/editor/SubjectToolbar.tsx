@@ -1,23 +1,33 @@
 "use client";
 
 import { convertLatexToMarkup } from "mathlive";
-import { FlaskConical, Keyboard, Search, Sigma, X } from "lucide-react";
+import { ChevronDown, ChevronUp, FlaskConical, Keyboard, Rows2, Rows4, Search, Sigma, X } from "lucide-react";
 import { motion } from "motion/react";
-import { Fragment, useMemo, useState, type MouseEvent, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useMathEditing } from "@/features/math/MathEditingContext";
+import { useActiveFormats, useMathEditing } from "@/features/math/MathEditingContext";
 import { useLanguage, useT } from "@/i18n/language";
 import { cn } from "@/lib/utils";
 import { buttonKey, type SubjectToolkit, type ToolbarButton } from "@/subjects/types";
-import { allButtons, pushRecent, readRecent, searchButtons, writeRecent } from "./toolbarSearch";
+import { allButtons, searchButtons } from "./toolbarSearch";
+import { COMPACT_HEIGHT, EXPANDED_HEIGHT, fitHeight, KEY_STEP, maxHeight, MIN_HEIGHT, presetOf, readSize, ROW, writeSize, type ToolbarSize } from "./toolbarSize";
 
 // Clicking a toolbar button must NOT move the keyboard focus away from the
 // text box — otherwise we'd lose track of where the cursor was.
 // (Radix Tabs would normally switch tabs on mouse-down; preventing it there
 // means we switch in onClick instead — see the tab buttons below.)
 const keepFocus = (event: MouseEvent) => event.preventDefault();
+
+/** A formatting button that is ON (the text at the cursor is bold…): filled, in both themes. */
+const formatOn = "aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:shadow-sm aria-pressed:hover:bg-primary-hover aria-pressed:hover:text-primary-foreground";
+/** …and one that can't be used right now (the cursor is inside a formula). */
+const formatOff = "aria-disabled:cursor-default aria-disabled:opacity-45 aria-disabled:hover:bg-transparent aria-disabled:hover:text-soft-foreground";
+
+/** The small buttons that choose the toolbar's size. */
+const sizeButton =
+  "flex size-8 items-center justify-center rounded-md text-soft-foreground transition-colors hover:bg-card hover:text-foreground aria-pressed:bg-card aria-pressed:text-brand aria-pressed:shadow-xs pointer-coarse:size-9";
 
 /** The big "Σ Formula" / "Chemical formula" buttons. */
 const primaryButton =
@@ -67,13 +77,21 @@ const kindOf = (button: ToolbarButton) =>
 /**
  * The toolbar shown while a question box is being edited. What's on it
  * comes from the test's subject toolkit (src/subjects). Like Word's equation
- * tools: tabs of symbols (most used first), a "recently used" row, a search
- * box ("ფესვი", "alpha"…) and a list of typing shortcuts.
+ * tools: tabs of symbols (most used first), a search box ("ფესვი", "alpha"…)
+ * and a list of typing shortcuts.
+ *
+ * The teacher decides how much of the window it takes (toolbarSize.ts): the
+ * symbols can be hidden (the top row — formula button, B I U, search — stays),
+ * shown in a compact or an expanded size, or dragged to any height with the
+ * handle under the toolbar (also ↑ ↓ on the keyboard). Symbols that don't fit
+ * scroll INSIDE the panel; the buttons themselves never shrink.
  */
 export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
   const t = useT();
   const language = useLanguage();
-  const { insert, insertText, insertChem, toggleFormat, runCommand } = useMathEditing();
+  const { insert, insertText, insertChem, toggleFormat, runCommand, inFormula } = useMathEditing();
+  // Which of bold / italic / underline / word box is on at the cursor (read from the editor).
+  const activeFormats = useActiveFormats();
   const tabs = toolkit.toolbar;
   const [tabId, setTabId] = useState(tabs[0]?.id);
   const tab = tabs.find((x) => x.id === tabId) ?? tabs[0];
@@ -93,20 +111,81 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
     }
   }
 
-  // Search and "recently used" look through every button of the subject.
+  // Search looks through every button of the subject.
   const index = useMemo(() => allButtons(toolkit), [toolkit]);
-  const [recent, setRecent] = useState(() => readRecent(toolkit.id));
-  const recentButtons = useMemo(
-    () => recent.map((key) => index.find((item) => item.key === key)?.button).filter((b): b is ToolbarButton => b !== undefined),
-    [recent, index],
-  );
   const results = useMemo(() => searchButtons(index, query, language), [index, query, language]);
   const searching = query.trim() !== "";
 
   const shortcut = isMac() ? "⌥ =" : "Alt + =";
 
+  // ---- The size of the symbol panel (chosen by the teacher, remembered) ----
+  const [size, setSize] = useState<ToolbarSize>(readSize);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  // The tallest panel that still leaves room for the box being edited in THIS window.
+  const [limit, setLimit] = useState(() => (typeof window === "undefined" ? EXPANDED_HEIGHT : maxHeight(window.innerHeight, 170)));
+  useEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+    const measure = () => {
+      const panel = panelRef.current;
+      if (!panel) return; // collapsed: the last known limit stays
+      // Everything above and around the panel: the editor's bar, the buttons row, the tabs, the handle.
+      const above = content.getBoundingClientRect().top + content.offsetHeight - panel.offsetHeight;
+      setLimit(maxHeight(window.innerHeight, above));
+    };
+    // The window got smaller or bigger (or the rows of the toolbar wrapped): fit the height again.
+    const observer = new ResizeObserver(measure);
+    observer.observe(content);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, []);
+  const height = fitHeight(size.height, limit);
+  // Searching or reading the shortcuts needs the panel: it shows meanwhile, and hides again afterwards.
+  const open = !size.collapsed || searching || (showShortcuts && toolkit.typingShortcuts !== undefined);
+
+  function changeSize(next: ToolbarSize, remember = true) {
+    setSize(next);
+    if (remember) writeSize(next);
+  }
+
+  // Dragging the handle: the panel follows the pointer (mouse, pen or finger).
+  const drag = useRef<{ startY: number; startHeight: number } | null>(null);
+  function startDrag(event: PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return;
+    event.preventDefault(); // the keyboard focus (and the selection) stay in the box being edited
+    event.currentTarget.setPointerCapture(event.pointerId);
+    drag.current = { startY: event.clientY, startHeight: height };
+  }
+  function moveDrag(event: PointerEvent<HTMLDivElement>) {
+    if (!drag.current) return;
+    changeSize({ collapsed: false, height: fitHeight(drag.current.startHeight + event.clientY - drag.current.startY, limit) }, false);
+  }
+  function endDrag() {
+    if (!drag.current) return;
+    drag.current = null;
+    writeSize({ ...size, collapsed: false });
+  }
+  /** The same with the keyboard: ↑ ↓ a little, Page Up / Down a row, Home / End the smallest / tallest. */
+  function resizeByKey(event: KeyboardEvent<HTMLDivElement>) {
+    const target =
+      event.key === "ArrowUp" ? height - KEY_STEP
+      : event.key === "ArrowDown" ? height + KEY_STEP
+      : event.key === "PageUp" ? height - ROW
+      : event.key === "PageDown" ? height + ROW
+      : event.key === "Home" ? MIN_HEIGHT
+      : event.key === "End" ? limit
+      : null;
+    if (target === null) return;
+    event.preventDefault(); // the page must not scroll
+    changeSize({ collapsed: false, height: fitHeight(target, limit) });
+  }
+
   /** A button inserts chemistry, plain text, or (most often) a formula. */
-  function press(button: ToolbarButton, remember = true) {
+  function press(button: ToolbarButton) {
     if (button.format) toggleFormat(button.format);
     else if (button.command) {
       // Matrix rows / columns: only inside a formula.
@@ -114,14 +193,11 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
     } else if (button.chem !== undefined) insertChem(button.chem, button.caretBack);
     else if (button.text !== undefined) insertText(button.text, button.caretBack);
     else insert(button.latex);
-    if (remember && !button.format && !button.command) {
-      setRecent((list) => {
-        const next = pushRecent(list, buttonKey(button));
-        writeRecent(toolkit.id, next);
-        return next;
-      });
-    }
   }
+
+  /** What a formatting button says about itself: on / off, and "not now" inside a formula. */
+  const formatState = (button: ToolbarButton) =>
+    button.format ? { "aria-pressed": activeFormats.has(button.format), "aria-disabled": inFormula || undefined } : {};
 
   const renderButton = (button: ToolbarButton, where: string) => (
     <Tooltip key={`${where}:${buttonKey(button)}`}>
@@ -133,7 +209,11 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
           aria-label={button[language]}
           data-kind={kindOf(button)}
           data-key={buttonKey(button)}
-          className="flex h-10 min-w-10 items-center justify-center rounded-lg border bg-card px-2 text-foreground shadow-xs transition-[background-color,border-color,transform] duration-150 hover:border-primary-soft-border hover:bg-primary-soft motion-safe:active:scale-95 pointer-coarse:h-11 pointer-coarse:min-w-11"
+          {...formatState(button)}
+          className={cn(
+            "flex h-10 min-w-10 items-center justify-center rounded-lg border bg-card px-2 text-foreground shadow-xs transition-[background-color,border-color,transform] duration-150 hover:border-primary-soft-border hover:bg-primary-soft motion-safe:active:scale-95 pointer-coarse:h-11 pointer-coarse:min-w-11",
+            button.format && "aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-primary-foreground aria-pressed:hover:bg-primary-hover aria-disabled:opacity-45",
+          )}
         >
           {button.label ? (
             <span className="pointer-events-none text-sm font-medium whitespace-nowrap">{button.label[language]}</span>
@@ -235,6 +315,9 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
         value={searching || showShortcuts ? "" : (tab?.id ?? "")}
         onValueChange={setTabId}
         className="mx-auto max-w-5xl gap-0 px-4 sm:px-6"
+        ref={contentRef}
+        data-toolbar-open={open}
+        data-toolbar-collapsed={size.collapsed}
       >
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 pt-2">
           {toolkit.formulas && (
@@ -243,7 +326,8 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
                 <button type="button" onMouseDown={keepFocus} onClick={() => insert("")} className={primaryButton} data-insert-formula="">
                   <Sigma className="size-4" aria-hidden="true" />
                   {t("math.insert")}
-                  <kbd className="rounded bg-white/20 px-1.5 py-0.5 font-sans text-xs font-medium">{shortcut}</kbd>
+                  {/* Phones have no Alt key: the hint would only take room. */}
+                  <kbd className="rounded bg-white/20 px-1.5 py-0.5 font-sans text-xs font-medium max-sm:hidden">{shortcut}</kbd>
                 </button>
               </TooltipTrigger>
               <TooltipContent>{`${t("math.insertTooltip")} (${shortcut})`}</TooltipContent>
@@ -273,7 +357,13 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
                     aria-label={button[language]}
                     data-kind="format"
                     data-key={buttonKey(button)}
-                    className={cn("flex size-8 items-center justify-center rounded-md text-[15px] text-soft-foreground transition-colors hover:bg-card hover:text-foreground", button.className)}
+                    {...formatState(button)}
+                    className={cn(
+                      "flex size-8 items-center justify-center rounded-md text-[15px] text-soft-foreground transition-colors hover:bg-card hover:text-foreground pointer-coarse:size-9",
+                      formatOn,
+                      formatOff,
+                      button.className,
+                    )}
                   >
                     {button.display}
                   </button>
@@ -284,7 +374,7 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
           </div>
 
           {/* Find a symbol by name, in Georgian or English */}
-          <label className="relative ml-auto flex items-center max-sm:order-last max-sm:w-full">
+          <label className="relative ml-auto flex items-center max-sm:order-last max-sm:ml-0 max-sm:min-w-36 max-sm:flex-1">
             <span className="sr-only">{t("toolbar.searchLabel")}</span>
             <Search className="pointer-events-none absolute left-2.5 size-4 text-muted-foreground" aria-hidden="true" />
             <input
@@ -343,10 +433,53 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
               <TooltipContent>{t("toolbar.shortcuts")}</TooltipContent>
             </Tooltip>
           )}
+
+          {/* How much room the symbols take: compact / expanded, or hidden altogether */}
+          <div role="group" aria-label={t("toolbar.size")} className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5 max-sm:order-last" data-toolbar-size="">
+            {(
+              [
+                { id: "compact", Icon: Rows2, height: COMPACT_HEIGHT, label: t("toolbar.sizeCompact") },
+                { id: "expanded", Icon: Rows4, height: EXPANDED_HEIGHT, label: t("toolbar.sizeExpanded") },
+              ] as const
+            ).map(({ id, Icon, height: preset, label }) => (
+              <Tooltip key={id}>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onMouseDown={keepFocus}
+                    onClick={() => changeSize({ collapsed: false, height: preset })}
+                    aria-pressed={!size.collapsed && presetOf(size.height) === id}
+                    aria-label={label}
+                    className={sizeButton}
+                    data-size={id}
+                  >
+                    <Icon className="size-4" aria-hidden="true" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">{label}</TooltipContent>
+              </Tooltip>
+            ))}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  onMouseDown={keepFocus}
+                  onClick={() => changeSize({ ...size, collapsed: !size.collapsed })}
+                  aria-expanded={!size.collapsed}
+                  aria-label={t(size.collapsed ? "toolbar.expand" : "toolbar.collapse")}
+                  className={sizeButton}
+                  data-toolbar-collapse=""
+                >
+                  {size.collapsed ? <ChevronDown className="size-4" aria-hidden="true" /> : <ChevronUp className="size-4" aria-hidden="true" />}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">{t(size.collapsed ? "toolbar.expand" : "toolbar.collapse")}</TooltipContent>
+            </Tooltip>
+          </div>
         </div>
 
         {/* Tabs (scroll sideways on phones, wrap on bigger screens) */}
-        {tabs.length > 1 && (
+        {tabs.length > 1 && !size.collapsed && (
           <TabsList className="mt-2 h-auto! max-w-full justify-start gap-0.5 overflow-x-auto bg-transparent p-0 sm:flex-wrap sm:overflow-visible">
             {tabs.map((x) => (
               <TabsTrigger
@@ -367,43 +500,50 @@ export function SubjectToolbar({ toolkit }: { toolkit: SubjectToolkit }) {
         )}
 
         {/*
-          Recently used: one click for the symbols this teacher needs most.
-          The row is always there (with a hint while empty) and never wraps,
-          so the toolbar keeps its height — the first click can't push it
-          over the box being edited.
+          The chosen tab, the search results or the shortcuts list, at the
+          height the teacher chose: switching tabs, searching or opening the
+          shortcuts never changes how much of the page is covered. What
+          doesn't fit scrolls inside. (A subject with a single short tab
+          doesn't reserve empty room: there the height is "at most".)
         */}
-        {!searching && !showShortcuts && (
-          <div className="flex h-12 items-end gap-1 overflow-x-auto overflow-y-hidden pointer-coarse:h-13 max-sm:hidden" data-recent="">
-            {rowLabel(t("toolbar.recent"))}
-            {recentButtons.length === 0 ? (
-              <span className="flex h-10 items-center text-sm whitespace-nowrap text-muted-foreground/80 pointer-coarse:h-11">{t("toolbar.recentEmpty")}</span>
-            ) : (
-              recentButtons.map((button) => renderButton(button, "recent"))
-            )}
-          </div>
+        {open ? (
+          <>
+            <div
+              ref={panelRef}
+              id={`toolbar-panel-${toolkit.id}`}
+              role="tabpanel"
+              aria-label={searching ? t("toolbar.results") : tab?.[language]}
+              className="mt-2 flex flex-wrap content-start gap-1 overflow-y-auto overscroll-contain"
+              style={tabs.length <= 1 ? { maxHeight: height } : { height }}
+              data-toolbar-panel=""
+            >
+              {panel}
+            </div>
+            {/* The handle: drag it up or down (or use the arrow keys) to resize the panel. */}
+            <div
+              role="separator"
+              aria-orientation="horizontal"
+              aria-label={t("toolbar.resize")}
+              aria-controls={`toolbar-panel-${toolkit.id}`}
+              aria-valuemin={MIN_HEIGHT}
+              aria-valuemax={limit}
+              aria-valuenow={height}
+              tabIndex={0}
+              title={t("toolbar.resize")}
+              onPointerDown={startDrag}
+              onPointerMove={moveDrag}
+              onPointerUp={endDrag}
+              onPointerCancel={endDrag}
+              onKeyDown={resizeByKey}
+              className="group flex h-3.5 cursor-ns-resize touch-none items-center justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/60 pointer-coarse:h-6"
+              data-toolbar-resize=""
+            >
+              <span className="h-1 w-12 rounded-full bg-border transition-colors group-hover:bg-primary group-focus-visible:bg-primary group-active:bg-primary pointer-coarse:w-16" />
+            </div>
+          </>
+        ) : (
+          <div className="h-2" />
         )}
-
-        {/*
-          The chosen tab, the search results or the shortcuts list. With
-          several tabs the height is FIXED (two rows, the rest scrolls
-          inside): switching tabs never changes how much of the page is covered.
-        */}
-        <div
-          role="tabpanel"
-          aria-label={searching ? t("toolbar.results") : tab?.[language]}
-          className={cn(
-            "mt-2 mb-2.5 flex flex-wrap content-start gap-1 overflow-y-auto overscroll-contain",
-            // Search results and the shortcuts list also take the place of the "recently used" row (3rem; hidden on phones to save room).
-            tabs.length <= 1
-              ? "max-h-[6.5rem] pointer-coarse:max-h-[7rem]"
-              : searching || showShortcuts
-                ? "h-[9.5rem] pointer-coarse:h-[10.25rem] max-sm:h-[7rem]"
-                : "h-[6.5rem] pointer-coarse:h-[7rem]",
-          )}
-          data-toolbar-panel=""
-        >
-          {panel}
-        </div>
       </Tabs>
     </motion.div>
   );

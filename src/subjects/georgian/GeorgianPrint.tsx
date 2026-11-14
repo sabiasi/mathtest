@@ -294,7 +294,7 @@ function MistakeAbcdPrint({ items, labelStyle, answerKey }: { items: FindMistake
 export function SentenceAnalysisPrint({ question, answerKey }: { question: SentenceAnalysisQuestion; answerKey: boolean }) {
   const fix = useTypography();
   return (
-    <div>
+    <div className="print-parts-area">
       <p className="print-sentence">{fix(question.sentence)}</p>
       <div className="print-parts">
         {question.parts.map((part) => (

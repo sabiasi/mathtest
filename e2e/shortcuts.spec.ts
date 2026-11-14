@@ -101,19 +101,6 @@ test("symbol search: Georgian or English words, Enter inserts at the cursor", as
   await expect(search).toHaveValue("");
 });
 
-test("recently used symbols appear in their own row and are remembered", async ({ page }) => {
-  await openSampleCopy(page, "math");
-  await newQuestion(page);
-  await toolbar(page).getByRole("tab", { name: "ბერძნული ასოები" }).click();
-  await toolbar(page).locator('[role="tabpanel"] button[data-key="m:\\\\beta"]').click();
-  const recent = toolbar(page).locator("[data-recent]");
-  await expect(recent.locator('button[data-key="m:\\\\beta"]')).toBeVisible();
-  // Still there after reloading the page (remembered in this browser, per subject).
-  await page.reload();
-  await typingArea(questionBox(page, 0)).click();
-  await expect(toolbar(page).locator('[data-recent] button[data-key="m:\\\\beta"]')).toBeVisible();
-});
-
 test("matrix buttons: add a row inside a matrix; outside one, a hint instead of an error", async ({ page }) => {
   await openSampleCopy(page, "math");
   const box = await newQuestion(page);

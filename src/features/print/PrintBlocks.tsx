@@ -221,15 +221,17 @@ function QuestionBody({
 
     case "short-answer":
       return (
-        <div className="flex items-end gap-[2mm]">
-          <span>{t("print.answer")}</span>
-          <span className="print-answer-line">
-            {key && !isRichTextEmpty(question.answer) && (
-              <span className="print-key-answer">
-                <RichTextView value={question.answer} />
-              </span>
-            )}
-          </span>
+        <div className="print-short-area">
+          <div className="print-short flex items-end gap-[2mm]">
+            <span>{t("print.answer")}</span>
+            <span className="print-answer-line">
+              {key && !isRichTextEmpty(question.answer) && (
+                <span className="print-key-answer">
+                  <RichTextView value={question.answer} />
+                </span>
+              )}
+            </span>
+          </div>
         </div>
       );
 

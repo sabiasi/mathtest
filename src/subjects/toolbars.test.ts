@@ -1,6 +1,6 @@
 import { convertLatexToMarkup } from "mathlive";
 import { describe, expect, it } from "vitest";
-import { allButtons, pushRecent, searchButtons } from "@/features/editor/toolbarSearch";
+import { allButtons, searchButtons } from "@/features/editor/toolbarSearch";
 import { MATH_SHORTCUTS, MATH_TOOLBAR } from "./math/toolbar";
 import { getToolkit, SUBJECTS } from "./registry";
 import { buttonKey, type ToolbarButton } from "./types";
@@ -96,15 +96,6 @@ describe("symbol search", () => {
       const keys = new Set(allButtons(toolkit).map((item) => item.key));
       expect(all.filter((key) => !keys.has(key)), toolkit.id).toEqual([]);
     }
-  });
-
-  it("keeps the recently used list short, newest first, without doubles", () => {
-    let list: string[] = [];
-    for (const key of ["a", "b", "a", "c"]) list = pushRecent(list, key);
-    expect(list).toEqual(["c", "a", "b"]);
-    for (let i = 0; i < 20; i++) list = pushRecent(list, `k${i}`);
-    expect(list).toHaveLength(12);
-    expect(list[0]).toBe("k19");
   });
 
   it("draws every typing shortcut's result", () => {

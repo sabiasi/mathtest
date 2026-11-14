@@ -40,6 +40,27 @@
   font-size: 8.5pt;
   font-weight: 700;
 }
+/* A narrow (two-column) paper: the drawing takes the whole column and the
+   boxes get smaller, so neighbours don't cover each other. */
+.print-label-diagram {
+  container-type: inline-size;
+}
+@container (max-width: 100mm) {
+  .print-label-picture {
+    width: 100% !important;
+  }
+  .print-label-box {
+    width: 17mm;
+    min-height: 5.6mm;
+    padding: 0.3mm 0.6mm 0.3mm 2.4mm;
+    font-size: 6pt;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+  }
+  .print-label-box-number {
+    font-size: 5.5pt;
+  }
+}
 .print-label-bank {
   margin-top: 3mm;
   border: 0.3mm solid #000;

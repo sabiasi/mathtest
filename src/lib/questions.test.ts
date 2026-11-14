@@ -61,6 +61,54 @@ describe("duplicateQuestion", () => {
     expect(copy.options.map((o) => o.id)).not.toContain(q.options[0].id);
     expect(copy.correctOptionId).toBe(copy.options[2].id);
   });
+
+  it("copies every question type of every sample: no id is shared, links inside still work", async () => {
+    const { SUBJECT_IDS } = await import("@/subjects/ids");
+    const { sampleFor } = await import("@/samples");
+    const { normalizeTest } = await import("./storage/migrate");
+    /** Every id inside a value (not the names of picture files). */
+    const idsIn = (value: unknown, found: string[] = []): string[] => {
+      if (Array.isArray(value)) value.forEach((item) => idsIn(item, found));
+      else if (typeof value === "object" && value !== null) {
+        for (const [key, item] of Object.entries(value)) {
+          if (key === "id" && typeof item === "string") found.push(item);
+          else idsIn(item, found);
+        }
+      }
+      return found;
+    };
+    const types = new Set<string>();
+    for (const subject of SUBJECT_IDS) {
+      const sample = sampleFor(subject);
+      for (const question of sample.questions) {
+        types.add(question.type);
+        const before = JSON.stringify(question);
+        const copy = duplicateQuestion(question);
+        expect(JSON.stringify(question), `${subject} ${question.type}: the original is untouched`).toBe(before);
+        const oldIds = idsIn(question);
+        const newIds = idsIn(copy);
+        expect(newIds, `${subject} ${question.type}`).toHaveLength(oldIds.length);
+        expect(newIds.filter((id) => oldIds.includes(id)), `${subject} ${question.type}: shared ids`).toEqual([]);
+        // Put the old ids back: the copy is then the original — nothing else changed, every link was renamed with its target.
+        let restored = JSON.stringify(copy);
+        newIds.forEach((id, i) => (restored = restored.split(JSON.stringify(id)).join(JSON.stringify(oldIds[i]))));
+        expect(restored, `${subject} ${question.type}`).toBe(before);
+        // The copy is valid saved data (links to people, organisms, steps… still resolve).
+        const reloaded = normalizeTest({ ...sample, questions: [copy] })!.questions[0];
+        expect(reloaded, `${subject} ${question.type}: survives loading`).toEqual(copy);
+      }
+    }
+    expect(types.size).toBeGreaterThan(30);
+  });
+
+  it("gives a short fixed id a new one too, and keeps the stored picture", () => {
+    const q = createQuestion("short-answer", { id: "a" });
+    q.images = [{ id: "placement-id-1", imageId: "stored-picture-1", width: 10, height: 10 } as unknown as (typeof q.images)[number]];
+    const copy = duplicateQuestion(q);
+    expect(copy.id).not.toBe("a");
+    expect(copy.images[0].id).not.toBe("placement-id-1");
+    expect(copy.images[0].imageId).toBe("stored-picture-1");
+  });
 });
 
 describe("formatPoints", () => {

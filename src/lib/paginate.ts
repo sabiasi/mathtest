@@ -44,15 +44,24 @@ export function paginate({
   const available = () => columnHeight - (pages.length === 1 ? firstPageTop : 0);
 
   for (const [index, block] of blocks.entries()) {
-    const isFirstInColumn = pages[pages.length - 1].columns[column].length === 0;
     const blockGap = block.gap ?? gap;
-    let needed = (isFirstInColumn ? 0 : blockGap) + block.height;
     // A heading moves on together with the block after it (never alone at the bottom).
     const next = blocks[index + 1];
-    if (block.keepWithNext && next) needed += (next.gap ?? gap) + next.height;
+    const withNext = block.keepWithNext && next ? (next.gap ?? gap) + next.height : 0;
 
-    if (!isFirstInColumn && used + needed > available()) {
-      // Doesn't fit: next column, or a fresh page.
+    // Doesn't fit: next column, or a fresh page. An empty column normally
+    // takes whatever comes (nowhere better to go) — except on page 1, where
+    // the header makes columns shorter: a block that only fits a full-height
+    // column moves on to page 2 instead of running under the footer.
+    // (The very first block stays: page 1 is never left empty.)
+    const mustMove = () => {
+      const empty = pages[pages.length - 1].columns[column].length === 0;
+      const needed = (empty ? 0 : blockGap) + block.height + withNext;
+      if (used + needed <= available()) return false;
+      if (!empty) return true;
+      return index > 0 && available() < columnHeight && needed <= columnHeight;
+    };
+    while (mustMove()) {
       column++;
       if (column === columns) {
         pages.push(newPage());

@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 /**
  * Classification on paper: a dichotomous key (numbered steps or a tree) and
  * an organism's taxonomy, domain → species, as a staircase.
@@ -135,7 +136,7 @@ export function TaxonomyPrint({ question, answerKey }: { question: TaxonomyQuest
       )}
       <ol>
         {question.ranks.map((r, i) => (
-          <li key={r.rank} style={{ marginLeft: `${i * 5}mm` }}>
+          <li key={r.rank} style={{ "--step": i } as CSSProperties}>
             <span className="print-taxonomy-rank">{t(r.rank === "phylum" && question.plants ? "tax.division" : `tax.${r.rank}`)}:</span>
             {r.hide && !answerKey ? (
               <span className="print-bio-blank is-wide" />
