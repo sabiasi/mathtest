@@ -24,6 +24,7 @@ import { pedigreeAnswer, punnettAnswer } from "@/subjects/biology/GeneticsPrint"
 import { sequenceAnswer } from "@/subjects/biology/MolecularPrint";
 import { foodWebAnswer, pyramidAnswer } from "@/subjects/biology/EcologyPrint";
 import { keyAnswer, taxonomyAnswer } from "@/subjects/biology/ClassificationPrint";
+import { ClimateAnswer, ScaleCalcAnswer } from "@/subjects/geography/GeographyPrint";
 import { fillBlankAnswers, fillBlankChoiceAnswers } from "./FillBlankPrint";
 import { matchingAnswers } from "./MatchingPrint";
 import { CONTENT_HEIGHT, CONTENT_WIDTH, PAGE, mmToPx } from "./usePrintLayout";
@@ -74,6 +75,10 @@ function Cell({ question, labelStyle }: { question: Question; labelStyle: Test["
       return <>{keyAnswer(question) || "—"}</>;
     case "taxonomy":
       return <>{taxonomyAnswer(question) || "—"}</>;
+    case "scale-calc":
+      return <ScaleCalcAnswer question={question} />;
+    case "climate-chart":
+      return <ClimateAnswer question={question} labelStyle={labelStyle} />;
     case "codon-table":
       return <span className="is-open">{t("variants.open")}</span>;
     case "pedigree":

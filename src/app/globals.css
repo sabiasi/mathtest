@@ -6,6 +6,7 @@
 @import "../subjects/physics/print.css";
 @import "../subjects/chemistry/print.css";
 @import "../subjects/biology/print.css";
+@import "../subjects/geography/print.css";
 @import "../subjects/history/print.css";
 @import "../subjects/georgian/print.css";
 @import "../subjects/english/print.css";
@@ -73,6 +74,7 @@
   --color-subject-physics: var(--subject-physics);
   --color-subject-chemistry: var(--subject-chemistry);
   --color-subject-biology: var(--subject-biology);
+  --color-subject-geography: var(--subject-geography);
   --color-subject-history: var(--subject-history);
   --color-subject-georgian: var(--subject-georgian);
   --color-subject-english: var(--subject-english);
@@ -142,6 +144,7 @@
   --subject-physics: oklch(0.52 0.15 240);
   --subject-chemistry: oklch(0.5 0.11 170);
   --subject-biology: oklch(0.5 0.14 140);
+  --subject-geography: oklch(0.52 0.12 105);
   --subject-history: oklch(0.52 0.13 55);
   --subject-georgian: oklch(0.52 0.19 15);
   --subject-english: oklch(0.5 0.16 300);
@@ -202,6 +205,7 @@
   --subject-physics: oklch(0.78 0.11 240);
   --subject-chemistry: oklch(0.8 0.11 170);
   --subject-biology: oklch(0.8 0.14 140);
+  --subject-geography: oklch(0.82 0.12 105);
   --subject-history: oklch(0.8 0.11 65);
   --subject-georgian: oklch(0.78 0.12 15);
   --subject-english: oklch(0.78 0.12 300);

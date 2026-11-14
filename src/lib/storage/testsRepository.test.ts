@@ -249,6 +249,7 @@ function createTestShape(id: string): Test {
     questions: [],
     printOptions: { fontSize: "normal", showPoints: true, columns: 1, bilingual: false },
     variants: { count: 1, shuffleQuestions: true, shuffleOptions: true, seed: 1, duplex: false },
+    folder: "",
     createdAt: "2026-11-12T09:00:00.000Z",
     updatedAt: "2026-11-12T09:00:00.000Z",
   };

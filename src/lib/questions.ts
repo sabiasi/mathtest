@@ -244,6 +244,22 @@ export function createQuestion(
       return { ...base, type, points: keep.points ?? 2, levels: samplePyramid("energy", newId) };
     case "dichotomous-key":
       return { ...base, type, points: keep.points ?? 3, couplets: sampleKey(newId), style: "list" };
+    case "scale-calc":
+      return {
+        ...base,
+        type,
+        points: keep.points ?? 3,
+        denominator: 50_000,
+        shown: "numeric",
+        askConvert: true,
+        realUnit: "km",
+        rows: [
+          { id: newId(), value: 4, ask: "real" },
+          { id: newId(), value: 3, ask: "map" },
+        ],
+      };
+    case "climate-chart":
+      return { ...base, type, points: keep.points ?? 4, place: "", temperature: Array(12).fill(0), precipitation: Array(12).fill(0), table: false, tasks: ["warmest", "range", "total"] };
     case "taxonomy":
       return {
         ...base,

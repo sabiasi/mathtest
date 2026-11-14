@@ -1,9 +1,8 @@
 "use client";
 
-import { BookOpen, ClipboardList, CloudOff, Info, LoaderCircle, PencilLine, Plus, Printer, RotateCw } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
+import { ClipboardList, CloudOff, Info, PencilLine, Plus, Printer, RotateCw } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/EmptyState";
 import { GuestBanner } from "@/components/GuestBanner";
@@ -12,28 +11,67 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { NewTestDialog } from "@/features/subjects/NewTestDialog";
+import { SubjectIcon } from "@/features/subjects/SubjectPicker";
+import { dictionaries } from "@/i18n/dictionaries";
 import { useLanguage, useT } from "@/i18n/language";
 import { cleanUpImages } from "@/lib/images/imageStore";
-import { createSampleTest } from "@/lib/sample";
+import { countBySubject, filterTests, gradesOf, groupBySubject, sortTests, type HomeView as View, type SortKey } from "@/lib/myTests";
 import { createTest, retryLoad } from "@/lib/storage/testsRepository";
+import type { Test } from "@/lib/storage/types";
 import { useLoadStatus, useTests } from "@/lib/storage/useTests";
-import { dictionaries } from "@/i18n/dictionaries";
-import { subjectFromText, type SubjectId } from "@/subjects/ids";
+import { isSubjectId, subjectFromText, type SubjectId } from "@/subjects/ids";
 import { getToolkit } from "@/subjects/registry";
-import { TestCard } from "./TestCard";
+import { FilterBar } from "./FilterBar";
+import { SubjectNav } from "./SubjectNav";
+import { SubjectSection } from "./SubjectSection";
+import { CardGrid, NoMatches } from "./CardGrid";
 
-/** The "My tests" page (/tests). */
+const VIEW_KEY = "mathtest:home-view";
+const SHOW_ALL_KEY = "mathtest:home-all-subjects";
+
+function remembered(key: string): string | null {
+  try {
+    return typeof window === "undefined" ? null : localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+function remember(key: string, value: string) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Private mode: just not remembered.
+  }
+}
+
+/** The "My tests" page (/tests): tests organised by subject, never mixed. */
 export function HomeView() {
   const t = useT();
   const language = useLanguage();
   const router = useRouter();
   const tests = useTests();
   const loadStatus = useLoadStatus();
-  const { user, profile, guest, updateProfile } = useAuth();
-  const [openingSample, setOpeningSample] = useState(false);
+  const { profile, guest } = useAuth();
   const [choosingSubject, setChoosingSubject] = useState(false);
   // From Settings: the subject marked "Default" in the "which subject?" window.
   const defaultSubject = subjectFromText(profile?.default_subject ?? "");
+
+  // Which subject is open (remembered in this browser) and whether empty subjects show.
+  const [view, setViewState] = useState<View>(() => {
+    const saved = remembered(VIEW_KEY);
+    return saved && isSubjectId(saved) ? saved : "all";
+  });
+  const [showAllSubjects, setShowAllSubjects] = useState(() => remembered(SHOW_ALL_KEY) === "1");
+  function setView(next: View) {
+    setViewState(next);
+    remember(VIEW_KEY, next);
+  }
+  function toggleShowAll() {
+    setShowAllSubjects((v) => {
+      remember(SHOW_ALL_KEY, v ? "0" : "1");
+      return !v;
+    });
+  }
 
   // Tidy up: delete stored pictures that no test uses any more (e.g. from
   // deleted tests or removed images). Runs quietly in the background.
@@ -42,20 +80,6 @@ export function HomeView() {
   useEffect(() => {
     if (tests) void cleanUpImages(tests);
   }, [tests]);
-
-  // A brand-new account: add the sample test once, so the page isn't empty
-  // and the teacher can see what a finished test looks like.
-  const addingSample = useRef(false);
-  useEffect(() => {
-    if (tests === null || !user || !profile || profile.sample_added || addingSample.current) return;
-    if (tests.length > 0) {
-      addingSample.current = true; // already has tests: no sample needed
-      void updateProfile({ sample_added: true });
-      return;
-    }
-    addingSample.current = true;
-    void updateProfile({ sample_added: true }).then(() => createSampleTest(language));
-  }, [tests, user, profile, language, updateProfile]);
 
   function handleCreate(subjectId: SubjectId) {
     setChoosingSubject(false);
@@ -73,37 +97,20 @@ export function HomeView() {
     router.push(`/editor/${test.id}`);
   }
 
-  async function handleOpenSample() {
-    setOpeningSample(true);
-    const test = await createSampleTest(language);
-    router.push(`/editor/${test.id}`);
-  }
-
-  const createButton = (
-    <Button onClick={() => setChoosingSubject(true)}>
-      <Plus className="size-5" aria-hidden="true" />
-      {t("home.createNew")}
-    </Button>
-  );
-  const sampleButton = (
-    <Button variant="outline" onClick={handleOpenSample} disabled={openingSample}>
-      {openingSample ? <LoaderCircle className="size-5 animate-spin" aria-hidden="true" /> : <BookOpen className="size-5" aria-hidden="true" />}
-      {t("home.openSample")}
-    </Button>
-  );
+  const counts = useMemo(() => (tests ? countBySubject(tests) : null), [tests]);
 
   return (
-    <PageTransition className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+    <PageTransition className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("home.title")}</h1>
           <p className="mt-1.5 max-w-2xl text-[15px] text-muted-foreground">{t("home.subtitle")}</p>
         </div>
-        {tests && tests.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {sampleButton}
-            {createButton}
-          </div>
+        {tests && tests.length > 0 && view === "all" && (
+          <Button onClick={() => setChoosingSubject(true)}>
+            <Plus className="size-5" aria-hidden="true" />
+            {t("home.createNew")}
+          </Button>
         )}
       </div>
 
@@ -125,38 +132,31 @@ export function HomeView() {
               </Button>
             }
           />
-        ) : tests === null ? (
+        ) : tests === null || counts === null ? (
           <CardsSkeleton />
-        ) : tests.length === 0 ? (
-          <EmptyState
-            Icon={ClipboardList}
-            title={t("home.emptyTitle")}
-            text={t("home.emptyText")}
-            actions={
-              <>
-                {createButton}
-                {sampleButton}
-              </>
-            }
-          />
         ) : (
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* `layout`: when a card is added or removed, the others glide to their new places. */}
-            <AnimatePresence initial={false} mode="popLayout">
-              {tests.map((test) => (
-                <motion.li
-                  key={test.id}
-                  layout
-                  initial={{ opacity: 0, scale: 0.97 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.97 }}
-                  transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}
-                >
-                  <TestCard test={test} />
-                </motion.li>
-              ))}
-            </AnimatePresence>
-          </ul>
+          <div className="lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
+            <SubjectNav
+              view={view}
+              counts={counts}
+              total={tests.length}
+              showAll={showAllSubjects}
+              onShowAll={toggleShowAll}
+              onSelect={setView}
+            />
+            <div className="min-w-0 max-lg:mt-6">
+              {view === "all" ? (
+                <AllTests
+                  tests={tests}
+                  onOpenSubject={setView}
+                  onCreate={() => setChoosingSubject(true)}
+                  onOpenSample={() => router.push(`/editor/sample-${defaultSubject ?? "math"}`)}
+                />
+              ) : (
+                <SubjectSection key={view} subjectId={view} tests={tests.filter((test) => test.subjectId === view)} onCreate={() => handleCreate(view)} />
+              )}
+            </div>
+          </div>
         )}
       </div>
 
@@ -172,6 +172,77 @@ export function HomeView() {
         onPick={handleCreate}
       />
     </PageTransition>
+  );
+}
+
+/** "All tests": every subject that has tests, under its own heading (search, grade and sort apply to all). */
+function AllTests({
+  tests,
+  onOpenSubject,
+  onCreate,
+  onOpenSample,
+}: {
+  tests: Test[];
+  onOpenSubject: (id: SubjectId) => void;
+  onCreate: () => void;
+  onOpenSample: () => void;
+}) {
+  const t = useT();
+  const [search, setSearch] = useState("");
+  const [grade, setGrade] = useState("");
+  const [sort, setSort] = useState<SortKey>("updated");
+
+  if (tests.length === 0) {
+    return (
+      <EmptyState
+        Icon={ClipboardList}
+        title={t("home.emptyTitle")}
+        text={t("home.emptyText")}
+        actions={
+          <>
+            <Button onClick={onCreate}>
+              <Plus className="size-5" aria-hidden="true" />
+              {t("home.createNew")}
+            </Button>
+            <Button variant="outline" onClick={onOpenSample}>
+              {t("home.openSample")}
+            </Button>
+          </>
+        }
+      />
+    );
+  }
+
+  const shown = sortTests(filterTests(tests, { search, grade, folder: null }), sort);
+  const groups = groupBySubject(shown);
+  return (
+    <div className="space-y-8" data-all-tests="">
+      <FilterBar search={search} onSearch={setSearch} grades={gradesOf(tests)} grade={grade} onGrade={setGrade} sort={sort} onSort={setSort} />
+      {groups.length === 0 ? (
+        <NoMatches
+          onClear={() => {
+            setSearch("");
+            setGrade("");
+          }}
+        />
+      ) : (
+        groups.map((group) => (
+          <section key={group.subjectId} aria-labelledby={`group-${group.subjectId}`} data-subject-group={group.subjectId}>
+            <div className="mb-3 flex flex-wrap items-center gap-3">
+              <SubjectIcon id={group.subjectId} className="p-2" iconClassName="size-5" />
+              <h2 id={`group-${group.subjectId}`} className="text-lg font-semibold">
+                {t(`subject.${group.subjectId}`)}
+              </h2>
+              <span className="rounded-full bg-muted px-2 text-sm font-medium text-soft-foreground tabular-nums">{group.tests.length}</span>
+              <button type="button" className="ml-auto text-sm font-medium text-brand hover:underline" onClick={() => onOpenSubject(group.subjectId)}>
+                {t("home.openSubject", { subject: t(`subject.${group.subjectId}`) })} →
+              </button>
+            </div>
+            <CardGrid tests={group.tests} />
+          </section>
+        ))
+      )}
+    </div>
   );
 }
 

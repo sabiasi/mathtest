@@ -22,10 +22,13 @@ import { PEDIGREE_LIMITS } from "@/lib/pedigree";
 import { KEY_LIMITS } from "@/lib/dichotomous";
 import { WEB_LIMITS } from "@/lib/ecology";
 import { MAX_BASES } from "@/lib/molecular";
+import { GEO_LIMITS } from "@/lib/geography";
 import { normalizeRichText } from "@/lib/richText";
 import { DEFAULT_SUBJECT, isSubjectId, subjectFromText } from "@/subjects/ids";
 import {
   CEFR_LEVELS,
+  CLIMATE_TASKS,
+  type ClimateTask,
   SECTION_KINDS,
   type CefrLevel,
   type SectionKind,
@@ -126,6 +129,7 @@ function normalizeQuestion(raw: unknown): Question | null {
     images: normalizeImages(raw.images),
     grid: normalizeGrid(raw.grid),
     ...(typeof raw.instructionKa === "string" && raw.instructionKa.trim() ? { instructionKa: raw.instructionKa.slice(0, 500) } : {}),
+    ...(typeof raw.tip === "string" && raw.tip.trim() ? { tip: raw.tip.slice(0, 1000) } : {}),
   };
 
   switch (raw.type) {
@@ -507,6 +511,33 @@ function normalizeQuestion(raw: unknown): Question | null {
         style: raw.style === "tree" ? "tree" : "list",
       };
     }
+    case "scale-calc":
+      return {
+        ...base,
+        type: "scale-calc",
+        denominator: Math.round(clamp(num(raw.denominator, 50_000), GEO_LIMITS.denominator.min, GEO_LIMITS.denominator.max)),
+        shown: raw.shown === "named" || raw.shown === "linear" ? raw.shown : "numeric",
+        askConvert: raw.askConvert === true,
+        realUnit: raw.realUnit === "m" ? "m" : "km",
+        rows: list(raw.rows, GEO_LIMITS.rows, (r) => ({
+          id: r.id,
+          value: clamp(num(r.value, 0), 0, GEO_LIMITS.value),
+          ask: r.ask === "map" ? ("map" as const) : ("real" as const),
+        })),
+      };
+    case "climate-chart": {
+      const twelve = (value: unknown, min: number, max: number) =>
+        Array.from({ length: 12 }, (_, i) => clamp(num(Array.isArray(value) ? value[i] : undefined, 0), min, max));
+      return {
+        ...base,
+        type: "climate-chart",
+        place: str(raw.place).slice(0, 80),
+        temperature: twelve(raw.temperature, GEO_LIMITS.temperature.min, GEO_LIMITS.temperature.max),
+        precipitation: twelve(raw.precipitation, 0, GEO_LIMITS.precipitation),
+        table: raw.table === true,
+        tasks: Array.isArray(raw.tasks) ? CLIMATE_TASKS.filter((task: ClimateTask) => (raw.tasks as unknown[]).includes(task)) : [],
+      };
+    }
     case "taxonomy": {
       const saved = Array.isArray(raw.ranks) ? raw.ranks.filter(isObject) : [];
       return {
@@ -583,6 +614,7 @@ export function normalizeTest(raw: unknown): Test | null {
     questions,
     printOptions: normalizePrintOptions(raw.printOptions),
     variants: normalizeVariants(raw.variants, raw.id),
+    folder: str(raw.folder).trim().slice(0, 60),
     createdAt: str(raw.createdAt, now),
     updatedAt: str(raw.updatedAt, now),
   };

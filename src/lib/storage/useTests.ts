@@ -7,6 +7,7 @@
 import { useSyncExternalStore } from "react";
 import { getLoadStatus, getSaveState, getStorageKind, getTestsSnapshot, subscribe, type SaveState } from "./testsRepository";
 import type { Test } from "./types";
+import { getSample, isSampleId } from "@/samples";
 
 // The server never has the teacher's tests. So on the server — and until
 // they're loaded from the cloud — the answer is `null`, meaning "loading".
@@ -41,9 +42,19 @@ export type TestLookup =
   | { status: "missing" }
   | { status: "ready"; test: Test };
 
+const noSubscription = () => () => {};
+
 /** One test by id, with an explicit status so pages can show the right thing. */
 export function useTest(id: string): TestLookup {
   const tests = useTests();
+  // Sample tests come from src/samples (no loading, no account). Only after
+  // hydration: the server renders "loading" like for every other test.
+  const hydrated = useSyncExternalStore(noSubscription, () => true, () => false);
+  if (isSampleId(id)) {
+    // The PDF server injects the sample WITH the options chosen on the print page: prefer that copy.
+    const sample = hydrated ? (tests?.find((t) => t.id === id) ?? getSample(id)) : null;
+    return !hydrated ? { status: "loading" } : sample ? { status: "ready", test: sample } : { status: "missing" };
+  }
   if (tests === null) return { status: "loading" };
   const test = tests.find((t) => t.id === id);
   return test ? { status: "ready", test } : { status: "missing" };

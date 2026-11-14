@@ -115,6 +115,10 @@ export function findProblems(test: Test): Problem[] {
       else if (looseLeads(q.couplets) > 0) problems.push({ kind: "looseKey", number, keyOnly: false });
     }
     if (q.type === "taxonomy" && q.ranks.some((r) => r.hide && !r.value.trim())) problems.push({ kind: "noAnswer", number, keyOnly: true });
+    if (q.type === "scale-calc" && q.rows.every((r) => r.value <= 0) && !q.askConvert) problems.push({ kind: "fewItems", number, keyOnly: false });
+    if (q.type === "climate-chart") {
+      if (q.temperature.every((v) => v === 0) && q.precipitation.every((v) => v === 0)) problems.push({ kind: "fewItems", number, keyOnly: false });
+    }
     if (q.type === "pedigree") {
       if (q.people.length === 0) problems.push({ kind: "fewItems", number, keyOnly: false });
       else if (q.people.some((p) => p.ask && !p.answer.trim())) problems.push({ kind: "noAnswer", number, keyOnly: true });

@@ -62,8 +62,8 @@ Visitors can try everything without an account (guest mode).
 - [x] **Images & grids**: several pictures per question (upload, paste, drop;
   resize; above/right), stored in IndexedDB; an answer grid (graph paper or
   coordinate plane, 5 mm squares, SVG) on any question; print + PDF support.
-- [x] **First-time-teacher review**: sample test ("მაგალითი", added once on
-  first visit + button), welcome guide, Georgian confirm dialogs, day/month/
+- [x] **First-time-teacher review**: sample test ("მაგალითი"; since replaced
+  by the per-subject samples below), welcome guide, Georgian confirm dialogs, day/month/
   year date picker, toolbar only while editing a question, print-page
   warnings, readability and tablet fixes.
 - [x] **Redesign**: design tokens (light + dark) in globals.css, shadcn/ui
@@ -152,6 +152,34 @@ Visitors can try everything without an account (guest mode).
   extras: `instructionTemplates` (menu in the card), `typeLabels`, `presets`
   (Verb forms, True/False/Not Given), `markersOnPicture` (map → "Label the
   picture"). Section headings keep with the next block.
+- [x] **Geography toolkit**: subject id `geography` (Earth icon, olive
+  `--subject-geography`, Georgian typography). Types: `map` (shared with
+  history; MapEditor offers the built-in "outline map of Georgia"),
+  `scale-calc` (1 : denominator shown numeric / named "1 სმ-ში 500 მ" /
+  scale bar of 1 cm segments; rows map cm → ground or ground → map cm,
+  answers computed; optional "write the scale in the other form"),
+  `climate-chart` (12 months °C + mm → SVG chart, line + hatched B&W bars,
+  shared grid lines; optional table; questions warmest / coldest / range /
+  mean / total / wettest / driest with computed answers). `lib/geography.ts`
+  (pure maths, decimal comma in Georgian). Toolbar: Coordinates tab (tool:
+  degrees + minutes + side → "41°43′ ჩ. გ., 44°47′ აღმ. გრძ." or
+  "41°43′N, 44°47′E"; ° ′ ″; Georgian/Latin), Units tab (კმ … კაცი/კმ²,
+  "1 : ", Georgian/Latin), math basic.
+- [x] **My tests by subject + samples**: `/tests` is organised by subject
+  (never mixed): sidebar (desktop) / scrolling tabs (phone) from the
+  registry with icon, colour, count; "All tests" grouped under subject
+  headings; empty subjects hidden unless "Show all subjects"; last view
+  remembered (`mathtest:home-view`). Inside a subject: search by title,
+  grade filter, sort (last edited / created / title), folders (`test.folder`,
+  synced; empty folders in `mathtest:folders:v1`, this browser only),
+  drag a card onto a folder chip or "…" → Move to folder; rename / delete
+  folder (tests are kept). "New test" inside a subject skips the subject
+  dialog. Samples ("ნიმუში"): one per subject in `src/samples/<id>.ts`,
+  fixed id `sample-<id>`, read-only (editor `inert` + banner, never saved),
+  each uses every question type of its toolkit (samples.test.ts), editor-only
+  `tip` on questions, Preview / Print (`?print=1`) / Use as template
+  (editable copy with new ids). Landing: "See a sample test" + subject chips
+  open their sample paper. The old auto-added math sample is gone.
 - [ ] **Biology toolkit** (in phases; stop for review after each):
   - [x] **B1 — subject + "Label the diagram"**: subject id `biology` (Dna
     icon, green `--subject-biology`, Georgian typography, `chemistry: true`).
@@ -272,6 +300,10 @@ Visitors can try everything without an account (guest mode).
 | Privileged writes | Still NO service_role key. Plan changes come from `security definer` database functions; stage 2 will add narrow functions that require a server-only secret (env var) for verified payment callbacks |
 | Upgrade UX | `useUpgrade()("variants" \| "images" \| "footer")` opens a small dialog only after a click on a Premium feature; it changes nothing and loses nothing. `PremiumBadge` (gold `--premium-*` tokens). Guests are offered "create a free account" (= 14-day trial) |
 | Label the diagram | `LabelDiagramQuestion` (`picture`: `{kind:"builtin", drawing}` or `{kind:"upload", imageId, width, height}`). Positions (`x,y` = where the line points, `lx,ly` = the label) are in % of the DRAWING AREA = picture + `SIDE` (0.32 × width) room left/right + `PAD` above/below (`lib/labelDiagram.ts`: `PICTURE_BOX`, `areaAspect`, `placeLabel`, `labelsForParts` → `spreadAlongSide` + `uncross`, `printedBank`, `labelLetters`). Paper and editor share `LabelArea` (`subjects/biology/LabelDiagramView.tsx`): picture, SVG lines (viewBox 1000 wide), labels as HTML (boxes sized in mm; styles in `LabelDiagramView.css`, imported by the component). Browser check of the print positions: `PRINT_TEST_URL=http://localhost:3000 npx vitest run src/subjects/biology/LabelDiagramPrint.browser.test.ts` (skipped in a normal `npm test`). Built-in drawings are `<img src="data:image/svg+xml…">` (`drawingUrl`), no storage used. Uploaded pictures count in `usedImageIds` |
+| Samples | `src/samples/`: `build.ts` (helpers `rt`, `m`, `ce`, `mc`, `tf`, `short`, `open`, `matching`, `fillBlank`, `order`; `sampleTest` runs `normalizeTest`; `SAMPLE_PREFIX`, `isSampleId`, `templateTitle`), one file per subject, `index.ts` (`sampleFor`, `getSample`). Content data (like `drawings.ts`), not dictionaries. `useTest` returns samples without the repository (after hydration; it prefers an injected copy so PDFs keep the page's options). `saveTest` / `setTestFolder` ignore sample ids; PrintView keeps a sample's options in local state. `createTestFromTemplate` = "Use as template" |
+| Built-in pictures | `lib/images/builtinPictures.ts`: image id `builtin:<name>` (georgia-map, room, triangle-abc, umbrella, clock, key, cup), original SVG, black on white, no words; `getImageUrl` returns a data URL, `usedImageIds` skips them (never uploaded, cleaned up or counted). Georgia outline from lon/lat (`georgiaPoint`, `georgiaPercent`, `GEORGIA_PLACES`) |
+| Tips | `QuestionBase.tip`: a note for the teacher shown in the question card (dismissable in own tests), never printed |
+| My tests | `lib/myTests.ts` (pure: counts, filter, sort, grades, folders, groups), `features/home/` HomeView, SubjectNav, SubjectSection (FolderBar), FilterBar, CardGrid, SampleCard, TestCard (`TEST_DRAG_TYPE`), `folders.ts` (empty-folder store) |
 | Tests | Vitest + jsdom (`npm test`) |
 
 Next.js 16 notes (see AGENTS.md: read `node_modules/next/dist/docs/` before
@@ -319,7 +351,9 @@ src/
   app/api/pdf/route.ts  PDF generation; lib/server/chrome.ts finds/launches Chrome
   lib/paginate.ts       Pure page packing (never splits a question)
   lib/checks.ts         findProblems(test): empty questions, missing answers (print-page warnings)
-  lib/sample.ts         createSampleTest(language): the "მაგალითი" test
+  samples/              one sample test per subject + build helpers (see Tech decisions)
+  subjects/geography/   toolbar + CoordinateTool, GeographyEditors, GeographyPrint (scale, climate)
+  lib/geography.ts      scale and climate maths; lib/myTests.ts "My tests" logic
   lib/images/           imageStore (IndexedDB, resize, data URLs for PDF, clean-up), imageMath (pure)
   components/           … GridArea (SVG grid in mm), QuestionImageView (picture with fixed aspect ratio)
   lib/variants.ts       buildVariants(test) → [A (original), B…]; seededRandom + shuffle
@@ -423,8 +457,12 @@ src/
 - The math toolbar only renders while a rich-text box is active
   (MathEditingContext clears it on focus elsewhere). Browser tests wait for
   `[data-editor-ready="true"]`, not for the toolbar.
-- The sample test is created once per browser (flag `mathtest:sample-added`);
-  browser tests that start from an empty browser set that flag first.
+- Samples are never in the tests list: a fresh browser starts with 0 tests.
+  `profiles.sample_added` is no longer used (kept so old rows stay valid).
+- A sample's editor is wrapped in `inert` (still readable, can't be focused);
+  things that must disappear there use the `[[inert]_&]:hidden` class.
+- Adding a subject: also write its sample (`src/samples/<id>.ts`); the unit
+  test fails until it uses every question type of the toolkit.
 - Touch screens get bigger targets via Tailwind's `pointer-coarse:` variant.
 - Variants must stay repeatable: never use Math.random() for them; change the
   seed only via "Shuffle again" (it warns that printed papers won't match).

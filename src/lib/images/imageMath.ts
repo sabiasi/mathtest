@@ -2,6 +2,7 @@
  * Pure helpers for images (no browser needed, so they're easy to test).
  */
 import type { Test } from "@/lib/storage/types";
+import { BUILTIN_PREFIX } from "./builtinPictures";
 
 /** ~2400 px is enough for a sharp full-width print at 300 dpi. */
 export const MAX_IMAGE_SIDE = 2400;
@@ -23,7 +24,7 @@ export function outputType(inputType: string): "image/png" | "image/jpeg" {
 
 export const ACCEPTED_TYPES = ["image/png", "image/jpeg", "image/svg+xml", "image/webp", "image/gif"];
 
-/** Ids of every stored picture used by any test: question pictures and maps (diagrams have none). */
+/** Ids of every stored picture used by any test: question pictures and maps (diagrams and built-in pictures have none). */
 export function usedImageIds(tests: Test[]): Set<string> {
   const used = new Set<string>();
   for (const test of tests) {
@@ -34,6 +35,8 @@ export function usedImageIds(tests: Test[]): Set<string> {
       if (q.type === "label-diagram" && q.picture?.kind === "upload") used.add(q.picture.imageId);
     }
   }
+  // Pictures that ship with the app are never stored, uploaded or cleaned up.
+  for (const id of used) if (id.startsWith(BUILTIN_PREFIX) || !id) used.delete(id);
   return used;
 }
 

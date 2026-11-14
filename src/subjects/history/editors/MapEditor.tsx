@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { useT } from "@/i18n/language";
 import { newId } from "@/lib/ids";
 import { ACCEPTED_TYPES } from "@/lib/images/imageMath";
+import { builtinImage } from "@/lib/images/builtinPictures";
 import { addImage } from "@/lib/images/imageStore";
 import { useImageError } from "@/features/plans/useImageError";
 import { LIMITS } from "@/lib/questions";
@@ -88,6 +89,20 @@ export function MapEditor({
           {busy ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <ImagePlus className="size-4" aria-hidden="true" />}
           {t(busy ? "media.uploading" : picture ? "picture.upload" : "map.upload")}
         </button>
+        {!picture && (
+          <p className="flex flex-wrap items-center justify-center gap-2 text-sm text-muted-foreground">
+            {t("map.builtinTitle")}
+            <button
+              type="button"
+              className={buttonVariants({ variant: "ghost", size: "sm" })}
+              onClick={() => onPatch((q) => ({ ...q, map: builtinImage("georgia-map"), markers: [] }))}
+              data-builtin-map="georgia"
+            >
+              <MapPinned className="size-4" aria-hidden="true" />
+              {t("map.builtin.georgia")}
+            </button>
+          </p>
+        )}
         {error && <p className="text-sm text-destructive-text">{error}</p>}
         {picker}
       </div>

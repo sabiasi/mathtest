@@ -45,6 +45,10 @@ import {
   Printer,
   TextCursorInput,
   ToggleRight,
+  CloudSun,
+  Ruler,
+  Copy,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatePresence } from "motion/react";
@@ -63,6 +67,8 @@ import type { Question, QuestionType, Test } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
 import { getToolkit } from "@/subjects/registry";
 import type { SubjectToolkit } from "@/subjects/types";
+import { useUseAsTemplate } from "@/features/samples/useTemplate";
+import { isSampleId } from "@/samples/build";
 import { QuestionList } from "./questions/QuestionList";
 import { SubjectToolbar } from "./SubjectToolbar";
 import { TestHeaderForm } from "./TestHeaderForm";
@@ -107,6 +113,8 @@ const TYPE_ICONS: Record<QuestionType, typeof ListChecks> = {
   pyramid: Triangle,
   "dichotomous-key": Split,
   taxonomy: ListTree,
+  "scale-calc": Ruler,
+  "climate-chart": CloudSun,
 };
 
 /** One "add a question" button. */
@@ -230,6 +238,9 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
   }
 
   const total = formatPoints(totalPoints(test.questions));
+  // A sample test ("ნიმუში") is shown read-only: look, read the tips, or make a copy.
+  const readOnly = isSampleId(test.id);
+  const makeCopy = useUseAsTemplate();
   // The subject's toolkit decides the toolbar and which question types are offered.
   const toolkit = getToolkit(test.subjectId);
 
@@ -243,7 +254,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
             <Link
               href="/tests"
               // Leaving saves right away (see useAutosave); say so.
-              onClick={() => saveState !== "error" && toast.success(t("toast.saved"))}
+              onClick={() => !readOnly && saveState !== "error" && toast.success(t("toast.saved"))}
               className="inline-flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               <ArrowLeft className="size-4" aria-hidden="true" />
@@ -256,6 +267,12 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                 <span className="max-sm:sr-only">{t("editor.printPreview")}</span>
               </Link>
             </div>
+            {readOnly ? (
+              <button type="button" className={buttonVariants({ size: "sm" })} onClick={() => makeCopy(test)} data-use-template="">
+                <Copy className="size-4" aria-hidden="true" />
+                <span className="max-sm:sr-only">{t("sample.useTemplate")}</span>
+              </button>
+            ) : (
             <span
               className={cn("flex items-center gap-1.5 text-sm", saveState === "error" ? "text-destructive-text" : "text-muted-foreground")}
               aria-live="polite"
@@ -282,6 +299,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                 </>
               )}
             </span>
+            )}
             <span className="rounded-full bg-primary-soft px-3 py-1 text-sm font-semibold whitespace-nowrap text-brand tabular-nums">
               {t("editor.total", { points: total })}
             </span>
@@ -294,6 +312,21 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
         ) : (
           <div className="mx-auto max-w-3xl space-y-8 px-4 pt-8 sm:px-6">
             <GuestBanner />
+            {readOnly && (
+              <div className="flex flex-wrap items-start gap-4 rounded-2xl border border-primary-soft-border bg-primary-soft/60 p-5" data-sample-banner="">
+                <Sparkles className="mt-0.5 size-6 shrink-0 text-brand" aria-hidden="true" />
+                <div className="min-w-60 flex-1">
+                  <h2 className="font-semibold text-foreground">{t("sample.readOnlyTitle")}</h2>
+                  <p className="mt-1 text-[15px] leading-snug text-soft-foreground">{t("sample.readOnlyText")}</p>
+                </div>
+                <button type="button" className={buttonVariants()} onClick={() => makeCopy(test)}>
+                  <Copy className="size-5" aria-hidden="true" />
+                  {t("sample.useTemplate")}
+                </button>
+              </div>
+            )}
+            {/* inert: a sample can be read (and its tips seen) but not changed. */}
+            <div className="space-y-8" inert={readOnly}>
             <TestHeaderForm test={test} onChange={update} />
 
             <section>
@@ -328,6 +361,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                 />
               )}
 
+              {!readOnly && (
               <div className="mt-2 rounded-2xl border bg-card p-4 shadow-sm">
                 <p className="mb-3 text-sm font-medium text-soft-foreground">{t("questions.add")}:</p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
@@ -357,7 +391,9 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                   ))}
                 </div>
               </div>
+              )}
             </section>
+            </div>
           </div>
         )}
       </div>

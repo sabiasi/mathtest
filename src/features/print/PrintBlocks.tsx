@@ -21,6 +21,7 @@ import { LabelDiagramPrint } from "@/subjects/biology/LabelDiagramView";
 import { PedigreePrint, PunnettPrint } from "@/subjects/biology/GeneticsPrint";
 import { CodonTablePrint, SequencePrint } from "@/subjects/biology/MolecularPrint";
 import { FoodWebPrint, PyramidPrint } from "@/subjects/biology/EcologyPrint";
+import { ClimateChartPrint, ScaleCalcPrint } from "@/subjects/geography/GeographyPrint";
 import { KeyPrint, TaxonomyPrint } from "@/subjects/biology/ClassificationPrint";
 import { FillBlankPrint } from "./FillBlankPrint";
 import {
@@ -285,6 +286,12 @@ function QuestionBody({
 
     case "taxonomy":
       return <TaxonomyPrint question={question} answerKey={key} />;
+
+    case "scale-calc":
+      return <ScaleCalcPrint question={question} answerKey={key} />;
+
+    case "climate-chart":
+      return <ClimateChartPrint question={question} labelStyle={test.labelStyle} answerKey={key} />;
 
     case "fill-blank":
       return <FillBlankPrint question={question} labelStyle={test.labelStyle} answerKey={key} />;

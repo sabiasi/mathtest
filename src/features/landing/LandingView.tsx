@@ -10,6 +10,7 @@ import {
   Printer,
   Shuffle,
   type LucideIcon,
+  FileText,
 } from "lucide-react";
 import { convertLatexToMarkup } from "mathlive";
 import { motion } from "motion/react";
@@ -84,6 +85,10 @@ export function LandingView() {
             {startButton}
             {!signedIn && accounts && tryButton}
           </div>
+          <Link href="/print/sample-math" className="mt-4 inline-flex items-center gap-1.5 text-[15px] font-medium text-brand hover:underline" data-see-sample="">
+            <FileText className="size-4" aria-hidden="true" />
+            {t("landing.seeSample")}
+          </Link>
           <p className="mt-4 text-sm text-muted-foreground">{t("landing.note")}</p>
           {!signedIn && accounts && (
             <p className="mt-1.5 text-sm text-muted-foreground">
@@ -106,9 +111,15 @@ export function LandingView() {
           <h2 className="text-center text-lg font-semibold text-foreground">{t("landing.subjectsTitle")}</h2>
           <ul className="mt-5 flex flex-wrap justify-center gap-3">
             {SUBJECTS.map(({ id }) => (
-              <li key={id} className="flex items-center gap-2.5 rounded-xl border bg-card py-2 pr-4 pl-2 shadow-xs">
-                <SubjectIcon id={id} />
-                <span className="font-medium text-foreground">{t(`subject.${id}`)}</span>
+              <li key={id}>
+                {/* Each subject opens its sample test (the printed paper). */}
+                <Link
+                  href={`/print/sample-${id}`}
+                  className="flex items-center gap-2.5 rounded-xl border bg-card py-2 pr-4 pl-2 shadow-xs transition-colors hover:border-primary-soft-border hover:bg-primary-soft/50"
+                >
+                  <SubjectIcon id={id} />
+                  <span className="font-medium text-foreground">{t(`subject.${id}`)}</span>
+                </Link>
               </li>
             ))}
           </ul>

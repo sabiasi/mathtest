@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Copy, GripVertical, ImagePlus, Trash2 } from "lucide-react";
+import { Copy, GripVertical, ImagePlus, Lightbulb, Trash2, X } from "lucide-react";
 import { motion } from "motion/react";
 import { useState, type ClipboardEvent, type DragEvent } from "react";
 import { inputClasses } from "@/components/ui/form";
@@ -47,6 +47,7 @@ import {
   WordFormationEditor,
   WordSearchEditor,
 } from "@/subjects/english/EnglishEditors";
+import { ClimateChartEditor, ScaleCalcEditor } from "@/subjects/geography/GeographyEditors";
 import { InstructionMenu } from "./InstructionMenu";
 import { MatchingEditor } from "./MatchingEditor";
 import { DiagramDialog } from "@/subjects/physics/diagrams/DiagramDialog";
@@ -79,6 +80,8 @@ const TEXT_PLACEHOLDERS: Partial<Record<QuestionType, MessageKey>> = {
   pyramid: "questions.pyramidPlaceholder",
   "dichotomous-key": "questions.keyPlaceholder",
   taxonomy: "questions.taxonomyPlaceholder",
+  "scale-calc": "questions.scalePlaceholder",
+  "climate-chart": "questions.climatePlaceholder",
   passage: "questions.textBlockPlaceholder",
   poem: "questions.textBlockPlaceholder",
   "fill-blank": "questions.fillPlaceholder",
@@ -304,6 +307,19 @@ export function QuestionCard({
           </div>
 
           <div className="space-y-4 p-4 sm:p-5">
+            {question.tip && (
+              // A helper note for the teacher (sample tests): shown here only, never printed.
+              <aside className="flex items-start gap-2.5 rounded-xl border border-dashed border-primary-soft-border bg-primary-soft/50 p-3 text-sm leading-snug" data-tip="">
+                <Lightbulb className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />
+                <p className="min-w-0 flex-1 text-soft-foreground">
+                  <span className="font-semibold text-foreground">{t("sample.tip")}: </span>
+                  {question.tip}
+                </p>
+                <IconButton label={t("sample.dismissTip")} className="-m-1 p-1 [[inert]_&]:hidden" onClick={() => onChange({ ...question, tip: undefined })}>
+                  <X className="size-4" aria-hidden="true" />
+                </IconButton>
+              </aside>
+            )}
             {toolkit.instructionTemplates && (
               <InstructionMenu
                 templates={toolkit.instructionTemplates}
@@ -382,6 +398,8 @@ export function QuestionCard({
             {question.type === "pyramid" && <PyramidEditor question={question} onChange={onChange} />}
             {question.type === "dichotomous-key" && <KeyEditor question={question} onChange={onChange} />}
             {question.type === "taxonomy" && <TaxonomyEditor question={question} onChange={onChange} />}
+            {question.type === "scale-calc" && <ScaleCalcEditor question={question} onChange={onChange} />}
+            {question.type === "climate-chart" && <ClimateChartEditor question={question} labelStyle={labelStyle} onChange={onChange} />}
             {question.type === "map" && (
               <MapEditor
                 question={question}

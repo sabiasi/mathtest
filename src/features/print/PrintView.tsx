@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowLeft, Download, LoaderCircle, Printer, SearchX, Shuffle, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Copy, Download, LoaderCircle, Printer, SearchX, Shuffle, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { PageTransition } from "@/components/PageTransition";
@@ -16,6 +16,8 @@ import { findProblems } from "@/lib/checks";
 import { saveTest } from "@/lib/storage/testsRepository";
 import type { PrintOptions, Test, VariantSettings } from "@/lib/storage/types";
 import { useTest } from "@/lib/storage/useTests";
+import { isSampleId } from "@/samples/build";
+import { useUseAsTemplate } from "@/features/samples/useTemplate";
 import { MAX_VARIANTS, buildVariants, newSeed, type Variant } from "@/lib/variants";
 import { getToolkit } from "@/subjects/registry";
 import { printBlocks } from "./blocks";
@@ -57,11 +59,22 @@ export function PrintView() {
       </PageTransition>
     );
   }
+  const autoPrint = params.get("print") === "1";
   return (
     <PageTransition>
-      <PrintDocument test={lookup.test} version={version} variantParam={variant} />
+      {isSampleId(lookup.test.id) ? (
+        <SampleDocument key={lookup.test.id} sample={lookup.test} version={version} variantParam={variant} autoPrint={autoPrint} />
+      ) : (
+        <PrintDocument test={lookup.test} version={version} variantParam={variant} autoPrint={autoPrint} />
+      )}
     </PageTransition>
   );
+}
+
+/** A sample can be printed with any options, but they're kept only while the page is open (never saved). */
+function SampleDocument({ sample, ...rest }: { sample: Test; version: PrintVersion; variantParam: string; autoPrint: boolean }) {
+  const [test, setTest] = useState(sample);
+  return <PrintDocument test={test} onSave={setTest} {...rest} />;
 }
 
 /** The print page's layout in grey shapes, while the test loads. */
@@ -82,7 +95,21 @@ export function PrintSkeleton() {
   );
 }
 
-function PrintDocument({ test, version, variantParam }: { test: Test; version: PrintVersion; variantParam: string }) {
+function PrintDocument({
+  test,
+  version,
+  variantParam,
+  autoPrint = false,
+  onSave = saveTest,
+}: {
+  test: Test;
+  version: PrintVersion;
+  variantParam: string;
+  /** ?print=1 (the "Print" button on a sample card): open the print dialog once the pages are ready. */
+  autoPrint?: boolean;
+  /** Where changed options go: the saved test, or (samples) only this page. */
+  onSave?: (test: Test) => unknown;
+}) {
   const t = useT();
   const confirm = useConfirm();
   const language = useLanguage();
@@ -132,16 +159,26 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
     };
   }, [testTitle, suffix]);
 
+  // ---- ?print=1: print as soon as everything is laid out (once) ----
+  const printed = useRef(false);
+  useEffect(() => {
+    if (!autoPrint || !ready || printed.current) return;
+    printed.current = true;
+    void waitForImages().then(() => window.print());
+  }, [autoPrint, ready]);
+  const sample = isSampleId(test.id);
+  const makeCopy = useUseAsTemplate();
+
   // ---- Changing things ----
   function setUrl(changes: { version?: PrintVersion; variant?: string }) {
     const next = new URLSearchParams({ version, variant: variantParam, ...changes });
     router.replace(`?${next}`, { scroll: false });
   }
   function setOptions(changes: Partial<PrintOptions>) {
-    saveTest({ ...test, printOptions: { ...options, ...changes } });
+    onSave({ ...test, printOptions: { ...options, ...changes } });
   }
   function setVariants(changes: Partial<VariantSettings>) {
-    saveTest({ ...test, variants: { ...test.variants, ...changes } });
+    onSave({ ...test, variants: { ...test.variants, ...changes } });
   }
   async function reshuffle() {
     const ok = await confirm({
@@ -207,6 +244,15 @@ function PrintDocument({ test, version, variantParam }: { test: Test; version: P
               {t(pdfBusy ? "print.pdfWorking" : "print.pdf")}
             </Button>
           </div>
+          {sample && (
+            <div className="flex w-full flex-wrap items-center gap-3 rounded-lg border border-primary-soft-border bg-primary-soft/60 px-3 py-2" data-sample-notice="">
+              <p className="min-w-60 flex-1 text-sm text-soft-foreground">{t("sample.printNotice")}</p>
+              <Button size="sm" onClick={() => makeCopy(test)}>
+                <Copy className="size-4" aria-hidden="true" />
+                {t("sample.useTemplate")}
+              </Button>
+            </div>
+          )}
           {notice && (
             <p className="w-full rounded-lg border border-warning-border bg-warning-soft px-3 py-2 text-sm text-warning-text">
               {notice}

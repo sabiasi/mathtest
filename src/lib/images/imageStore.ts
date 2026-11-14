@@ -21,6 +21,7 @@ import type { Test } from "@/lib/storage/types";
 import { IMAGE_BUCKET } from "@/lib/supabase/config";
 import { getSupabase } from "@/lib/supabase/client";
 import { loadImageStorage } from "@/lib/plans/subscription";
+import { builtinImageUrl, isBuiltinImage } from "./builtinPictures";
 import { ACCEPTED_TYPES, outputType, targetSize, unusedImageIds, usedImageIds } from "./imageMath";
 
 const DB_NAME = "mathtest";
@@ -239,6 +240,8 @@ async function getBlob(id: string): Promise<Blob | null> {
 const urlCache = new Map<string, Promise<string | null>>();
 
 export function getImageUrl(imageId: string): Promise<string | null> {
+  // Pictures that ship with the app (outline map, sample drawings).
+  if (isBuiltinImage(imageId)) return Promise.resolve(builtinImageUrl(imageId));
   const injected = typeof window !== "undefined" ? window.__MATHTEST_IMAGES__?.[imageId] : undefined;
   if (injected) return Promise.resolve(injected);
   let url = urlCache.get(imageId);

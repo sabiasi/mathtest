@@ -135,6 +135,8 @@ interface QuestionBase {
   grid: AnswerGrid | null;
   /** The instruction in Georgian, printed under the (English) question text when "bilingual" is on. */
   instructionKa?: string;
+  /** A helper note for the teacher, shown in the editor only — never printed (sample tests use it). */
+  tip?: string;
 }
 
 export interface ChoiceOption {
@@ -650,6 +652,52 @@ export interface WordSearchQuestion extends QuestionBase {
   seed: number;
 }
 
+// ---------------------------------------------------------------------------
+// Geography
+// ---------------------------------------------------------------------------
+
+/**
+ * One distance to convert. `ask: "real"` → `value` is centimetres on the
+ * map and students find the real distance; `ask: "map"` → `value` is the
+ * real distance (in the question's `realUnit`) and students find the map cm.
+ */
+export interface ScaleRow {
+  id: string;
+  value: number;
+  ask: "real" | "map";
+}
+
+/** Geography: map scale — distances on the map ↔ on the ground (answers are calculated). */
+export interface ScaleCalcQuestion extends QuestionBase {
+  type: "scale-calc";
+  /** 1 : denominator, e.g. 50 000. */
+  denominator: number;
+  /** How the scale is printed: "1 : 50 000", "1 სმ-ში 500 მ" or a scale bar. */
+  shown: "numeric" | "named" | "linear";
+  /** Students also write the scale in another form (numeric → named, named / bar → numeric). */
+  askConvert: boolean;
+  /** The unit of real distances. */
+  realUnit: "km" | "m";
+  rows: ScaleRow[];
+}
+
+export const CLIMATE_TASKS = ["warmest", "coldest", "range", "mean", "total", "wettest", "driest"] as const;
+export type ClimateTask = (typeof CLIMATE_TASKS)[number];
+
+/** Geography: a climate chart (temperature line + precipitation bars) with questions answered from it. */
+export interface ClimateChartQuestion extends QuestionBase {
+  type: "climate-chart";
+  /** Printed above the chart, e.g. "თბილისი (490 მ)". */
+  place: string;
+  /** 12 monthly values, January first. */
+  temperature: number[];
+  precipitation: number[];
+  /** Also print the numbers in a table under the chart. */
+  table: boolean;
+  /** Questions printed under the chart; the key answers are calculated. */
+  tasks: ClimateTask[];
+}
+
 /**
  * A question is exactly ONE of these. The `type` field tells which one —
  * TypeScript calls this a "discriminated union".
@@ -691,7 +739,9 @@ export type Question =
   | FoodWebQuestion
   | PyramidQuestion
   | DichotomousKeyQuestion
-  | TaxonomyQuestion;
+  | TaxonomyQuestion
+  | ScaleCalcQuestion
+  | ClimateChartQuestion;
 
 export type QuestionType = Question["type"];
 
@@ -749,6 +799,8 @@ export interface Test {
   questions: Question[];
   printOptions: PrintOptions;
   variants: VariantSettings;
+  /** A folder inside the subject on the "My tests" page ("" = not in a folder). */
+  folder: string;
   /** ISO timestamps, e.g. "2026-11-12T15:30:00.000Z". */
   createdAt: string;
   updatedAt: string;

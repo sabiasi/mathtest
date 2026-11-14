@@ -17,6 +17,7 @@
  * Unit tests give it a fake backend, so they run without internet.
  */
 import { newId } from "@/lib/ids";
+import { isSampleId } from "@/samples/build";
 import { DEFAULT_SUBJECT } from "@/subjects/ids";
 import { duplicateQuestion } from "@/lib/questions";
 import { normalizeTest, seedFromString } from "./migrate";
@@ -190,6 +191,7 @@ export function createTest(defaults: Partial<Omit<Test, "id">> = {}): Test {
     questions: [],
     printOptions: { ...DEFAULT_PRINT_OPTIONS },
     variants: { ...DEFAULT_VARIANTS, seed: seedFromString(id) },
+    folder: "",
     ...defaults,
     id,
     createdAt: now,
@@ -198,6 +200,27 @@ export function createTest(defaults: Partial<Omit<Test, "id">> = {}): Test {
   setTests([test, ...tests]);
   enqueue(test.id, { kind: "upsert", test });
   return test;
+}
+
+/**
+ * "Use as template": saves an editable copy of a sample (or any test that
+ * isn't in the list) with new ids, a fresh variant seed and today's dates.
+ */
+export function createTestFromTemplate(template: Test, changes: Partial<Pick<Test, "title" | "schoolName" | "folder">> = {}): Test {
+  const now = new Date().toISOString();
+  const id = newId();
+  const copy: Test = {
+    ...structuredClone(template),
+    ...changes,
+    id,
+    questions: template.questions.map((q) => duplicateQuestion(structuredClone(q))),
+    variants: { ...template.variants, seed: seedFromString(id) },
+    createdAt: now,
+    updatedAt: now,
+  };
+  setTests([copy, ...tests]);
+  enqueue(copy.id, { kind: "upsert", test: copy });
+  return copy;
 }
 
 /** Saves a copy of a test (with a new title) and returns the copy. */
@@ -220,10 +243,24 @@ export function duplicateTest(id: string, title: string): Test | undefined {
 
 /** Saves changes to an existing test (or adds it) and returns the saved version. */
 export function saveTest(test: Test): Test {
+  // Sample tests are read-only data from src/samples: never saved or uploaded.
+  if (isSampleId(test.id)) return test;
   const saved: Test = { ...test, updatedAt: new Date().toISOString() };
   setTests([saved, ...tests.filter((t) => t.id !== test.id)]);
   enqueue(saved.id, { kind: "upsert", test: saved });
   return saved;
+}
+
+/**
+ * Puts a test into a folder ("" = no folder). Not an edit: "last edited"
+ * (updatedAt) stays as it was, so the test doesn't jump to the top.
+ */
+export function setTestFolder(id: string, folder: string): void {
+  const test = getTest(id);
+  if (!test || isSampleId(id) || test.folder === folder) return;
+  const moved: Test = { ...test, folder };
+  setTests(tests.map((t) => (t.id === id ? moved : t)));
+  enqueue(id, { kind: "upsert", test: moved });
 }
 
 export function deleteTest(id: string): void {
