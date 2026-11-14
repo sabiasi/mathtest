@@ -7,6 +7,7 @@
  * Friendly, never pushy: Free is shown as a real option, features that
  * aren't built yet say "Soon", and nothing here interrupts anyone's work.
  */
+import { PageBackdrop } from "@/components/PageBackdrop";
 import { Check, ChevronDown, Crown, Minus, School, Sparkles } from "lucide-react";
 import { motion } from "motion/react";
 import Link from "next/link";
@@ -151,14 +152,11 @@ export function PricingView() {
 
   return (
     <PageTransition className="relative overflow-x-clip">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 -top-40 -z-10 h-[32rem] bg-[radial-gradient(ellipse_at_top,var(--primary-soft),transparent_65%)]"
-      />
+      <PageBackdrop grid />
 
       {/* ---- Heading and period switch ---- */}
       <section className="mx-auto max-w-3xl px-4 pt-12 pb-10 text-center sm:px-6 lg:pt-16">
-        <p className="inline-flex items-center gap-2 rounded-full border border-primary-soft-border bg-card px-3 py-1 text-sm font-medium text-brand shadow-xs">
+        <p className="inline-flex items-center gap-2 glass rounded-full border border-primary-soft-border px-3 py-1 text-sm font-medium text-brand shadow-xs">
           {t("pricing.eyebrow")}
         </p>
         <h1 className="mt-5 text-3xl leading-tight font-bold tracking-tight text-balance sm:text-4xl">{t("pricing.title")}</h1>
@@ -295,7 +293,7 @@ function PlanCard({
       data-plan={plan}
       className={cn(
         "relative flex flex-col rounded-2xl border bg-card p-6 shadow-sm",
-        highlight && "border-primary-soft-border shadow-lg ring-2 ring-primary/80 lg:-mt-3 lg:pb-9",
+        highlight && "border-primary-soft-border shadow-[var(--elevation-lg),0_30px_60px_-28px_var(--glow)] ring-2 ring-primary/80 lg:-mt-3 lg:pb-9",
         current && !highlight && "border-primary-soft-border",
       )}
     >

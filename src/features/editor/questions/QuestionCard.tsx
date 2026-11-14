@@ -248,6 +248,8 @@ export function QuestionCard({
           data-question-card=""
           className={cn(
             "relative rounded-2xl border bg-card shadow-sm transition-[box-shadow,border-color,scale] duration-200 ease-out-soft",
+            // The question being worked on stands out a little from the others.
+            "focus-within:border-primary-soft-border focus-within:shadow-[var(--elevation-md),0_18px_40px_-24px_var(--glow)]",
             isDragging && "scale-[1.015] border-ring/60 shadow-xl ring-2 ring-ring/30",
             dropActive && "ring-2 ring-ring",
           )}

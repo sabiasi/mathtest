@@ -5,6 +5,7 @@
  * layout, a password box with a show/hide eye, the Google button, and
  * the coloured message boxes.
  */
+import { PageBackdrop } from "@/components/PageBackdrop";
 import { CircleAlert, CircleCheck, CloudUpload, Eye, EyeOff, LoaderCircle, Lock } from "lucide-react";
 import { useId, useState, useSyncExternalStore, type ComponentProps, type ReactNode } from "react";
 import { LogoMark } from "@/components/Logo";
@@ -50,12 +51,9 @@ export function AuthCard({
   const t = useT();
   return (
     <div className="relative flex min-h-[calc(100vh-7.5rem)] items-start justify-center overflow-x-clip px-4 py-10 sm:items-center sm:py-16">
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-96 bg-[radial-gradient(ellipse_at_top,var(--primary-soft),transparent_70%)]"
-      />
+      <PageBackdrop grid />
       <PageTransition className="w-full max-w-[26rem]">
-        <div className="rounded-2xl border bg-card p-6 shadow-lg sm:p-8">
+        <div className="rounded-2xl border bg-card p-6 shadow-[var(--elevation-lg),0_30px_60px_-30px_var(--glow)] sm:p-8">
           <div className="flex flex-col items-center text-center">
             <LogoMark className="size-11" />
             <h1 className="mt-4 text-2xl font-bold tracking-tight text-foreground">{title}</h1>

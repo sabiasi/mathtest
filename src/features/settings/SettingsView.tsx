@@ -1,5 +1,6 @@
 "use client";
 
+import { PageBackdrop } from "@/components/PageBackdrop";
 import { KeyRound, LogOut, Monitor, Moon, Sun } from "lucide-react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -36,7 +37,8 @@ export function SettingsView() {
   }
 
   return (
-    <PageTransition className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-10">
+    <PageTransition className="relative mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-10">
+      <PageBackdrop className="h-72 opacity-60" />
       <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("settings.title")}</h1>
       <p className="mt-1.5 text-[15px] text-muted-foreground">{t("settings.subtitle")}</p>
 

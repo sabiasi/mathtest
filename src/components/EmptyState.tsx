@@ -27,8 +27,8 @@ export function EmptyState({
       <div aria-hidden="true" className="pointer-events-none absolute -top-24 left-1/2 size-72 -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,var(--glow),transparent)] opacity-40 blur-2xl" />
       {/* A small "stack of papers" with the icon on the top sheet */}
       <div className="relative" aria-hidden="true">
-        <span className="absolute inset-0 -rotate-12 rounded-2xl border bg-card shadow-xs" />
-        <span className="absolute inset-0 rotate-6 rounded-2xl border bg-card shadow-xs" />
+        <span className="absolute inset-0 -translate-x-3.5 translate-y-1 -rotate-12 rounded-2xl border border-input bg-card shadow-sm" />
+        <span className="absolute inset-0 translate-x-3.5 translate-y-1 rotate-12 rounded-2xl border border-input bg-card shadow-sm" />
         <div className="relative flex size-16 items-center justify-center rounded-2xl bg-primary-soft text-brand shadow-sm ring-1 ring-primary-soft-border">
           <Icon className="size-8" />
         </div>
