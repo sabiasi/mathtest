@@ -79,6 +79,56 @@ in `.env`, never with a `NEXT_PUBLIC_` name.
 
 Do **not** set `MATHTEST_SANDBOX` / `NEXT_PUBLIC_MATHTEST_SANDBOX` on the real site.
 
+## 4b. PDF and Word export on the hosting (Chrome)
+
+PDFs and the pictures inside Word files are made by an invisible Chrome on the
+server (`src/lib/server/chrome.ts`). Which Chrome it uses:
+
+1. `CHROME_PATH`, when you set it (any server where you installed Chrome yourself).
+2. On **Vercel** (detected automatically): the Chromium packed inside the
+   `@sparticuz/chromium` package — nothing to install, no variable to set.
+3. On your own computer: the installed Google Chrome, as before.
+
+If none can start, the PDF route answers 501 and the print page opens the
+browser's own Print window instead; a Word file is still made, with a short note
+in place of picture-type questions.
+
+**This was prepared and unit-tested locally, but it has NOT run on Vercel yet.**
+A local build can't prove it. After the first deployment, check by hand:
+
+1. **Does it start?** As a guest, open a sample → Print → "Download PDF". The first
+   one after a pause takes several seconds (Chromium unpacks itself). If the
+   Print window opens instead, read the function log: look for
+   `PDF: Chrome could not be started`.
+2. **Versions.** The installed `puppeteer-core` (25.17) is written for Chrome 157;
+   the newest `@sparticuz/chromium` is Chromium 153. Neighbouring versions
+   normally work together, but this pair is unconfirmed. If PDFs fail with
+   protocol errors, pin `puppeteer-core` to the release that matches Chromium 153
+   (see the table at pptr.dev/supported-browsers). Upgrade the two together.
+3. **Fonts and drawings.** In the downloaded PDF check Georgian text, a formula,
+   and one of each drawing: a geometry figure (math sample), a circuit (physics),
+   a structural formula (chemistry), a labelled diagram (biology). Then the same
+   for Word (.docx) with a Premium / trial account.
+4. **Size of the function.** The Chromium files add about 70 MB; Vercel's limit is
+   250 MB per function. If the build reports the function is too large, switch to
+   `@sparticuz/chromium-min` and host the Chromium pack file yourself.
+5. **Big tests with pictures.** Vercel refuses request bodies over 4.5 MB, and the
+   print page sends the test's pictures along with the request. Our own limit
+   (25 MB) is therefore never reached there: a test with several large photos gets
+   an error from Vercel and the PDF is not made (the Print button still works).
+   Try a test with 5–6 photos. A real fix (the server fetching the pictures
+   itself) is a later task.
+6. **Time and memory.** Both routes ask for up to 60 seconds (`maxDuration`). Give
+   the functions at least 1 GB of memory (Vercel's default is enough). Try "all
+   variants" of a long test.
+7. **Preview deployments.** The server's Chrome opens the site's own `/print`
+   page through its public address. With Vercel "Deployment Protection" switched
+   on (the default for preview addresses) that page is blocked and PDFs fail —
+   test PDFs on the production address, or switch protection off for the preview.
+8. **Limits are per server.** The PDF / Word rate limits and "3 at once" are
+   counted in each server's memory. Vercel runs several copies, so the real limit
+   is higher than written. Move the counters to a shared store before heavy use.
+
 ## 5. Webhook (callback) addresses
 
 The app sends these addresses to the provider with every order, so usually nothing

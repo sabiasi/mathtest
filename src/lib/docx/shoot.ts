@@ -2,7 +2,7 @@ import "server-only";
 import type { Language } from "@/i18n/dictionaries";
 import type { PaperHeader } from "@/lib/paperHeader";
 import type { Entitlements } from "@/lib/plans/entitlements";
-import { getBrowser } from "@/lib/server/chrome";
+import { newBrowserPage } from "@/lib/server/chrome";
 import type { Test } from "@/lib/storage/types";
 import { pictureKey, type BlockPictures, type DocxVersion } from "./fromTest";
 
@@ -25,8 +25,7 @@ export async function shootBlocks(
 ): Promise<BlockPictures> {
   const pictures: BlockPictures = {};
   if (wanted.length === 0) return pictures;
-  const browser = await getBrowser();
-  const page = await browser.newPage();
+  const page = await newBrowserPage();
   try {
     // One column and normal size: each question is photographed at the full width of the page.
     const paper: Test = { ...test, printOptions: { ...test.printOptions, columns: 1, fontSize: "normal" } };

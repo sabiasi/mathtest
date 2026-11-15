@@ -17,7 +17,7 @@
  * to that Chrome too, so it can't be changed from the browser.
  */
 import { LANGUAGES, type Language } from "@/i18n/dictionaries";
-import { getBrowser } from "@/lib/server/chrome";
+import { newBrowserPage } from "@/lib/server/chrome";
 import { serverEntitlements } from "@/lib/plans/server";
 import { READY } from "@/lib/plans/plans";
 import { activePaperHeader, type PaperHeader } from "@/lib/paperHeader";
@@ -27,6 +27,13 @@ import { clientIp, createConcurrencyLimit, createRateLimiter, type LimitResult }
 import { normalizeTest } from "@/lib/storage/migrate";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServer } from "@/lib/supabase/server";
+
+/**
+ * How long the hosting lets this run (seconds). A cold server first unpacks
+ * and starts Chrome, then opens the print page; all variants of a long test
+ * take a while. Without this, some hosting plans stop the work after 10 s.
+ */
+export const maxDuration = 60;
 
 const LANGUAGE_KEY = "mathtest:language";
 const THEME_KEY = "mathtest:theme"; // same as THEME_STORAGE_KEY in components/Providers.tsx
@@ -117,15 +124,15 @@ async function makePdf(
   entitlements: Entitlements,
   paperHeader: PaperHeader | null,
 ): Promise<Response> {
-  let browser;
+  let page;
   try {
-    browser = await getBrowser();
-  } catch {
-    // No Chrome on this machine: the page falls back to the print dialog.
+    page = await newBrowserPage();
+  } catch (error) {
+    // No Chrome on this machine (or it won't start): the page falls back to the print dialog.
+    if (!(error instanceof Error && error.message === "CHROME_NOT_FOUND")) console.error("PDF: Chrome could not be started", error);
     return refuse(501, "chrome not available");
   }
 
-  const page = await browser.newPage();
   try {
     // Wide enough that the preview isn't shrunk to fit.
     await page.setViewport({ width: 1280, height: 1000 });

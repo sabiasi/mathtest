@@ -623,9 +623,64 @@ export function waitUntilSaved(ids: string[]): Promise<boolean> {
   });
 }
 
-/** True while anything still has to reach the cloud (used to warn before closing the tab). */
+/**
+ * True while anything has NOT safely reached where it is kept: waiting to be
+ * sent, on its way, failed (it stays in the queue), or held back by an
+ * unanswered "someone else changed this test" question. Used to warn before
+ * closing the tab and before signing out.
+ *
+ * A guest's browser storage is written in the same instant the save is asked
+ * for, so "on its way" doesn't count there (it would warn about saved work).
+ */
 export function hasUnsavedChanges(): boolean {
-  return queue.size > 0 || sending.size > 0;
+  if (queue.size > 0 || conflicts.size > 0 || failed.size > 0) return true;
+  return backend?.kind !== "device" && sending.size > 0;
+}
+
+/**
+ * Resolves true once nothing is unsaved any more, or false when that takes
+ * longer than `timeoutMs` (offline, a failing save, an unanswered conflict)
+ * or the session ends first.
+ */
+export function waitUntilAllSaved(timeoutMs: number): Promise<boolean> {
+  const myGeneration = generation;
+  return new Promise((resolve) => {
+    const finish = (result: boolean) => {
+      clearTimeout(timer);
+      stop();
+      resolve(result);
+    };
+    const check = () => {
+      if (myGeneration !== generation) finish(false);
+      else if (!hasUnsavedChanges()) finish(true);
+    };
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    const stop = subscribe(check);
+    check();
+  });
+}
+
+// ---- Drafts: what an open editor has typed but not handed over yet ----
+
+const drafts = new Set<() => void>();
+
+/**
+ * An open editor waits for a pause in typing before it saves (useAutosave).
+ * It registers a function here that saves right now, so leaving the page or
+ * signing out never skips those last words. Returns "forget me".
+ */
+export function registerDraft(saveNow: () => void): () => void {
+  drafts.add(saveNow);
+  return () => {
+    drafts.delete(saveNow);
+  };
+}
+
+/** Hands every open editor's unsaved typing to the repository now. */
+export function flushDrafts(): void {
+  for (const saveNow of [...drafts]) {
+    try { saveNow(); } catch (error) { console.error("MathTest: could not save a draft", error); }
+  }
 }
 
 /**

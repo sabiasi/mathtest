@@ -2,7 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_PRINT_OPTIONS, DEFAULT_VARIANTS, type Test } from "./types";
 import {
-  getConflicts, getRevision, getSaveState, getShared, getSharedSnapshot, getTest, parseSharedKey, refreshTest, resolveConflict, saveTest,
+  getConflicts, getRevision, hasUnsavedChanges, getSaveState, getShared, getSharedSnapshot, getTest, parseSharedKey, refreshTest, resolveConflict, saveTest,
   setSubjectWriteAccess, sharedKey, startShared, startSync, stopSync, SubjectAccessError, VersionConflictError,
   type SharedBackend, type SharedTest, type TestsBackend,
 } from "./testsRepository";
@@ -60,6 +60,8 @@ describe("saving over a version someone else changed", () => {
     await settle();
     expect(cloud.rows.get("t")!.test.title).toBe("კოლეგის"); // nothing was overwritten
     expect(getConflicts()).toMatchObject([{ id: "t", mine: { title: "ჩემი ახალი" }, theirs: { title: "კოლეგის" }, version: 2 }]);
+    // The teacher hasn't chosen yet: "my" version exists only in memory, so it counts as unsaved.
+    expect(hasUnsavedChanges()).toBe(true);
     expect(getSaveState("t")).toBe("saving");
     // Typing on while the window is open only updates "mine"; nothing is sent.
     saveTest({ ...getTest("t")!, title: "ჩემი უახლესი" });

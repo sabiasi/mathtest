@@ -24,7 +24,9 @@ import { loadBank, resetBank } from "@/lib/bank/bankStore";
 import { normalizePaperHeader } from "@/lib/paperHeader";
 import { localTestsBackend } from "@/lib/storage/localTests";
 import { supabaseTestsBackend } from "@/lib/storage/supabaseTests";
-import { getSharedSnapshot, hasUnsavedChanges, startShared, startSync, stopSync, subscribe } from "@/lib/storage/testsRepository";
+import { flushDrafts, getSharedSnapshot, hasUnsavedChanges, startShared, startSync, stopSync, subscribe, waitUntilAllSaved } from "@/lib/storage/testsRepository";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { useT } from "@/i18n/language";
 import { getSupabase } from "@/lib/supabase/client";
 import { supabaseConfigured } from "@/lib/supabase/config";
 
@@ -45,6 +47,9 @@ type Auth = {
 
 const AuthContext = createContext<Auth | null>(null);
 
+/** How long "Sign out" waits for the last changes to reach the cloud before asking. */
+const SIGN_OUT_WAIT_MS = 5000;
+
 /** A display name: profile name, Google name, or the part of the email before "@". */
 export function displayName(user: User | null, profile: Profile | null): string {
   const meta = user?.user_metadata ?? {};
@@ -58,6 +63,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { setTheme } = useTheme();
   const language = useLanguage();
   const activeUserId = useRef<string | null>(null);
+  const confirm = useConfirm();
+  const t = useT();
   // ---- Listen for sign-in / sign-out ----
   useEffect(() => {
     // The PDF server's Chrome gets its test handed over: nothing to load.
@@ -79,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const supabase = getSupabase();
 
     const begin = async (next: User) => {
+      flushDrafts(); // a guest's last words go into the browser first (they're moved below)
       stopSync(); // forget the guest tests in memory (they're moved below)
       setImageUser(next.id);
       const profileLoad = loadProfile(supabase, next.id, displayName(next, null)).catch((error) => {
@@ -185,6 +193,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const signOut = useCallback(async () => {
+    // Signing out forgets everything in memory. First hand over what an open
+    // editor still holds, and give the uploads a moment to finish.
+    flushDrafts();
+    if (hasUnsavedChanges() && !(await waitUntilAllSaved(SIGN_OUT_WAIT_MS))) {
+      // Still not saved (no internet, or a question waiting for an answer): the teacher decides.
+      const leave = await confirm({
+        title: t("signOut.unsavedTitle"),
+        message: t("signOut.unsavedText"),
+        confirmLabel: t("signOut.unsavedLeave"),
+        cancelLabel: t("signOut.unsavedStay"),
+        danger: true,
+      });
+      if (!leave) return;
+    }
     await getSupabase().auth.signOut();
     stopSync();
     setImageUser(null);
@@ -192,7 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // A full page load clears everything from memory (shared school computers).
     // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- a full reload is the point here
     window.location.assign("/");
-  }, []);
+  }, [confirm, t]);
 
   const guest = status === "signed-out" || status === "unconfigured";
   const value = useMemo(

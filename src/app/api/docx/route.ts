@@ -24,6 +24,13 @@ import { buildVariants } from "@/lib/variants";
 import { printBlocks } from "@/features/print/blocks";
 import { getToolkit } from "@/subjects/registry";
 
+/**
+ * How long the hosting lets this run (seconds). A cold server first unpacks
+ * and starts Chrome, then opens the print page; all variants of a long test
+ * take a while. Without this, some hosting plans stop the work after 10 s.
+ */
+export const maxDuration = 60;
+
 const TEN_MINUTES = 10 * 60 * 1000;
 const perTeacher = createRateLimiter({ limit: 20, windowMs: TEN_MINUTES });
 /** Also per address, before we even look who it is (stops hammering with bad sign-ins). */

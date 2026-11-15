@@ -496,7 +496,7 @@ Visitors can try everything without an account (guest mode).
 | Typography | `lib/typography.ts` `georgianTypography` („“, —, …) applied at print time when the toolkit has `print.typography: "georgian"`, via `TypographyProvider` / `useTypography()` (RichTextView, header, Georgian blocks). Editors show text as typed |
 | Words | `lib/words.ts`: `tokenize`, clicked words saved as `WordRef { word, occurrence }` (survives edits elsewhere); `WordPicker` in the editor |
 | Print | Our own pagination (`src/lib/paginate.ts` + `usePrintLayout`) into fixed 210×297mm `.sheet`s; `@page { size: A4; margin: 0 }` |
-| PDF | `POST /api/pdf` (guests too) → puppeteer-core opens the same `/print` page with the test injected as `window.__MATHTEST_PRINT__` (no sign-in cookies are passed) → `page.pdf()`. Limits (`lib/server/rateLimit.ts`, in memory): 10 PDFs / 10 min per guest IP, 200 / 10 min for all guests together, 40 / 10 min per signed-in teacher, at most 3 PDFs at once (503), body ≤ 25 MB, ≤ 300 questions (413). 429 has `Retry-After`; the print page explains it. With several servers / serverless, move the counters to a shared store (e.g. Upstash Redis). Chrome found by `findChrome()` / `CHROME_PATH`; hosting will need e.g. @sparticuz/chromium. No Chrome → 501 → client falls back to `window.print()` |
+| PDF | `POST /api/pdf` (guests too) → puppeteer-core opens the same `/print` page with the test injected as `window.__MATHTEST_PRINT__` (no sign-in cookies are passed) → `page.pdf()`. Limits (`lib/server/rateLimit.ts`, in memory): 10 PDFs / 10 min per guest IP, 200 / 10 min for all guests together, 40 / 10 min per signed-in teacher, at most 3 PDFs at once (503), body ≤ 25 MB, ≤ 300 questions (413). 429 has `Retry-After`; the print page explains it. With several servers / serverless, move the counters to a shared store (e.g. Upstash Redis). Chrome chosen by `chooseChrome()` (lib/server/chrome.ts): `CHROME_PATH` → on Vercel / Lambda the packaged `@sparticuz/chromium` (files shipped via `outputFileTracingIncludes`; NOT yet tried on Vercel, see docs/GO_LIVE.md 4b) → installed Chrome. Routes open tabs with `newBrowserPage()` (restarts a dead Chrome once). No Chrome → 501 → client falls back to `window.print()` |
 | Fonts | Noto Sans Georgian + Noto Sans (backup for №, Cyrillic…), both via next/font; math fonts from MathLive CSS. PDFs must embed only these. |
 | Drag and drop | @dnd-kit (core + sortable), handle-only, keyboard accessible |
 | Plans | `src/lib/plans/plans.ts` is the ONLY place for prices, limits and features (plain data). `entitlementsFor(subscription, now)` → `{ plan, state: guest/free/trial/active/ending/grace, limits, features, trialDaysLeft, renewsAt, endsAt }`. Guests = Free. A plan ending never deletes anything: only Premium features lock (e.g. a 5-variant test keeps its setting but prints 2) |
@@ -663,6 +663,17 @@ src/
   `toLocaleDateString("ka-GE")`.
 - Pages that read localStorage are client components; the server renders a
   "loading" state (snapshot `null`) to avoid hydration mismatches.
+- **Unsaved work**: `hasUnsavedChanges()` = queue, failed saves, unanswered
+  conflicts (and uploads on their way, for accounts). An open editor registers
+  `registerDraft` (useAutosave); `flushDrafts()` hands typed-but-waiting text
+  over before sign-out; sign-out waits 5 s (`waitUntilAllSaved`), then asks.
+  Pending cloud writes still live only in memory (no offline queue).
+- **Guest storage is never overwritten when unreadable**: `readLocalState()`
+  (lib/storage/localTests.ts) = ok / blocked / damaged. Damaged → loading
+  fails, every write throws, My tests offers "try again" / "start with an empty
+  list" (the raw value is copied to `mathtest:tests:damaged:v1` first). Entries
+  one version can't read are kept in storage. `readLocalTests()` is for looking
+  only — never write a list built from it.
 - Small, clearly described git commits. Run `npm test`, `npm run lint` and
   `npm run build` before committing.
 

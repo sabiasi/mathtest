@@ -2005,6 +2005,16 @@ const ka = {
   "tax.plants": "მცენარე (ტიპის ნაცვლად „განყოფილება“)",
   "tax.example": "ნიმუში: ადამიანი",
   "tax.hide": "მოსწავლე ჩაწერს",
+  // Leaving with unsaved work; damaged browser storage (first-deployment review).
+  "signOut.unsavedTitle": "ზოგი ცვლილება ჯერ არ შენახულა",
+  "signOut.unsavedText": "ბოლო ცვლილებები ღრუბელში ჯერ ვერ შეინახა (შესაძლოა ინტერნეტი არ არის). თუ ახლა გახვალთ, ისინი დაიკარგება.",
+  "signOut.unsavedLeave": "მაინც გასვლა",
+  "signOut.unsavedStay": "დარჩენა",
+  "home.damagedTitle": "ამ ბრაუზერში შენახული ტესტები ვერ წავიკითხეთ",
+  "home.damagedText": "შენახული მონაცემები დაზიანებულია. არაფერი წაგვიშლია. სცადეთ თავიდან; თუ არ გამოვა, შეგიძლიათ დაიწყოთ ცარიელი სიით — ძველ მონაცემებს ამ ბრაუზერში ცალკე შევინახავთ.",
+  "home.damagedStartEmpty": "ცარიელი სიით დაწყება",
+  "home.damagedSetAside": "ძველი მონაცემები ცალკე შევინახეთ. შეგიძლიათ ახალი ტესტი შექმნათ.",
+  "home.damagedSetAsideFailed": "ძველი მონაცემების ცალკე შენახვა ვერ მოხერხდა, ამიტომ არაფერი შეგვიცვლია.",
 };
 
 export type MessageKey = keyof typeof ka;
@@ -3993,6 +4003,16 @@ const en: Record<MessageKey, string> = {
   "tax.plants": "A plant (“division” instead of “phylum”)",
   "tax.example": "Example: human",
   "tax.hide": "students write it",
+  // Leaving with unsaved work; damaged browser storage (first-deployment review).
+  "signOut.unsavedTitle": "Some changes are not saved yet",
+  "signOut.unsavedText": "Your latest changes couldn't be saved to the cloud yet (maybe there is no internet). If you sign out now, they will be lost.",
+  "signOut.unsavedLeave": "Sign out anyway",
+  "signOut.unsavedStay": "Stay",
+  "home.damagedTitle": "We couldn't read the tests saved in this browser",
+  "home.damagedText": "The saved data is damaged. Nothing was deleted. Try again; if that doesn't help, you can start with an empty list — the old data will be kept aside in this browser.",
+  "home.damagedStartEmpty": "Start with an empty list",
+  "home.damagedSetAside": "The old data was kept aside. You can create a new test.",
+  "home.damagedSetAsideFailed": "The old data couldn't be kept aside, so nothing was changed.",
 };
 
 export const dictionaries: Record<Language, Record<MessageKey, string>> = { ka, en };

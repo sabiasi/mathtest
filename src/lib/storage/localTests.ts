@@ -16,23 +16,82 @@ import type { Test } from "./types";
 /** The "v1" lets us change the data format safely later. */
 export const STORAGE_KEY = "mathtest:tests:v1";
 
-/** The tests saved in this browser (an empty list if there are none or storage is blocked). */
-export function readLocalTests(): Test[] {
+/** Where damaged data is put aside (never deleted by the app), see setAsideDamagedTests. */
+export const DAMAGED_KEY = "mathtest:tests:damaged:v1";
+
+/**
+ * What the browser's storage holds:
+ * - "ok": a list. `entries` is that list exactly as stored — including items
+ *   this version can't read; `tests` are the readable ones. An empty library
+ *   is "ok" with no entries.
+ * - "blocked": the browser refuses access (private mode, a setting). Nothing
+ *   can be read, and nothing can be overwritten either.
+ * - "damaged": something is stored, but it isn't a list of tests (cut-off or
+ *   foreign data). It must never be overwritten: it may be someone's work.
+ */
+export type LocalRead =
+  | { state: "ok"; tests: Test[]; entries: { raw: unknown; test: Test | null }[] }
+  | { state: "blocked" }
+  | { state: "damaged"; raw: string };
+
+export function readLocalState(): LocalRead {
+  let raw: string | null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return [];
-    const data: unknown = JSON.parse(raw);
-    if (!Array.isArray(data)) return [];
-    return data.map(normalizeTest).filter((test): test is Test => test !== null);
+    raw = localStorage.getItem(STORAGE_KEY);
   } catch {
-    return []; // unreadable or blocked storage
+    return { state: "blocked" };
+  }
+  if (raw === null || raw === "") return { state: "ok", tests: [], entries: [] };
+  let data: unknown;
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    return { state: "damaged", raw };
+  }
+  if (!Array.isArray(data)) return { state: "damaged", raw };
+  const entries = data.map((item: unknown) => {
+    let test: Test | null = null;
+    try { test = normalizeTest(item); } catch { /* one unreadable test must not hide the others */ }
+    return { raw: item, test };
+  });
+  return { state: "ok", entries, tests: entries.map((entry) => entry.test).filter((test): test is Test => test !== null) };
+}
+
+/** The saved data can't be read, so it is left exactly as it is: nothing may be written over it. */
+export class LocalTestsDamagedError extends Error {
+  constructor() {
+    super("The tests saved in this browser can't be read; they were left untouched");
   }
 }
 
-/** Throws if the browser refuses (storage full or blocked); the repository then retries. */
-function writeLocalTests(tests: Test[]): void {
-  if (tests.length === 0) localStorage.removeItem(STORAGE_KEY);
-  else localStorage.setItem(STORAGE_KEY, JSON.stringify(tests));
+/** True when this browser holds saved data we can't read (see "damaged" above). */
+export function localTestsDamaged(): boolean {
+  return readLocalState().state === "damaged";
+}
+
+/**
+ * The readable tests saved in this browser — for LOOKING only (an empty list
+ * if there are none, or storage is blocked or damaged). Never write a list
+ * built from this back: use the backend below, which keeps what it can't read.
+ */
+export function readLocalTests(): Test[] {
+  const read = readLocalState();
+  return read.state === "ok" ? read.tests : [];
+}
+
+/**
+ * Changes the stored list. Items this version can't read are passed through
+ * untouched (`keep` is only asked about readable tests). Damaged storage is
+ * never written. Throws if the browser refuses (storage full or blocked);
+ * the repository then retries and the editor says "not saved".
+ */
+function changeLocalTests(keep: (test: Test) => boolean, add?: Test): void {
+  const read = readLocalState();
+  if (read.state === "damaged") throw new LocalTestsDamagedError();
+  const kept = read.state === "ok" ? read.entries.filter((entry) => entry.test === null || keep(entry.test)).map((entry) => entry.raw) : [];
+  const next = add ? [add, ...kept] : kept;
+  if (next.length === 0) localStorage.removeItem(STORAGE_KEY);
+  else localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   window.dispatchEvent(new Event("mathtest:guest-tests"));
 }
 
@@ -43,9 +102,14 @@ function writeLocalTests(tests: Test[]): void {
 export function localTestsBackend(): TestsBackend {
   return {
     kind: "device",
-    list: async () => readLocalTests(),
-    upsert: async (test) => writeLocalTests([test, ...readLocalTests().filter((t) => t.id !== test.id)]),
-    remove: async (id) => writeLocalTests(readLocalTests().filter((t) => t.id !== id)),
+    list: async () => {
+      const read = readLocalState();
+      // Damaged: "couldn't load" (My tests explains and offers what to do), never "you have no tests".
+      if (read.state === "damaged") throw new LocalTestsDamagedError();
+      return read.state === "ok" ? read.tests : [];
+    },
+    upsert: async (test) => changeLocalTests((t) => t.id !== test.id, test),
+    remove: async (id) => changeLocalTests((t) => t.id !== id),
   };
 }
 
@@ -57,8 +121,31 @@ export function localTestsBackend(): TestsBackend {
 export function removeLocalTests(moved: Test[]): void {
   const movedVersion = new Map(moved.map((t) => [t.id, t.updatedAt]));
   try {
-    writeLocalTests(readLocalTests().filter((t) => movedVersion.get(t.id) !== t.updatedAt));
+    changeLocalTests((t) => movedVersion.get(t.id) !== t.updatedAt);
   } catch {
-    // Storage blocked: nothing we can do; the tests are safe in the account anyway.
+    // Storage blocked or damaged: left as it is; the tests are safe in the account anyway.
+  }
+}
+
+/**
+ * "Start with an empty list" after damaged data: the unreadable value is
+ * first copied to another key in this browser (and read back to be sure),
+ * and only then is the tests key cleared. Returns false — and changes
+ * nothing — when the copy can't be made.
+ */
+export function setAsideDamagedTests(): boolean {
+  const read = readLocalState();
+  if (read.state !== "damaged") return read.state === "ok";
+  try {
+    // An earlier damaged copy is never overwritten: each one gets its own key.
+    let key = DAMAGED_KEY;
+    for (let n = 2; localStorage.getItem(key) !== null && localStorage.getItem(key) !== read.raw; n++) key = `${DAMAGED_KEY}:${n}`;
+    localStorage.setItem(key, read.raw);
+    if (localStorage.getItem(key) !== read.raw) return false;
+    localStorage.removeItem(STORAGE_KEY);
+    window.dispatchEvent(new Event("mathtest:guest-tests"));
+    return true;
+  } catch {
+    return false;
   }
 }

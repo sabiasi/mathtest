@@ -401,8 +401,9 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
           <BarRow>
             <Link
               href="/tests"
-              // Leaving saves right away (see useAutosave); say so.
-              onClick={() => !readOnly && saveState !== "error" && toast.success(t("toast.saved"))}
+              // Leaving saves right away (see useAutosave). Say "saved" only when that is true:
+              // a guest's browser storage is written at once, an account's upload may still be on its way.
+              onClick={() => !readOnly && (saveState === "saved" || (onDevice && saveState !== "error")) && toast.success(t("toast.saved"))}
               className="inline-flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-sm font-medium whitespace-nowrap text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               <ArrowLeft className="size-4" aria-hidden="true" />

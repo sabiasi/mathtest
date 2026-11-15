@@ -5,7 +5,7 @@ import { TeachingSubjectsSummary, useTeachingSubjects } from "@/features/subject
 
 import { PageBackdrop } from "@/components/PageBackdrop";
 import { PlanPreviewBar } from "@/features/plans/PlanSummary";
-import { ClipboardList, CloudOff, Info, LayoutTemplate, Library, PencilLine, Plus, Printer, RotateCw } from "lucide-react";
+import { ClipboardList, CloudOff, Info, LayoutTemplate, Library, PencilLine, Plus, Printer, RotateCw, TriangleAlert } from "lucide-react";
 import { SharedWithMe } from "@/features/sharing/SharedWithMe";
 import { READY } from "@/lib/plans/plans";
 import { useRouter } from "next/navigation";
@@ -25,9 +25,10 @@ import { dictionaries } from "@/i18n/dictionaries";
 import { useLanguage, useT } from "@/i18n/language";
 import { cleanUpImages } from "@/lib/images/imageStore";
 import { countBySubject, filterTests, gradesOf, groupBySubject, sortTests, type HomeView as View, type SortKey } from "@/lib/myTests";
+import { localTestsDamaged, setAsideDamagedTests } from "@/lib/storage/localTests";
 import { createTest, retryLoad } from "@/lib/storage/testsRepository";
 import type { Test } from "@/lib/storage/types";
-import { useLoadStatus, useTests } from "@/lib/storage/useTests";
+import { useLoadStatus, useStorageKind, useTests } from "@/lib/storage/useTests";
 import { isSubjectId, subjectFromText, type SubjectId } from "@/subjects/ids";
 import { getToolkit } from "@/subjects/registry";
 import { FilterBar } from "./FilterBar";
@@ -61,6 +62,15 @@ export function HomeView() {
   const router = useRouter();
   const tests = useTests();
   const loadStatus = useLoadStatus();
+  // Guests only: the browser's saved tests are unreadable (checked only when loading failed).
+  const onDevice = useStorageKind() === "device";
+  const damaged = useMemo(() => loadStatus === "error" && onDevice && localTestsDamaged(), [loadStatus, onDevice]);
+  function startEmpty() {
+    if (setAsideDamagedTests()) {
+      toast.success(t("home.damagedSetAside"));
+      retryLoad();
+    } else toast.error(t("home.damagedSetAsideFailed"));
+  }
   const { profile, guest } = useAuth();
   const [choosingSubject, setChoosingSubject] = useState(false);
   const trial = useGuestTrial();
@@ -156,7 +166,25 @@ export function HomeView() {
       {tests && tests.length <= 1 && <HowItWorks />}
 
       <div className="mt-8">
-        {loadStatus === "error" ? (
+        {loadStatus === "error" && damaged ? (
+          // A guest's browser storage holds something we can't read: say so, and never call it "no tests".
+          <EmptyState
+            Icon={TriangleAlert}
+            title={t("home.damagedTitle")}
+            text={t("home.damagedText")}
+            actions={
+              <>
+                <Button variant="outline" onClick={retryLoad}>
+                  <RotateCw className="size-4" aria-hidden="true" />
+                  {t("home.retry")}
+                </Button>
+                <Button variant="outline" onClick={startEmpty} data-start-empty="">
+                  {t("home.damagedStartEmpty")}
+                </Button>
+              </>
+            }
+          />
+        ) : loadStatus === "error" ? (
           <EmptyState
             Icon={CloudOff}
             title={t("home.loadError")}

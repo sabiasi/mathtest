@@ -43,10 +43,11 @@ export function Providers({ children }: { children: ReactNode }) {
       disableTransitionOnChange
     >
       <MotionConfig reducedMotion="user" transition={{ duration: 0.2, ease: [0.2, 0, 0, 1] }}>
-        <AuthProvider>
-          <PlanProvider>
-            <TooltipProvider>
-              <ConfirmProvider>
+        {/* ConfirmProvider is outside AuthProvider: signing out may have to ask about unsaved work. */}
+        <ConfirmProvider>
+          <AuthProvider>
+            <PlanProvider>
+              <TooltipProvider>
                 <UpgradeProvider>
                   <TeachingSubjectsProvider>
                     <GuestTrialProvider>
@@ -56,10 +57,10 @@ export function Providers({ children }: { children: ReactNode }) {
                   </TeachingSubjectsProvider>
                   <Toaster />
                 </UpgradeProvider>
-              </ConfirmProvider>
-            </TooltipProvider>
-          </PlanProvider>
-        </AuthProvider>
+              </TooltipProvider>
+            </PlanProvider>
+          </AuthProvider>
+        </ConfirmProvider>
       </MotionConfig>
     </ThemeProvider>
   );
