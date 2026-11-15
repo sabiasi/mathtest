@@ -22,7 +22,6 @@ import { formatSize } from "@/lib/format";
 import {
   BILLING_PERIODS,
   BRAND,
-  ONLINE_PAYMENTS,
   PLANS,
   PREMIUM_PRICES_GEL,
   READY,
@@ -35,6 +34,8 @@ import { discountPercent, formatGel, monthlyEquivalent } from "@/lib/plans/prici
 import { cn } from "@/lib/utils";
 import { VARIANT_LABELS } from "@/lib/variants";
 import { SchoolRequestForm } from "./SchoolRequestForm";
+import { TestModeBanner } from "@/features/billing/TestModeBanner";
+import { useBilling, useStartCheckout } from "@/features/billing/useBilling";
 
 const MB = 1024 * 1024;
 const megabytes = (mb: number) => formatSize(mb * MB);
@@ -47,6 +48,7 @@ export function PricingView() {
   const t = useT();
   const { status } = useAuth();
   const { entitlements, ready } = usePlan();
+  const { summary: billing } = useBilling();
   const [period, setPeriod] = useState<BillingPeriod>("year");
   const signedIn = status === "signed-in";
   const accounts = status !== "unconfigured";
@@ -117,11 +119,11 @@ export function PricingView() {
         <p className="rounded-lg border border-premium-border bg-premium-soft px-3 py-2 text-center text-sm font-semibold text-premium-text">
           {t("pricing.cta.trialRunning", { days: entitlements.trialDaysLeft ?? 0 })}
         </p>
-        <BuyButton className={ctaClass} />
+        <BuyButton className={ctaClass} period={period} />
       </div>
     );
   } else if (current === "premium") premiumCta = currentLabel;
-  else premiumCta = <BuyButton className={ctaClass} />;
+  else premiumCta = <BuyButton className={ctaClass} period={period} />;
 
   const schoolCta =
     current === "school" ? (
@@ -229,7 +231,8 @@ export function PricingView() {
           current={current === "school"}
         />
       </section>
-      {!ONLINE_PAYMENTS && <p className="mx-auto mt-6 max-w-2xl px-4 text-center text-sm text-muted-foreground">{t("pricing.paymentsSoon")}</p>}
+      {billing && !billing.enabled && <p className="mx-auto mt-6 max-w-2xl px-4 text-center text-sm text-muted-foreground">{t("pricing.paymentsSoon")}</p>}
+      <TestModeBanner className="mx-auto mt-6 max-w-2xl" />
 
       <Comparison />
       <Faq />
@@ -253,11 +256,18 @@ export function PricingView() {
   );
 }
 
-/** "Buy Premium" — opens the payment page once online payments are on (stage 2). */
-function BuyButton({ className }: { className: string }) {
+/** "Buy Premium" — asks our server for the payment page (the price is decided there) and goes to it. */
+function BuyButton({ className, period }: { className: string; period: BillingPeriod }) {
   const t = useT();
+  const { summary } = useBilling();
+  const startCheckout = useStartCheckout();
+  const [busy, setBusy] = useState(false);
+  async function buy() {
+    setBusy(true);
+    if (!(await startCheckout(period))) setBusy(false);
+  }
   return (
-    <button type="button" className={cn(buttonVariants(), className)} disabled={!ONLINE_PAYMENTS} data-buy-premium="">
+    <button type="button" className={cn(buttonVariants(), className)} disabled={!summary?.enabled || busy} onClick={() => void buy()} data-buy-premium={period}>
       <Crown aria-hidden="true" />
       {t("pricing.cta.buy")}
     </button>

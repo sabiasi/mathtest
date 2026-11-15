@@ -54,6 +54,12 @@ async function account(page: Page, options: FixtureOptions = {}) {
       // A reload cancelled this request ("response has been disposed"): nothing to answer.
     }
   });
+  // The test server runs in sandbox mode, where the plan is read through our own server:
+  // answer that with the same mocked plan as the Supabase mock below.
+  await page.route("**/api/billing/summary", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({
+    enabled: false, testMode: true, sandbox: false, provider: "mock", signedIn: true, canChangePeriod: true, method: null, payments: [], pending: [], profile: null,
+    subscription: { plan: options.plan ?? "free", status: "active", billing_period: null, trial_ends_at: null, current_period_end: null, grace_ends_at: null, cancel_at_period_end: false, preview_free: preview !== null, provider: null, next_retry_at: null },
+  }) }));
   await page.route(`${supabaseUrl}/**`, async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;

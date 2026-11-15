@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { PlanSummary } from "@/features/plans/PlanSummary";
+import { READY } from "@/lib/plans/plans";
+import { PaperHeaderSettings } from "./PaperHeaderSettings";
 import { TeachingSubjectsSummary, useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
 import { SubjectPicker } from "@/features/subjects/SubjectPicker";
 import { LANGUAGES, LANGUAGE_NAMES, type Language } from "@/i18n/dictionaries";
@@ -61,6 +63,12 @@ export function SettingsView() {
           <ProfileForm key={`${profile.id}:${profile.default_subject}`} profile={profile} email={user?.email ?? ""} onSave={updateProfile} />
         )}
       </Section>
+
+      {READY.customHeader && (
+        <Section title={t("letterhead.title")} id="paper-header">
+          <PaperHeaderSettings />
+        </Section>
+      )}
 
       <Section title={t("settings.preferences")}>
         <div className="space-y-5">

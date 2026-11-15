@@ -15,7 +15,7 @@ export function AppFooter() {
             <b className="font-semibold text-soft-foreground">MathTest</b> — {t("footer.tagline")}
           </span>
         </span>
-        <div className="flex gap-5">
+        <div className="flex flex-wrap gap-x-5 gap-y-1">
           <Link href="/pricing" className="rounded font-medium hover:text-foreground">
             {t("footer.pricing")}
           </Link>
@@ -24,6 +24,12 @@ export function AppFooter() {
           </Link>
           <Link href="/privacy" className="rounded font-medium hover:text-foreground">
             {t("footer.privacy")}
+          </Link>
+          <Link href="/terms" className="rounded font-medium hover:text-foreground">
+            {t("footer.terms")}
+          </Link>
+          <Link href="/refund" className="rounded font-medium hover:text-foreground">
+            {t("footer.refund")}
           </Link>
         </div>
       </div>

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { PGlite } from "@electric-sql/pglite";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { dictionaries } from "@/i18n/dictionaries";
 import { SUBJECT_IDS } from "@/subjects/ids";
@@ -157,8 +157,11 @@ describe("teaching subject database enforcement", () => {
   });
 
   it("keeps the standalone migration and fresh-install schema aligned", () => {
+    // Every migration, oldest first, is the tail of the fresh-install schema.
     const schema = readFileSync("supabase/schema.sql", "utf8");
-    expect(schema.endsWith(migration + previewMigration)).toBe(true);
+    const all = readdirSync("supabase/migrations").sort().map((name) => readFileSync(`supabase/migrations/${name}`, "utf8"));
+    expect(all.slice(0, 2)).toEqual([migration, previewMigration]);
+    expect(schema.endsWith(all.join(""))).toBe(true);
   });
 
   it("plan preview: Free applies while it is on, subjects come back when it is off", async () => {

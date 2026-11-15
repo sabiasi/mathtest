@@ -13,6 +13,21 @@ import { NextResponse, type NextRequest } from "next/server";
 import { authErrorKey } from "@/lib/auth/errors";
 import { safeNext } from "@/lib/auth/routes";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { notify } from "@/lib/email/send";
+import { billingSecret, serverDb } from "@/lib/server/db";
+
+/** The welcome email: once per account, ever (the database remembers). Never delays or blocks the sign-in. */
+async function welcome(origin: string) {
+  try {
+    if (!billingSecret()) return;
+    const db = await serverDb();
+    if (!db?.user) return;
+    const language = (await db.rpc<{ profile?: { language?: string } }>("billing_summary", { secret: billingSecret(), uid: db.user.id })).profile?.language;
+    await notify(db, { kind: "welcome", to: db.user.email, userId: db.user.id, language: language === "en" ? "en" : "ka", dedupeKey: `${db.user.id}:welcome`, data: { siteUrl: origin } });
+  } catch {
+    // e.g. the payments SQL isn't installed yet: no welcome email, nothing else changes
+  }
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
@@ -34,7 +49,11 @@ export async function GET(request: NextRequest) {
     else error = { code: "flow_state_not_found" };
   }
 
-  if (!error) return go(next);
+  if (!error) {
+    // Email confirmed or Google chosen (not a password reset): say hello, once.
+    if (flow !== "recovery") await welcome(origin);
+    return go(next);
+  }
 
   const key = authErrorKey(error);
   if (flow === "signup") {

@@ -39,6 +39,34 @@ parts, in order:
    function, and subject-based write policies.
 3. `supabase/migrations/20261115_plan_preview.sql` — "View as Free".
 
+## Payments in test mode
+
+Online payment is built but **switched off for real money** (`ONLINE_PAYMENTS = false`).
+To try the whole flow on your own computer, with no bank account and no card:
+
+```bash
+npm run dev:sandbox
+```
+
+This starts the app with a *sandbox*: a pretend database in the server's memory
+(running the real `supabase/schema.sql`) and a pretend bank ("mock" provider).
+Sign in, open **Pricing → Buy Premium**, choose what the pretend bank should do,
+then look at **Settings → My plan** (next payment, card, receipts, cancel /
+resume, change period). The "Test tools" box there can skip days and run the
+scheduled billing job, to watch a renewal, a failed payment, the grace period and
+the plan ending. Emails are only printed in the terminal. Stopping the server
+forgets everything; your real Supabase project is never touched.
+
+Going live (real provider, keys, SQL, cron): see `docs/GO_LIVE.md`.
+
+## AI question generator
+
+In the editor, **AI-ით შექმნა** (above "add a question") asks for a topic and
+shows suggested questions to review before anything is added to the test.
+Without an `ANTHROPIC_API_KEY` it runs in **mock mode** (ready-made samples,
+nothing is sent anywhere). With `npm run dev:sandbox` the monthly limits work
+too (Free 3, Premium 100 per month — from `lib/plans/plans.ts`).
+
 ## Comparing the plans ("View as Free")
 
 Settings → My plan → **View as Free** shows the website exactly as a Free teacher

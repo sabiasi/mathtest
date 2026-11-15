@@ -83,6 +83,11 @@ import { TrialNote } from "@/features/auth/GuestTrial";
 import { SubjectToolbar } from "./SubjectToolbar";
 import { TestHeaderForm } from "./TestHeaderForm";
 import { useAutosave } from "./useAutosave";
+import { AiGenerateDialog } from "@/features/ai/AiGenerateDialog";
+import { useAuth } from "@/features/auth/AuthProvider";
+import { useGuestTrial } from "@/features/auth/GuestTrial";
+import { aiTypesFor } from "@/lib/ai/request";
+import { READY } from "@/lib/plans/plans";
 
 /** The icon on each "add a question" button. */
 const TYPE_ICONS: Record<QuestionType, typeof ListChecks> = {
@@ -232,6 +237,17 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
     const question = prepare ? prepare(fresh) : fresh;
     updateQuestions((qs) => [...qs, question]);
     setFocusId(question.id);
+  }
+
+  // "AI-ით შექმნა": guests are offered a free account; teachers get the dialog.
+  const { guest } = useAuth();
+  const guestTrial = useGuestTrial();
+  const [aiOpen, setAiOpen] = useState(false);
+  const aiOffered = READY.aiGenerator && aiTypesFor(getToolkit(test.subjectId).questionTypes).length > 0;
+  function insertFromAi(questions: Question[]) {
+    if (questions.length === 0) return;
+    updateQuestions((qs) => [...qs, ...questions]);
+    setFocusId(questions[0].id);
   }
 
   function duplicate(question: Question) {
@@ -458,6 +474,22 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
 
               {!readOnly && (
               <div className="mt-2 rounded-2xl border bg-card p-4 shadow-sm">
+                {aiOffered && (
+                  <button
+                    type="button"
+                    data-ai-open=""
+                    onClick={() => (guest ? guestTrial.show() : setAiOpen(true))}
+                    className="accent-card mb-4 flex w-full items-center gap-3 rounded-xl border border-primary-soft-border bg-primary-soft/50 px-4 py-3 text-left font-medium transition-colors hover:bg-primary-soft"
+                  >
+                    <span className="rounded-lg bg-primary p-1.5 text-primary-foreground">
+                      <Sparkles className="size-5" aria-hidden="true" />
+                    </span>
+                    <span>
+                      <span className="block text-brand">{t("ai.button")}</span>
+                      <span className="block text-sm font-normal text-muted-foreground">{t("ai.buttonHint")}</span>
+                    </span>
+                  </button>
+                )}
                 <p className="mb-3 text-sm font-medium text-soft-foreground">{t("questions.add")}:</p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {toolkit.questionTypes.map((type) => {
@@ -494,6 +526,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
           </SplitView>
         )}
       </div>
+      {aiOffered && !readOnly && !guest && <AiGenerateDialog test={test} open={aiOpen} onClose={() => setAiOpen(false)} onInsert={insertFromAi} />}
       </PreviewProvider>
     </MathEditingProvider>
   );

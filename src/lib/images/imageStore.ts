@@ -82,6 +82,7 @@ let currentUserId: string | null = null;
 export function setImageUser(userId: string | null): void {
   currentUserId = userId;
   urlCache.clear();
+  kept.clear(); // another account: its header and bank report again
   if (userId) void retryUploads(userId);
 }
 
@@ -280,6 +281,12 @@ export async function imagesForTest(test: Test): Promise<Record<string, string>>
   return result;
 }
 
+/** One stored picture as a data URL (e.g. the header logo for the PDF server), or null. */
+export async function imageDataUrl(imageId: string): Promise<string | null> {
+  const blob = await getBlob(imageId).catch(() => null);
+  return blob ? toDataUrl(blob) : null;
+}
+
 // ---------------------------------------------------------------------------
 // A guest signs in: their pictures → the cloud
 // ---------------------------------------------------------------------------
@@ -316,6 +323,24 @@ export async function removeDeviceImages(tests: Test[], retained: Test[] = []): 
 let lastCleanUp = 0;
 
 /**
+ * Pictures that are in use somewhere OTHER than a test: the paper header's
+ * logo, questions saved in the bank… Each such place reports its picture ids
+ * here. Until every known place has reported (it may still be loading), an
+ * account's pictures are NOT tidied up — deleting a logo by mistake is far
+ * worse than keeping a stray file a little longer.
+ */
+export const IMAGE_KEEPERS = ["header", "bank"] as const;
+export type ImageKeeper = (typeof IMAGE_KEEPERS)[number];
+const kept = new Map<ImageKeeper, Set<string>>();
+
+export function keepImages(source: ImageKeeper, ids: Iterable<string> | null): void {
+  if (ids === null) kept.delete(source);
+  else kept.set(source, new Set(ids));
+}
+const allKeepersReported = () => IMAGE_KEEPERS.every((source) => kept.has(source));
+const keptIds = () => new Set([...kept.values()].flatMap((ids) => [...ids]));
+
+/**
  * Deletes the teacher's pictures that no test uses any more (e.g. after
  * deleting a test), in the cloud and in the browser copy. Pictures younger
  * than 10 minutes are kept (Undo, or a test that's still being saved).
@@ -326,11 +351,16 @@ export async function cleanUpImages(tests: Test[]): Promise<number> {
   if (Date.now() - lastCleanUp < 10 * 60 * 1000) return 0;
   lastCleanUp = Date.now();
   if (!userId) return cleanUpDeviceImages(tests);
+  if (!allKeepersReported()) {
+    lastCleanUp = 0; // try again soon, once the header and the bank are known
+    return 0;
+  }
   try {
     const { data, error } = await getSupabase().storage.from(IMAGE_BUCKET).list(userId, { limit: 1000 });
     if (error || !data) return 0;
     const stored = data.map((file) => ({ id: file.name, createdAt: Date.parse(file.created_at ?? "") || Date.now() }));
-    const unused = unusedImageIds(stored, tests, Date.now());
+    const protectedIds = keptIds();
+    const unused = unusedImageIds(stored, tests, Date.now()).filter((id) => !protectedIds.has(id));
     if (unused.length > 0) {
       await getSupabase()
         .storage.from(IMAGE_BUCKET)

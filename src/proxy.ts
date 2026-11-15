@@ -22,6 +22,11 @@ export async function proxy(request: NextRequest) {
   // Before .env.local is filled in, the pages show setup help instead.
   if (!supabaseConfigured) return NextResponse.next();
 
+  // Sandbox only (local testing with a pretend database, see lib/server/sandbox.ts):
+  // remember whether a sign-in cookie arrived, before Supabase looks at it.
+  const sandbox = process.env.MATHTEST_SANDBOX === "1";
+  const hadCookie = sandbox && request.cookies.getAll().some((cookie) => /^sb-.+-auth-token/.test(cookie.name));
+
   let response = NextResponse.next({ request });
   const supabase = createServerClient(SUPABASE_URL, SUPABASE_KEY, {
     cookies: {
@@ -37,7 +42,14 @@ export async function proxy(request: NextRequest) {
 
   // getClaims() checks the sign-in's signature (and renews it if needed).
   const { data } = await supabase.auth.getClaims();
-  const signedIn = Boolean(data?.claims?.sub);
+  let signedIn = Boolean(data?.claims?.sub);
+  if (!signedIn && hadCookie) {
+    // The browser tests use a made-up sign-in that Supabase can't confirm. In the
+    // sandbox there is no real data to protect, so the page may open — and the
+    // cookie is left alone (a fresh response, without Supabase's "clear it").
+    signedIn = true;
+    response = NextResponse.next();
+  }
   const { pathname, search } = request.nextUrl;
 
   const redirect = (to: string, params?: Record<string, string>) => {

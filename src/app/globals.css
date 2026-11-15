@@ -615,6 +615,44 @@ math-field::part(virtual-keyboard-toggle) {
   font-size: 0.9em;
   color: #333;
 }
+/* The teacher's own header (Premium): logo beside or above the school lines. */
+.print-letterhead {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4mm;
+  margin-bottom: 1mm;
+}
+.print-letterhead.logo-right {
+  flex-direction: row-reverse;
+}
+.print-letterhead.logo-center {
+  flex-direction: column;
+  gap: 1.5mm;
+}
+.print-letterhead .print-logo {
+  display: block;
+  flex: none;
+  object-fit: contain;
+}
+.print-letterhead-text {
+  min-width: 0;
+}
+.print-letterhead.logo-left .print-letterhead-text {
+  text-align: left;
+}
+.print-letterhead.logo-right .print-letterhead-text {
+  text-align: right;
+}
+.print-letterhead .print-school {
+  font-size: 1em;
+  font-weight: 600;
+  color: #111;
+}
+.print-header-line {
+  font-size: 0.85em;
+  color: #333;
+}
 .print-title {
   margin-top: 1mm;
   font-size: 1.45em;
@@ -1585,10 +1623,14 @@ math-field::part(virtual-keyboard-toggle) {
 }
 /* With a badge, the centered lines leave room on BOTH sides (so they stay
    centered) and a long title wraps instead of running under the badge. */
-.print-header.has-variant :is(.print-key-banner, .print-school, .print-title, .print-meta) {
+.print-header.has-variant :is(.print-key-banner, .print-school, .print-letterhead, .print-title, .print-meta) {
   /* "ვარიანტი A" is about 32 mm wide: 30 mm let it touch the answer-key box. */
   margin-right: 36mm;
   margin-left: 36mm;
+}
+.print-header.has-variant .print-letterhead .print-school {
+  margin-right: 0;
+  margin-left: 0;
 }
 
 /* Answer table for all variants */
@@ -1628,4 +1670,9 @@ math-field::part(virtual-keyboard-toggle) {
 }
 [data-editor-bar] :where(*) {
   scroll-margin-top: 0;
+}
+
+/* A single question looked at on paper (the question bank): no test header above it. */
+.paper-preview.no-header .print-header {
+  display: none;
 }

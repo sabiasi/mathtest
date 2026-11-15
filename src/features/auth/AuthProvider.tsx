@@ -14,7 +14,8 @@ import { useTheme } from "next-themes";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { setLanguage, useLanguage } from "@/i18n/language";
 import { loadProfile, saveProfile, type Profile, type ProfileChanges } from "@/lib/auth/profile";
-import { clearImageCache, setImageUser } from "@/lib/images/imageStore";
+import { clearImageCache, keepImages, setImageUser } from "@/lib/images/imageStore";
+import { normalizePaperHeader } from "@/lib/paperHeader";
 import { localTestsBackend } from "@/lib/storage/localTests";
 import { supabaseTestsBackend } from "@/lib/storage/supabaseTests";
 import { hasUnsavedChanges, startSync, stopSync } from "@/lib/storage/testsRepository";
@@ -106,6 +107,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (profile.language !== language) setLanguage(profile.language);
     setTheme(profile.theme);
   }, [profile, language, setTheme]);
+
+  // ---- The header's logo is a picture in use: picture clean-up must keep it ----
+  useEffect(() => {
+    if (!profile) return;
+    const logo = normalizePaperHeader(profile.paper_header).logoImageId;
+    keepImages("header", logo ? [logo] : []);
+  }, [profile]);
 
   // ---- Warn before closing the tab while changes are still being sent ----
   useEffect(() => {

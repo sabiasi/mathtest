@@ -5,6 +5,9 @@
  * and one block per question. They are drawn twice: once invisibly to
  * measure their height, and once on the real A4 sheets.
  */
+import { useImageUrl } from "@/components/QuestionImageView";
+import { logoSizeMm, type PaperHeader } from "@/lib/paperHeader";
+import { usePaperHeader } from "./usePaperHeader";
 import { GridArea } from "@/components/GridArea";
 import { QuestionImageView } from "@/components/QuestionImageView";
 import { RichTextView } from "@/features/math/RichTextView";
@@ -57,6 +60,8 @@ export function PrintHeader({
   const fix = useTypography();
   const language = useLanguage();
   const total = formatPoints(totalPoints(test.questions));
+  // The teacher's own header (Premium), or null for the plain school line.
+  const letterhead = usePaperHeader();
   const meta = [
     test.subject,
     test.level && t("print.level", { level: test.level }),
@@ -69,7 +74,7 @@ export function PrintHeader({
     <header className={`print-header ${variant ? "has-variant" : ""}`}>
       {variant && <p className="print-variant-badge">{t("variants.name", { label: variant })}</p>}
       {version === "key" && <p className="print-key-banner">{t("print.keyBanner")}</p>}
-      {test.schoolName && <p className="print-school">{test.schoolName}</p>}
+      {letterhead ? <Letterhead header={letterhead} fallbackSchool={test.schoolName} /> : test.schoolName && <p className="print-school">{test.schoolName}</p>}
       <h1 className="print-title">{fix(test.title) || t("test.untitled")}</h1>
       {meta.length > 0 && <p className="print-meta">{meta.join("  ·  ")}</p>}
 
@@ -93,6 +98,30 @@ export function PrintHeader({
 
       {test.instructions && <p className="print-instructions">{fix(test.instructions)}</p>}
     </header>
+  );
+}
+
+/** The teacher's own header: logo beside (or above) the school name and extra lines. */
+export function Letterhead({ header, fallbackSchool }: { header: PaperHeader; fallbackSchool: string }) {
+  const logo = useImageUrl(header.logoImageId);
+  const size = logoSizeMm(header);
+  const school = header.schoolName || fallbackSchool;
+  return (
+    <div className={`print-letterhead logo-${header.logoPosition}`} data-letterhead={header.logoPosition}>
+      {header.logoImageId &&
+        (logo ? (
+          // eslint-disable-next-line @next/next/no-img-element -- a stored picture (blob:/data: URL), not a site asset
+          <img src={logo} alt="" className="print-logo" style={{ width: `${size.width}mm`, height: `${size.height}mm` }} draggable={false} />
+        ) : (
+          <span className="print-logo" style={{ width: `${size.width}mm`, height: `${size.height}mm` }} aria-hidden="true" />
+        ))}
+      <div className="print-letterhead-text">
+        {school && <p className="print-school">{school}</p>}
+        {header.extraLines.map((line, index) => (
+          <p key={index} className="print-header-line">{line}</p>
+        ))}
+      </div>
+    </div>
   );
 }
 

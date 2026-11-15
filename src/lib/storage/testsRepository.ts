@@ -43,7 +43,7 @@ declare global {
      * Set by the PDF server: the test to print (so no sign-in is needed there)
      * and what the teacher's plan allows (worked out on the server).
      */
-    __MATHTEST_PRINT__?: { test: unknown; entitlements?: import("@/lib/plans/entitlements").Entitlements };
+    __MATHTEST_PRINT__?: { test: unknown; entitlements?: import("@/lib/plans/entitlements").Entitlements; paperHeader?: unknown };
   }
 }
 

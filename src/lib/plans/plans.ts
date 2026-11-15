@@ -81,14 +81,14 @@ export const PLANS: Record<PlanId, Plan> = {
 export const READY: Record<Feature | "aiGenerator", boolean> = {
   multipleSubjects: true,
   noPdfFooter: true,
-  customHeader: false,
-  allTemplates: false,
+  customHeader: true,
+  allTemplates: true,
   questionBank: false,
   docxExport: false,
   sharing: false,
   schoolAdmin: false,
   sharedBank: false,
-  aiGenerator: false,
+  aiGenerator: true,
 };
 
 // ---------------------------------------------------------------------------
@@ -132,3 +132,9 @@ export const TRIAL_PLAN: PlanId = "premium";
 export const TRIAL_DAYS = 14;
 /** After a failed renewal payment, the plan keeps working this many days. */
 export const GRACE_DAYS = 7;
+/**
+ * A failed renewal is tried again this many days after the paid time ended.
+ * The database has the same days (billing_mark_failed in supabase/schema.sql):
+ * change both together.
+ */
+export const RENEWAL_RETRY_DAYS = [1, 3, 5] as const;

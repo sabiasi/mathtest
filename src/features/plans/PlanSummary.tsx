@@ -10,7 +10,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage, useT } from "@/i18n/language";
 import { formatDayOf, formatSize } from "@/lib/format";
-import { ONLINE_PAYMENTS, PLAN_PREVIEW } from "@/lib/plans/plans";
+import { PLAN_PREVIEW } from "@/lib/plans/plans";
+import { BillingSection } from "@/features/billing/BillingSection";
 import { loadImageStorage, setPlanPreview, type ImageStorage } from "@/lib/plans/subscription";
 import { getSupabase } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
@@ -88,7 +89,7 @@ export function PlanSummary() {
           {t("plan.seePlans")}
         </Link>
       </div>
-      {!ONLINE_PAYMENTS && <p className="text-sm text-muted-foreground">{t("plan.billingSoon")}</p>}
+      <BillingSection />
       {PLAN_PREVIEW && (plan !== "free" || entitlements.previewOf) && <PlanPreview />}
     </div>
   );

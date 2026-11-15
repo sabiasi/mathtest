@@ -22,6 +22,7 @@ type Row = {
   cancel_at_period_end: boolean | null;
   preview_free?: boolean | null;
 };
+export type SubscriptionRowLike = Row;
 
 export function subscriptionFromRow(row: Row | null): Subscription | null {
   if (!row) return null;

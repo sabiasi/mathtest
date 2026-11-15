@@ -283,14 +283,56 @@ Visitors can try everything without an account (guest mode).
     FAQ, School request form → `school_requests`); `usePlan()`,
     `PremiumBadge`, `useUpgrade()` dialog; Settings → "My plan"; account
     menu shows the plan. Not-yet-built features show "Soon".
-  - [ ] **Stage 2 — payments (test mode)**: provider adapter, Flitt first
-    (BoG iPay possible later); recurring GEL subscriptions; status changed
-    only by verified server callbacks; failed payment → retries, email,
-    7-day grace, then Free; invoices list, cancel / change plan in Settings.
-    Needs an email service (e.g. Resend) for the payment emails.
-  - [ ] **Stage 3 — AI question generator** ("AI-ით შექმნა"): Claude API from
-    the server only, monthly count per plan checked by the database, abuse
-    limits, Georgian/English output, formulas in our LaTeX format.
+  - [x] **Stage 2 — payments (TEST MODE; no real money until the owner goes
+    live, see docs/GO_LIVE.md)**: provider adapter `lib/payments/`
+    (`PaymentProvider`: createCheckout, chargeRenewal, verifyWebhook,
+    parseEvent, cancel, getInvoice) with `mock` (own bank page
+    `/checkout/mock`: success / success-then-renewals-fail / declined /
+    3-D Secure fails; signed webhook over HTTP to our own route), `flitt`
+    and `bog` (BoG Payments API; both written from the public docs, NOT yet
+    run against a real merchant). `PAYMENT_PROVIDER` picks one (dev: mock;
+    production: off unless set; mock never runs in production outside the
+    sandbox). Database (`migrations/20261116_payments.sql`):
+    `payment_customers`, `payments` (= receipts), `payment_events` (unique
+    provider + event id → idempotent), `email_log`, `subscription_changes`
+    (audit) + `changed_by / changed_reason / changed_at` on subscriptions,
+    `server_secrets` (hash only). Every plan change is a `security definer`
+    function that demands `BILLING_SERVER_SECRET` (`billing_start_checkout`,
+    `billing_record_event`, `billing_start_renewal`, `billing_set_cancel`,
+    `billing_set_period`, `billing_sweep`, `billing_summary`, `email_claim`).
+    Routes: `/api/billing/{checkout,cancel,resume,change-plan,summary}`,
+    `/api/billing/webhook/[provider]`, `/api/billing/return/[provider]`,
+    `/api/cron/billing` (CRON_SECRET), pages `/billing/success`,
+    `/billing/failed`, `/billing/receipt/[id]`. Lifecycle: trial → paid,
+    renewals by our cron, failed renewal → retries on days 1 / 3 / 5
+    (`RENEWAL_RETRY_DAYS`) → grace (`GRACE_DAYS`) → Free; cancel at period
+    end / resume; refund ends the period it paid for. Emails `lib/email/`
+    (Resend, or "console" when no key: nothing leaves the computer), 9
+    templates ka + en, each sent once (`email_log`). UI: Buy buttons, TEST
+    MODE banner, Settings → My plan (`features/billing/BillingSection`), the
+    upgrade dialog's Buy button. Receipts use `lib/payments/seller.ts`
+    (EMPTY: the owner fills it in). `/terms`, `/refund`, `/privacy` carry a
+    "draft" notice. `ONLINE_PAYMENTS` stays false until go-live.
+  - [x] **Stage 3 — AI question generator** ("AI-ით შექმნა", `READY.aiGenerator`):
+    button above "add a question" in the editor → `features/ai/AiGenerateDialog`
+    (topic, grade, types, count ≤ 10, difficulty, language, optional pasted
+    text ≤ 8000 chars) → `POST /api/ai/generate` → review (remove / "another
+    one" / insert). Server: `lib/ai/service.ts` (signed-in only; 6 / min and
+    40 / hour per teacher, 30 / min per IP), `claude.ts` (official
+    `@anthropic-ai/sdk`, model id in ONE constant `AI_MODEL`, structured
+    output with `wire.ts`'s JSON schema, refusal fallback), `mock.ts` (no
+    `ANTHROPIC_API_KEY` = mock mode: ready-made samples, clearly labelled),
+    `convert.ts` (every item rebuilt with `createQuestion`, formulas checked
+    with MathLive, equations with `checkBalance`, then `normalizeTest`;
+    anything broken is dropped). Database (`migrations/20261117_ai_usage.sql`):
+    `ai_usage` (no question text) + `ai_consume` / `ai_finish` /
+    `ai_regenerate` / `ai_status` (server secret): the plan's
+    `aiGenerationsPerMonth` is checked and counted there, the month runs by
+    Tbilisi time, a failed or empty generation is given back, only the
+    teacher's active teaching subjects. Replacing one question is free (5 per
+    generation). Guests get the sign-up window. AI types: `AI_TYPES` ∩ the
+    toolkit's question types (multiple choice, true/false, short, open,
+    matching, fill-blank, order, given-find, balance).
   - [ ] **Stage 4 — Premium features**: school logo + custom header,
     templates, personal question bank, Word (.docx) export, sharing and
     co-editing. Switch each `READY` flag on when done.
@@ -403,6 +445,10 @@ Visitors can try everything without an account (guest mode).
 | Plan enforcement | The server decides, the browser only shows: `/api/pdf` reads the plan (`serverEntitlements`, Free if unknown), caps the variant, and injects `entitlements` into `window.__MATHTEST_PRINT__`; the print page reads them via `usePlan()`. Picture uploads are refused by the storage policy once `image_upload_allowed()` is false (`addImage` checks first → `ImageStorageFullError`). The browser's own Print button can't be controlled (documented) |
 | Privileged writes | Still NO service_role key. Plan changes come from `security definer` database functions; stage 2 will add narrow functions that require a server-only secret (env var) for verified payment callbacks |
 | Upgrade UX | `useUpgrade()("variants" \| "images" \| "footer")` opens a small dialog only after a click on a Premium feature; it changes nothing and loses nothing. `PremiumBadge` (gold `--premium-*` tokens). Guests are offered "create a free account" (= 14-day trial) |
+| Payments | Only a verified webhook changes a paid plan: `webhook route → provider.verifyWebhook → parseEvent → db.rpc("billing_record_event")` (stored first; a repeated event id = "duplicate"; a wrong amount = "amountMismatch", no plan). The browser sends only the PERIOD; plan and price come from plans.ts on the server (`priceTetri`). Amounts are tetri (integers). Order ids: `mt-c-<uuid>` checkout, `mt-r-<uuid>` renewal. Renewals are charged by OUR cron with the saved card token (`payment_customers.card_token`, never sent to the browser); `billing_start_renewal` re-checks dueness under a row lock, so two jobs can't double-charge. Period ends: `periodEnd()` in `lib/plans/billing.ts` = `billing_period_end` in SQL (schoolYear → end of 30 June, Tbilisi time) — change both together; same for `RENEWAL_RETRY_DAYS` and `billing_mark_failed`. BoG repeats the first order's amount (`canChangeAmount: false`): no monthly ↔ yearly switch there. Payments are "enabled" when a provider is chosen + configured + the secret is set, and (real providers) `ONLINE_PAYMENTS` is true (`paymentsStatus`) |
+| Server database access | `lib/server/db.ts` `serverDb()` → `{ user, rpc }`: Supabase with the visitor's cookie and the PUBLIC key (still no service_role), or the sandbox. Functions that change plans are executable by anon/authenticated but refuse without the secret (`require_server_secret`; the database stores only its SHA-256, set once with `select public.set_server_secret('billing', '…')` in the SQL Editor) |
+| Sandbox | `MATHTEST_SANDBOX=1` (+ `NEXT_PUBLIC_MATHTEST_SANDBOX=1`; `npm run dev:sandbox`, and the Playwright server): the billing routes use PGlite in the server's memory, loaded with the REAL schema.sql + plans.sql (`lib/server/sandbox.ts`, stubs in `supabaseStubs.ts`), only the mock provider, and trust the sign-in cookie unverified (fine: no real data). PlanProvider then reads the plan from `/api/billing/summary`. Test tools under My plan (`SandboxTools`, `/api/sandbox`): skip days (shifts that account's dates), run the job for that account, refund, reset, list of "sent" emails. Everything is forgotten when the server stops. NEVER on a real site |
+| AI generator | The AI never writes our stored data: it answers in a flat "wire format" (`lib/ai/wire.ts`; formulas as `$…$` LaTeX inside strings, chemistry `$\ce{…}$`, equations to balance as plain "2H2 + O2 -> 2H2O"), and `convert.ts` builds questions from it. Repairs: `\(…\)`, `\[…\]`, `$$…$$` → formula; `\tan`/`\cot` → `\operatorname{tg}`/`{ctg}` in Georgian; gap words not in the text are skipped; unbalanced equations left out. A question with a formula MathLive can't draw (`ML__error`, unbalanced braces) is dropped. Count first (`ai_consume`), ask second, `ai_finish(false)` on failure. Nothing about the request or the answer is logged — only counts and error kinds. To add a type: `AI_TYPES`, the schema + `readItems`, a `toQuestion` case, a line in the system prompt, mock samples (the test checks every subject × type × language) |
 | Label the diagram | `LabelDiagramQuestion` (`picture`: `{kind:"builtin", drawing}` or `{kind:"upload", imageId, width, height}`). Positions (`x,y` = where the line points, `lx,ly` = the label) are in % of the DRAWING AREA = picture + `SIDE` (0.32 × width) room left/right + `PAD` above/below (`lib/labelDiagram.ts`: `PICTURE_BOX`, `areaAspect`, `placeLabel`, `labelsForParts` → `spreadAlongSide` + `uncross`, `printedBank`, `labelLetters`). Paper and editor share `LabelArea` (`subjects/biology/LabelDiagramView.tsx`): picture, SVG lines (viewBox 1000 wide), labels as HTML (boxes sized in mm; styles in `LabelDiagramView.css`, imported by the component). Browser check of the print positions: `PRINT_TEST_URL=http://localhost:3000 npx vitest run src/subjects/biology/LabelDiagramPrint.browser.test.ts` (skipped in a normal `npm test`). Built-in drawings are `<img src="data:image/svg+xml…">` (`drawingUrl`), no storage used. Uploaded pictures count in `usedImageIds` |
 | Samples | `src/samples/`: `build.ts` (helpers `rt`, `m`, `ce`, `mc`, `tf`, `short`, `open`, `matching`, `fillBlank`, `order`; `sampleTest` runs `normalizeTest`; `SAMPLE_PREFIX`, `isSampleId`, `templateTitle`), one file per subject, `index.ts` (`sampleFor`, `getSample`). Content data (like `drawings.ts`), not dictionaries. `useTest` returns samples without the repository (after hydration; it prefers an injected copy so PDFs keep the page's options). `saveTest` / `setTestFolder` ignore sample ids; PrintView keeps a sample's options in local state. `createTestFromTemplate` = "Use as template" |
 | Built-in pictures | `lib/images/builtinPictures.ts`: image id `builtin:<name>` (georgia-map, room, triangle-abc, umbrella, clock, key, cup), original SVG, black on white, no words; `getImageUrl` returns a data URL, `usedImageIds` skips them (never uploaded, cleaned up or counted). Georgia outline from lon/lat (`georgiaPoint`, `georgiaPercent`, `GEORGIA_PLACES`) |
@@ -487,6 +533,19 @@ src/
                         PlanSummary (Settings → My plan), useImageError
   features/pricing/     PricingView (/pricing), SchoolRequestForm (→ /api/school-request)
   lib/schoolRequest.ts  parseSchoolRequest (checks the School request form)
+  lib/payments/         types (PaymentProvider), mock / flitt / bog adapters, config (which one),
+                        service (checkout, events, cron job), http (route helpers), summary
+                        (browser types), seller (receipt details — owner fills in)
+  lib/email/            templates (ka + en), send (Resend or console; once per key)
+  lib/ai/               request (types, limits, checks), wire (AI answer format + schema),
+                        convert (→ our questions), prompt, mock, claude (the API call), service
+  features/ai/          AiGenerateDialog, AiQuestionPreview
+  lib/server/           db.ts (serverDb, billingSecret), sandbox.ts, supabaseStubs.ts
+  lib/plans/billing.ts  priceTetri, periodEnd
+  features/billing/     useBilling, BillingSection, SandboxTools, TestModeBanner,
+                        MockCheckoutView, BillingResultViews, ReceiptView
+  features/legal/       PrivacyView, LegalViews (terms, refund, DraftNotice)
+  e2e/account.ts        a made-up signed-in teacher + sandbox helpers (billing.spec.ts)
   features/auth/        AuthProvider (useAuth, guest or cloud sync), AuthParts, SignIn/SignUp/
                         ForgotPassword/ResetPassword views
   features/settings/    SettingsView
@@ -713,6 +772,37 @@ src/
   computer is overloaded: `npx playwright test --workers=3`.
 - Toolbar command buttons have no LaTeX: compare buttons with `buttonKey`,
   never `latex + display`.
+- PGlite is a devDependency: if `node_modules/@electric-sql` is missing, the
+  SQL tests fail with "Cannot find package" — run `npm install`.
+- Sandbox function calls use named arguments (`name => $1`): argument names
+  may contain digits (`card_last4`).
+- plpgsql: a function argument and a column with the same name are
+  ambiguous inside UPDATE / WHERE — qualify them (`billing_set_period.billing_period`,
+  `s.billing_period`).
+- Audit stamp: our functions set `changed_by`, `changed_reason` and
+  `changed_at = null`; the trigger treats an untouched `changed_at` as
+  "system". (Comparing clock values failed: two writes can share a timestamp.)
+- Email text lives in `lib/email/templates.ts`, not the dictionaries
+  (server-only; a deliberate exception to the dictionary rule).
+- `.env.example` lists every server setting with an EMPTY value;
+  envSafety.test.ts fails on a filled-in one, and on anything but the two
+  public values in `.env`.
+- Flitt's documentation prints a signature hash that is NOT the SHA-1 of its
+  own example string; our test checks the documented STRING. Confirm with a
+  test-merchant payment before going live.
+- The mocked account can open /settings only because proxy.ts accepts the
+  unverified cookie in sandbox mode; `page.getByRole("group")` also matches
+  the header's language switch — scope it to `main`.
+- Billing browser tests share one sandbox database: each test signs in as a
+  random account, and the sandbox "run job" works on that account only.
+- vitest hides `console.log` from test files here: to inspect a value, write
+  it to a file in the scratch folder.
+- The AI dialog keeps its suggestions when closed by accident; "Back"
+  starts over. Browser tests click `[data-ai-back]` before generating again.
+- In browser tests "Use as template" does nothing until the account's
+  teaching subjects have loaded: retry the click (`toPass`), see e2e/ai.spec.ts.
+- Claude Opus 5.5 rejects forced tool use and a thinking budget: JSON comes
+  from `output_config.format` (json_schema), depth from `output_config.effort`.
 - SQL in schema.sql can be tried locally in Docker (postgres image) with
   small stand-ins for `auth.users`, `auth.uid()` and `storage.objects`.
 
@@ -725,6 +815,7 @@ npm run lint    # check code style and common mistakes
 npm run build   # production build (also type-checks)
 npm run test:e2e   # browser tests (Playwright): builds the app, then clicks through it in Chrome
 npm run plans:sql  # regenerate supabase/plans.sql after changing lib/plans/plans.ts
+npm run dev:sandbox  # dev server with the pretend billing database + mock payments (test mode)
 ```
 
 ## History

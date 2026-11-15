@@ -26,6 +26,8 @@ export default defineConfig({
     reuseExistingServer: true,
     timeout: 300_000,
     // Every test starts a guest trial from the same address: lift the per-IP daily limit.
-    env: { GUEST_TRIALS_PER_IP_PER_DAY: "100000" },
+    // The sandbox: billing runs against a pretend in-memory database with the mock
+    // payment provider (lib/server/sandbox.ts). No real account or money is involved.
+    env: { GUEST_TRIALS_PER_IP_PER_DAY: "100000", MATHTEST_SANDBOX: "1", NEXT_PUBLIC_MATHTEST_SANDBOX: "1", CRON_SECRET: "e2e-cron-secret" },
   },
 });

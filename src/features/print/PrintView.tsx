@@ -34,6 +34,7 @@ import { useUpgrade } from "@/features/plans/UpgradeDialog";
 import { BRAND } from "@/lib/plans/plans";
 import { PdfError, downloadPdf, pdfFileName, waitForImages } from "./downloadPdf";
 import { PrintHeader, type PrintVersion } from "./PrintBlocks";
+import { usePaperHeader } from "./usePaperHeader";
 import { BLOCK_GAP, COLUMN_GAP, HEADER_GAP, PAGE, usePrintLayout } from "./usePrintLayout";
 
 /** The /print/[id] page.  URL: ?version=student|key&variant=A…F|all */
@@ -127,6 +128,7 @@ function PrintDocument({
 
   // ---- What the plan allows (the PDF server checks this again) ----
   const plan = usePlan();
+  const paperHeader = usePaperHeader();
   // While the plan loads, don't hide anything yet (avoids a flicker for Premium teachers).
   const maxVariants = plan.ready ? plan.entitlements.limits.maxVariants : MAX_VARIANTS;
   const brandFooter = plan.ready && !plan.entitlements.features.noPdfFooter;
@@ -200,7 +202,7 @@ function PrintDocument({
     setNotice(null);
     try {
       const variant = showAll ? "all" : current.label;
-      await downloadPdf(test, version, variant, language, pdfFileName(testTitle, suffix));
+      await downloadPdf(test, version, variant, language, pdfFileName(testTitle, suffix), paperHeader);
       toast.success(t("toast.pdfReady"));
     } catch (error) {
       const status = error instanceof PdfError ? error.status : 0;

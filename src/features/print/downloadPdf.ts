@@ -1,7 +1,8 @@
 "use client";
 
 import type { Language } from "@/i18n/dictionaries";
-import { imagesForTest } from "@/lib/images/imageStore";
+import { imageDataUrl, imagesForTest } from "@/lib/images/imageStore";
+import type { PaperHeader } from "@/lib/paperHeader";
 import type { Test } from "@/lib/storage/types";
 import type { PrintVersion } from "./PrintBlocks";
 
@@ -27,12 +28,19 @@ export async function downloadPdf(
   variant: string,
   language: Language,
   fileName: string,
+  /** The teacher's own paper header; the server prints it only if the plan allows. */
+  paperHeader: PaperHeader | null = null,
 ) {
+  // Pictures live in this browser's IndexedDB, so they travel with the request — the header's logo too.
+  const images = await imagesForTest(test);
+  if (paperHeader?.logoImageId) {
+    const logo = await imageDataUrl(paperHeader.logoImageId);
+    if (logo) images[paperHeader.logoImageId] = logo;
+  }
   const response = await fetch("/api/pdf", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    // Pictures live in this browser's IndexedDB, so they travel with the request.
-    body: JSON.stringify({ test, version, variant, language, images: await imagesForTest(test) }),
+    body: JSON.stringify({ test, version, variant, language, images, paperHeader }),
   });
   if (!response.ok) {
     const retryAfter = Number(response.headers.get("Retry-After"));

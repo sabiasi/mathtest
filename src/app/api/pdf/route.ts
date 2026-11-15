@@ -19,6 +19,8 @@
 import { LANGUAGES, type Language } from "@/i18n/dictionaries";
 import { getBrowser } from "@/lib/server/chrome";
 import { serverEntitlements } from "@/lib/plans/server";
+import { READY } from "@/lib/plans/plans";
+import { activePaperHeader, type PaperHeader } from "@/lib/paperHeader";
 import type { Entitlements } from "@/lib/plans/entitlements";
 import { VARIANT_LABELS } from "@/lib/variants";
 import { clientIp, createConcurrencyLimit, createRateLimiter, type LimitResult } from "@/lib/server/rateLimit";
@@ -92,11 +94,14 @@ export async function POST(request: Request) {
     }
   }
 
+  // The teacher's own header (logo, school lines): printed only when the plan has it.
+  const paperHeader = READY.customHeader ? activePaperHeader(body?.paperHeader, entitlements.features.customHeader) : null;
+
   // ---- Make the PDF (only a few at a time) ----
   const done = parallel.tryStart();
   if (!done) return refuse(503, "busy", 5);
   try {
-    return await makePdf(request, test, version, variant, language, images, entitlements);
+    return await makePdf(request, test, version, variant, language, images, entitlements, paperHeader);
   } finally {
     done();
   }
@@ -110,6 +115,7 @@ async function makePdf(
   language: Language,
   images: Record<string, string>,
   entitlements: Entitlements,
+  paperHeader: PaperHeader | null,
 ): Promise<Response> {
   let browser;
   try {
@@ -127,8 +133,8 @@ async function makePdf(
     await page.emulateMediaFeatures([{ name: "prefers-color-scheme", value: "light" }]);
     // Runs before the page's own code: give this browser the test and language.
     await page.evaluateOnNewDocument(
-      (testJson, languageKey, lang, themeKey, pictures, allowed) => {
-        window.__MATHTEST_PRINT__ = { test: JSON.parse(testJson), entitlements: allowed };
+      (testJson, languageKey, lang, themeKey, pictures, allowed, header) => {
+        window.__MATHTEST_PRINT__ = { test: JSON.parse(testJson), entitlements: allowed, paperHeader: header };
         localStorage.setItem(languageKey, lang);
         localStorage.setItem(themeKey, "light");
         window.__MATHTEST_IMAGES__ = pictures;
@@ -139,6 +145,7 @@ async function makePdf(
       THEME_KEY,
       images,
       entitlements,
+      paperHeader,
     );
 
     const origin = new URL(request.url).origin;

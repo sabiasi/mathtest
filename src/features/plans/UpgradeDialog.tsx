@@ -18,10 +18,12 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useT } from "@/i18n/language";
-import { BRAND, PLANS, TRIAL_DAYS } from "@/lib/plans/plans";
+import { BRAND, PLANS, PREMIUM_PRICES_GEL, TRIAL_DAYS } from "@/lib/plans/plans";
+import { formatGel } from "@/lib/plans/pricing";
+import { useBilling, useStartCheckout } from "@/features/billing/useBilling";
 
 /** Why the window opened: picks the title and the sentence. */
-export type UpgradeReason = "variants" | "images" | "footer" | "subjects";
+export type UpgradeReason = "variants" | "images" | "footer" | "subjects" | "ai" | "header" | "templates";
 
 const UpgradeContext = createContext<((reason: UpgradeReason) => void) | null>(null);
 
@@ -45,6 +47,15 @@ export function useUpgrade(): (reason: UpgradeReason) => void {
 function UpgradeDialog({ reason, onClose }: { reason: UpgradeReason | null; onClose: () => void }) {
   const t = useT();
   const { guest } = useAuth();
+  // Asked only while the window is open. Payments on → the window can lead straight to the payment page.
+  const { summary: billing } = useBilling(reason !== null && !guest);
+  const startCheckout = useStartCheckout();
+  const [buying, setBuying] = useState(false);
+  const canBuy = !guest && Boolean(billing?.enabled) && billing?.subscription?.status !== "active";
+  async function buy() {
+    setBuying(true);
+    if (!(await startCheckout("month"))) setBuying(false);
+  }
   const free = PLANS.free.limits;
   const premium = PLANS.premium.limits;
   const values = {
@@ -52,6 +63,9 @@ function UpgradeDialog({ reason, onClose }: { reason: UpgradeReason | null; onCl
     premium: premium.maxVariants,
     freeMb: free.imageStorageMb,
     premiumGb: Math.round(premium.imageStorageMb / 1024),
+    freeAi: free.aiGenerationsPerMonth,
+    freeTemplates: String(free.templates),
+    premiumAi: premium.aiGenerationsPerMonth,
     name: BRAND.name,
     days: TRIAL_DAYS,
   };
@@ -95,9 +109,17 @@ function UpgradeDialog({ reason, onClose }: { reason: UpgradeReason | null; onCl
                   {t("upgrade.signUp", values)}
                 </Link>
               ) : (
-                <Link href="/pricing" onClick={onClose} className={buttonVariants()}>
-                  {t("upgrade.seePlans")}
-                </Link>
+                <>
+                  <Link href="/pricing" onClick={onClose} className={buttonVariants({ variant: canBuy ? "outline" : "default" })}>
+                    {t("upgrade.seePlans")}
+                  </Link>
+                  {canBuy && (
+                    <Button disabled={buying} onClick={() => void buy()} data-upgrade-buy="">
+                      <Crown aria-hidden="true" />
+                      {t("upgrade.buy", { price: formatGel(PREMIUM_PRICES_GEL.month) })}
+                    </Button>
+                  )}
+                </>
               )}
             </div>
             {guest && <p className="-mt-2 text-right text-sm text-muted-foreground">{t("upgrade.trialNote", values)}</p>}

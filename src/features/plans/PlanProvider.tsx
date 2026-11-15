@@ -15,7 +15,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { entitlementsFor, guestEntitlements, type Entitlements, type Subscription } from "@/lib/plans/entitlements";
-import { loadSubscription } from "@/lib/plans/subscription";
+import { loadSubscription, subscriptionFromRow } from "@/lib/plans/subscription";
+import { refreshBilling, useBilling } from "@/features/billing/useBilling";
 import { getSupabase } from "@/lib/supabase/client";
 
 type PlanContextValue = {
@@ -28,6 +29,13 @@ type PlanContextValue = {
 
 const PlanContext = createContext<PlanContextValue | null>(null);
 
+/**
+ * Sandbox (`npm run dev:sandbox`, the browser tests): the plan lives in the
+ * server's pretend database, so it is read through our own server instead
+ * of from Supabase. See lib/server/sandbox.ts.
+ */
+const SANDBOX = process.env.NEXT_PUBLIC_MATHTEST_SANDBOX === "1";
+
 /** Don't ask the database more than once a minute when the tab gets focus. */
 const REFRESH_GAP_MS = 60_000;
 
@@ -37,10 +45,14 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   // `forUser` remembers whose subscription this is, so a different account never sees it.
   const [loaded, setLoaded] = useState<{ forUser: string; subscription: Subscription | null } | null>(null);
   const [version, setVersion] = useState(0);
-  const refresh = useCallback(() => setVersion((v) => v + 1), []);
+  const refresh = useCallback(() => {
+    setVersion((v) => v + 1);
+    refreshBilling();
+  }, []);
+  const billing = useBilling(SANDBOX && userId !== null);
 
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || SANDBOX) return;
     let cancelled = false;
     loadSubscription(getSupabase(), userId)
       .then((subscription) => {
@@ -71,7 +83,11 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   }, [userId, refresh]);
 
   const injected = typeof window !== "undefined" ? window.__MATHTEST_PRINT__?.entitlements : undefined;
-  const mine = loaded && loaded.forUser === userId ? loaded : null;
+  const fromSandbox = useMemo(
+    () => (SANDBOX && userId && billing.summary?.signedIn ? { forUser: userId, subscription: subscriptionFromRow(billing.summary.subscription) } : null),
+    [userId, billing.summary],
+  );
+  const mine = SANDBOX ? fromSandbox : loaded && loaded.forUser === userId ? loaded : null;
   const ready = Boolean(injected) || status === "signed-out" || status === "unconfigured" || (userId !== null && mine !== null);
 
   const value = useMemo<PlanContextValue>(() => {

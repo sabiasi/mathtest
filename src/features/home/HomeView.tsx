@@ -5,14 +5,16 @@ import { TeachingSubjectsSummary, useTeachingSubjects } from "@/features/subject
 
 import { PageBackdrop } from "@/components/PageBackdrop";
 import { PlanPreviewBar } from "@/features/plans/PlanSummary";
-import { ClipboardList, CloudOff, Info, PencilLine, Plus, Printer, RotateCw } from "lucide-react";
+import { ClipboardList, CloudOff, Info, LayoutTemplate, PencilLine, Plus, Printer, RotateCw } from "lucide-react";
+import { READY } from "@/lib/plans/plans";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/EmptyState";
 import { GuestBanner } from "@/components/GuestBanner";
 import { PageTransition } from "@/components/PageTransition";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useGuestTrial } from "@/features/auth/GuestTrial";
@@ -121,12 +123,20 @@ export function HomeView() {
           <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("home.title")}</h1>
           <p className="mt-1.5 max-w-2xl text-[15px] text-muted-foreground">{t("home.subtitle")}</p>
         </div>
-        {tests && tests.length > 0 && view === "all" && (
-          <Button onClick={() => void openNewTest()}>
-            <Plus className="size-5" aria-hidden="true" />
-            {t("home.createNew")}
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {READY.allTemplates && (
+            <Link href="/templates" className={buttonVariants({ variant: "outline" })} data-templates-link="">
+              <LayoutTemplate className="size-5" aria-hidden="true" />
+              {t("templates.nav")}
+            </Link>
+          )}
+          {tests && tests.length > 0 && view === "all" && (
+            <Button onClick={() => void openNewTest()}>
+              <Plus className="size-5" aria-hidden="true" />
+              {t("home.createNew")}
+            </Button>
+          )}
+        </div>
       </div>
 
       <GuestBanner className="mt-6" />
