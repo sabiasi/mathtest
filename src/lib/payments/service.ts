@@ -287,11 +287,14 @@ export async function loadSummary(db: ServerDb | null, origin: string): Promise<
     payments: [],
     pending: [],
     profile: null,
+    school: null,
   };
   if (!db?.user || !billingSecret()) return empty;
   try {
     const row = await db.rpc<SummaryRow>("billing_summary", { secret: billingSecret(), uid: db.user.id });
-    return { ...empty, subscription: row.subscription ?? null, method: row.method ?? null, payments: row.payments ?? [], pending: row.pending ?? [], profile: row.profile ?? null };
+    // An older database has no schools yet: no seat.
+    const school = await db.rpc<unknown>("my_school_seat").catch(() => null);
+    return { ...empty, subscription: row.subscription ?? null, method: row.method ?? null, payments: row.payments ?? [], pending: row.pending ?? [], profile: row.profile ?? null, school };
   } catch (error) {
     // The payments SQL isn't in the database yet: payments are simply not available.
     if (!isMissingSql(error)) console.error("MathTest: could not load the billing summary", error);

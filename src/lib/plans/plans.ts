@@ -86,8 +86,8 @@ export const READY: Record<Feature | "aiGenerator", boolean> = {
   questionBank: true,
   docxExport: true,
   sharing: true,
-  schoolAdmin: false,
-  sharedBank: false,
+  schoolAdmin: true,
+  sharedBank: true,
   aiGenerator: true,
 };
 

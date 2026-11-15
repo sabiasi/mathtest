@@ -7,13 +7,14 @@
  *   POST { action: "skipDays", days }    → pretend that many days passed (your account only)
  *   POST { action: "runJob" }            → run the scheduled billing job now (for your account only)
  *   POST { action: "reset" }             → start again as a brand-new account
+ *   POST { action: "makeAdmin" }         → this account becomes a founder (to try /admin)
  */
 import { emailOutbox } from "@/lib/email/send";
 import { siteOrigin } from "@/lib/payments/config";
 import { fromOurSite, readJson } from "@/lib/payments/http";
 import { runBillingJob } from "@/lib/payments/service";
 import { serverDb } from "@/lib/server/db";
-import { sandboxEnabled, sandboxResetUser, sandboxSkipDays } from "@/lib/server/sandbox";
+import { sandboxEnabled, sandboxMakeAdmin, sandboxResetUser, sandboxSkipDays } from "@/lib/server/sandbox";
 
 const answer = (status: number, body: Record<string, unknown>) => Response.json(body, { status, headers: { "Cache-Control": "no-store" } });
 
@@ -38,6 +39,10 @@ export async function POST(request: Request) {
     return answer(200, { ok: true });
   }
   if (body?.action === "runJob") return answer(200, { ok: true, ...(await runBillingJob(db, siteOrigin(request), db.user.id)) });
+  if (body?.action === "makeAdmin") {
+    await sandboxMakeAdmin(db.user.id);
+    return answer(200, { ok: true });
+  }
   if (body?.action === "reset") {
     await sandboxResetUser(db.user.id);
     return answer(200, { ok: true });

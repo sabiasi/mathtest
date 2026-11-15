@@ -8,7 +8,7 @@
  * tests, the editor and print, which guests use with tests saved in their
  * browser ("try without signing up").
  */
-export const PROTECTED_PREFIXES = ["/settings"];
+export const PROTECTED_PREFIXES = ["/settings", "/school", "/admin"];
 
 /** Pages that make no sense once signed in (they send you to My tests). */
 export const SIGNED_OUT_ONLY = ["/", "/signin", "/signup"];

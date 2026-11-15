@@ -58,6 +58,8 @@ export type BillingSummary = {
   /** Orders still waiting for the provider's answer. */
   pending: string[];
   profile: BillingProfile | null;
+  /** The teacher's school seat (from `my_school_seat()`): a school may pay for the plan. */
+  school: unknown;
 };
 
 /** Error codes our billing routes answer with ({ error: code }); each has a Georgian message (`billing.error.<code>`). */

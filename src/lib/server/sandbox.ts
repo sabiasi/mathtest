@@ -111,6 +111,31 @@ export async function sandboxResetUser(userId: string): Promise<void> {
  * (The real rule — only the teacher's active subjects — is in the database
  * function ai_consume and tested in src/lib/ai/aiSql.test.ts.)
  */
+/** Sandbox only: this account becomes a founder (a row in public.admins), to try /admin. */
+export async function sandboxMakeAdmin(userId: string): Promise<void> {
+  const box = await sandbox();
+  await box.run((db) => db.query("insert into public.admins (user_id, note) values ($1, 'sandbox') on conflict (user_id) do nothing", [userId]));
+}
+
+/** Sandbox only: a School request from /pricing goes into the pretend database (so /admin shows it). */
+export async function sandboxSchoolRequest(row: Record<string, unknown>, userId: string | null): Promise<void> {
+  const columns = ["contact_name", "school_name", "city", "teachers", "email", "phone", "message", "language"] as const;
+  const placeholders = columns.map((_, i) => "$" + (i + 1)).join(", ");
+  const box = await sandbox();
+  await box.run(async (db) => {
+    await db.query("select set_config('request.jwt.claim.sub', $1, false)", [userId ?? ""]);
+    await db.exec(userId ? "set role authenticated" : "set role anon");
+    try {
+      await db.query(
+        "insert into public.school_requests (" + columns.join(", ") + ") values (" + placeholders + ")",
+        columns.map((name) => row[name] ?? (name === "teachers" ? null : "")),
+      );
+    } finally {
+      await db.exec("reset role");
+    }
+  });
+}
+
 export async function sandboxAllowSubject(userId: string, subject: string): Promise<void> {
   const box = await sandbox();
   await box.run((db) =>

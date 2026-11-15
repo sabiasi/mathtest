@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { allowedVariantCount, entitlementsFor, guestEntitlements, type Subscription } from "./entitlements";
+import { allowedVariantCount, entitlementsFor, guestEntitlements, seatActive, type SchoolSeat, type Subscription } from "./entitlements";
+import { schoolSeatFromJson } from "./subscription";
 import { GRACE_DAYS, PLANS } from "./plans";
 
 const now = new Date("2026-11-13T12:00:00Z");
@@ -72,6 +73,44 @@ describe("entitlementsFor", () => {
   it("expired and free rows are Free", () => {
     expect(entitlementsFor(sub({ status: "expired" }), now).plan).toBe("free");
     expect(entitlementsFor(sub({ plan: "free" }), now).plan).toBe("free");
+  });
+});
+
+describe("school seats (the same order as public.plan_of)", () => {
+  const seat = (changes: Partial<SchoolSeat> = {}): SchoolSeat => ({
+    schoolId: "s1", name: "51-ე სკოლა", role: "teacher", department: "", status: "active", paidUntil: "2026-12-31T00:00:00Z", ...changes,
+  });
+  const at = new Date("2026-11-20T12:00:00Z");
+
+  it("an active school gives the School plan, with every Premium feature and the school ones", () => {
+    const e = entitlementsFor(null, at, seat());
+    expect(e).toMatchObject({ plan: "school", state: "active", endsAt: "2026-12-31T00:00:00Z", school: { name: "51-ე სკოლა" } });
+    expect(e.features).toMatchObject({ questionBank: true, sharing: true, schoolAdmin: true, sharedBank: true });
+  });
+
+  it("beats the teacher's own trial or Premium, and a school with no end date never ends", () => {
+    const trial: Subscription = { plan: "premium", status: "trialing", trialEndsAt: "2026-11-25T00:00:00Z", currentPeriodEnd: null, graceEndsAt: null, cancelAtPeriodEnd: false };
+    expect(entitlementsFor(trial, at, seat({ paidUntil: null })).plan).toBe("school");
+  });
+
+  it("an ended or expired school gives back the teacher's own plan, but the seat is still known", () => {
+    const paid: Subscription = { plan: "premium", status: "active", trialEndsAt: null, currentPeriodEnd: "2027-01-01T00:00:00Z", graceEndsAt: null, cancelAtPeriodEnd: false };
+    expect(entitlementsFor(paid, at, seat({ status: "ended" }))).toMatchObject({ plan: "premium", school: { status: "ended" } });
+    expect(entitlementsFor(null, at, seat({ paidUntil: "2026-11-20T11:59:59Z" }))).toMatchObject({ plan: "free", school: { name: "51-ე სკოლა" } });
+    expect(seatActive(seat({ paidUntil: "2026-11-20T12:00:00Z" }), at)).toBe(false);
+    expect(seatActive(null, at)).toBe(false);
+  });
+
+  it("'View as Free' still lowers a school teacher to Free", () => {
+    const preview: Subscription = { plan: "free", status: "expired", trialEndsAt: null, currentPeriodEnd: null, graceEndsAt: null, cancelAtPeriodEnd: false, previewFree: true };
+    expect(entitlementsFor(preview, at, seat())).toMatchObject({ plan: "free", previewOf: { plan: "school", state: "active" } });
+  });
+
+  it("reads the database's answer safely", () => {
+    expect(schoolSeatFromJson({ school_id: "s1", name: "A", role: "admin", department: "მათ.", status: "active", paid_until: null }))
+      .toEqual({ schoolId: "s1", name: "A", role: "admin", department: "მათ.", status: "active", paidUntil: null });
+    expect(schoolSeatFromJson({ school_id: "s1", role: "owner", status: "weird" })).toMatchObject({ role: "teacher", status: "ended" });
+    for (const bad of [null, "x", {}, { school_id: 5 }]) expect(schoolSeatFromJson(bad)).toBeNull();
   });
 });
 

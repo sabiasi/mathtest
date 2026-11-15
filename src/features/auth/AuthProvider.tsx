@@ -18,6 +18,7 @@ import { usedImageIds } from "@/lib/images/imageMath";
 import { clearImageCache, keepImages, setImageUser, setPictureFinder } from "@/lib/images/imageStore";
 import { findSharedPicture } from "@/lib/sharing/pictures";
 import { loadShares, resetShares } from "@/lib/sharing/sharesStore";
+import { loadSchool, resetSchool } from "@/features/schools/schoolStore";
 import { supabaseSharedBackend } from "@/lib/storage/sharedTests";
 import { loadBank, resetBank } from "@/lib/bank/bankStore";
 import { normalizePaperHeader } from "@/lib/paperHeader";
@@ -138,6 +139,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (userId) void loadShares(userId, email);
     else resetShares();
   }, [userId, email]);
+  // ---- The School plan: my seat and invitations (School plan, stage 5) ----
+  useEffect(() => {
+    if (userId) void loadSchool(userId);
+    else resetSchool();
+  }, [userId]);
   useEffect(() => {
     if (!userId) return;
     const report = () => {

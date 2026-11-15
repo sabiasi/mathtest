@@ -10,6 +10,8 @@ import { clientIp, createRateLimiter } from "@/lib/server/rateLimit";
 import { parseSchoolRequest } from "@/lib/schoolRequest";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServer } from "@/lib/supabase/server";
+import { serverDb } from "@/lib/server/db";
+import { sandboxEnabled, sandboxSchoolRequest } from "@/lib/server/sandbox";
 
 const HOUR = 60 * 60 * 1000;
 /** Each visitor (by IP address): 5 requests per hour. */
@@ -22,7 +24,7 @@ const reply = (status: number, body: Record<string, unknown>, retryAfterSeconds?
   Response.json(body, { status, headers: retryAfterSeconds ? { "Retry-After": String(retryAfterSeconds) } : undefined });
 
 export async function POST(request: Request) {
-  if (!supabaseConfigured) return reply(501, { error: "not configured" });
+  if (!supabaseConfigured && !sandboxEnabled()) return reply(501, { error: "not configured" });
 
   let limit = perVisitor.check(`ip:${clientIp(request.headers)}`);
   if (limit.ok) limit = everyone.check("all");
@@ -41,6 +43,18 @@ export async function POST(request: Request) {
 
   const schoolRequest = parseSchoolRequest(body);
   if (!schoolRequest) return reply(400, { error: "invalid" });
+
+  // The local sandbox (npm run dev:sandbox): into the pretend database, so /admin shows it.
+  if (sandboxEnabled()) {
+    try {
+      const db = await serverDb();
+      await sandboxSchoolRequest(schoolRequest, db?.user?.id ?? null);
+      return reply(200, { ok: true });
+    } catch (error) {
+      console.error("MathTest: could not save a school request (sandbox)", error);
+      return reply(500, { error: "failed" });
+    }
+  }
 
   // Uses the visitor's own sign-in (or none): the database decides what's allowed.
   const supabase = await createSupabaseServer();

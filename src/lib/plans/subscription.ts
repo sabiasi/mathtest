@@ -7,7 +7,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PLAN_IDS, type PlanId } from "./plans";
-import { SUBSCRIPTION_STATUSES, type Subscription, type SubscriptionStatus } from "./entitlements";
+import { SUBSCRIPTION_STATUSES, type SchoolSeat, type Subscription, type SubscriptionStatus } from "./entitlements";
 
 const COLUMNS = "plan, status, trial_ends_at, current_period_end, grace_ends_at, cancel_at_period_end";
 /** Added by supabase/migrations/20261115_plan_preview.sql (older databases don't have it yet). */
@@ -61,4 +61,29 @@ export async function loadImageStorage(supabase: SupabaseClient): Promise<ImageS
   if (error) throw error;
   const value = data as { used?: number; limit?: number } | null;
   return { used: Number(value?.used ?? 0), limit: Number(value?.limit ?? 0) };
+}
+
+/** The database's answer from `my_school_seat()` → a SchoolSeat (or null for anything else). */
+export function schoolSeatFromJson(value: unknown): SchoolSeat | null {
+  const row = value as Record<string, unknown> | null;
+  if (!row || typeof row !== "object" || typeof row.school_id !== "string") return null;
+  return {
+    schoolId: row.school_id,
+    name: typeof row.name === "string" ? row.name : "",
+    role: row.role === "admin" ? "admin" : "teacher",
+    department: typeof row.department === "string" ? row.department : "",
+    status: row.status === "active" ? "active" : "ended",
+    paidUntil: typeof row.paid_until === "string" ? row.paid_until : null,
+  };
+}
+
+/** "No such function": the School SQL (migrations/20261121_schools.sql) isn't applied yet → no seat. */
+const missingFunction = (error: { code?: string } | null) => error?.code === "PGRST202" || error?.code === "42883";
+
+/** The signed-in teacher's school seat, or null. Throws on network / database errors. */
+export async function loadSchoolSeat(supabase: SupabaseClient): Promise<SchoolSeat | null> {
+  const { data, error } = await supabase.rpc("my_school_seat");
+  if (error && missingFunction(error)) return null;
+  if (error) throw error;
+  return schoolSeatFromJson(data);
 }

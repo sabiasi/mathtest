@@ -3,6 +3,7 @@
  * subscription (the `subscriptions` row in the database) and today's date.
  *
  *   no account (guest) ............................. Free
+ *   a seat in an active school ..................... School (beats everything below)
  *   trial, not ended yet ........................... Premium (TRIAL_PLAN)
  *   paid, renewal date not reached ................. their plan
  *   paid, renewal failed / late, within GRACE_DAYS . their plan ("grace")
@@ -35,6 +36,29 @@ export type Subscription = {
 };
 
 /**
+ * A teacher's place in a school (table school_members + schools). The school
+ * pays for it: while the school is active the teacher has the School plan.
+ */
+export type SchoolSeat = {
+  schoolId: string;
+  name: string;
+  /** "admin" = manages the school's seats (not a founder, not a teaching subject). */
+  role: "admin" | "teacher";
+  department: string;
+  status: "active" | "ended";
+  /** End of the school's paid time; null = no end date. */
+  paidUntil: string | null;
+};
+
+/** Is the school paying for this seat right now? (= public.active_school_of in SQL) */
+export function seatActive(seat: SchoolSeat | null | undefined, now?: Date): boolean {
+  if (!seat || seat.status !== "active") return false;
+  if (seat.paidUntil === null) return true;
+  // The clock is read only when needed: Next.js refuses `new Date()` while pre-building a page (no seat then).
+  return (now ?? new Date()).getTime() < Date.parse(seat.paidUntil);
+}
+
+/**
  * - guest: no account
  * - free: an account on the Free plan
  * - trial: the free Premium trial
@@ -57,6 +81,8 @@ export type Entitlements = {
   endsAt: string | null;
   /** While previewing Free: the plan the account really has (to switch back). Otherwise null. */
   previewOf: { plan: PlanId; state: PlanState } | null;
+  /** The teacher's school seat (also when the school has ended), or null. */
+  school: SchoolSeat | null;
 };
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -64,7 +90,7 @@ const DAY = 24 * 60 * 60 * 1000;
 function build(plan: PlanId, state: PlanState, extra: Partial<Entitlements> = {}): Entitlements {
   const owned = new Set(PLANS[plan].features);
   const features = Object.fromEntries(FEATURES.map((f) => [f, owned.has(f)])) as Record<Feature, boolean>;
-  return { plan, state, limits: PLANS[plan].limits, features, trialDaysLeft: null, renewsAt: null, endsAt: null, previewOf: null, ...extra };
+  return { plan, state, limits: PLANS[plan].limits, features, trialDaysLeft: null, renewsAt: null, endsAt: null, previewOf: null, school: null, ...extra };
 }
 
 export function guestEntitlements(): Entitlements {
@@ -73,12 +99,18 @@ export function guestEntitlements(): Entitlements {
 
 const time = (iso: string | null) => (iso ? Date.parse(iso) : NaN);
 
-/** What a signed-in user with this subscription (or none) may do at `now`. */
-export function entitlementsFor(subscription: Subscription | null, now: Date = new Date()): Entitlements {
-  const real = realEntitlements(subscription, now);
+/**
+ * What a signed-in user with this subscription (or none) and this school
+ * seat (or none) may do at `now`. The same order as public.plan_of in SQL:
+ * "View as Free" → Free; an active school seat → School; else the subscription.
+ */
+export function entitlementsFor(subscription: Subscription | null, now: Date = new Date(), seat: SchoolSeat | null = null): Entitlements {
+  const real = seatActive(seat, now)
+    ? build("school", "active", { endsAt: seat!.paidUntil })
+    : realEntitlements(subscription, now);
   // Previewing Free only ever LOWERS what the account may do.
-  if (subscription?.previewFree && real.plan !== "free") return build("free", "free", { previewOf: { plan: real.plan, state: real.state } });
-  return real;
+  if (subscription?.previewFree && real.plan !== "free") return build("free", "free", { previewOf: { plan: real.plan, state: real.state }, school: seat });
+  return { ...real, school: seat };
 }
 
 function realEntitlements(subscription: Subscription | null, now: Date): Entitlements {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Crown, LayoutGrid, LogOut, Settings } from "lucide-react";
+import { Crown, LayoutGrid, LogOut, Settings, School, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { displayName, useAuth } from "@/features/auth/AuthProvider";
+import { useIsFounder } from "@/features/admin/useIsFounder";
 import { usePlan } from "@/features/plans/PlanProvider";
 import { useT } from "@/i18n/language";
 import { initials } from "@/lib/auth/profile";
@@ -56,6 +57,7 @@ function UserMenu() {
   const router = useRouter();
   const { user, profile, signOut } = useAuth();
   const { entitlements, ready } = usePlan();
+  const founder = useIsFounder();
   const name = displayName(user, profile);
   const planLabel = entitlements.previewOf
     ? t("user.previewBadge")
@@ -92,6 +94,18 @@ function UserMenu() {
           <Settings aria-hidden="true" />
           {t("user.settings")}
         </DropdownMenuItem>
+        {entitlements.school && (
+          <DropdownMenuItem onSelect={() => router.push(entitlements.school?.role === "admin" ? "/school" : "/settings#school")} data-menu-school="">
+            <School aria-hidden="true" />
+            {t("mySchool.title")}
+          </DropdownMenuItem>
+        )}
+        {founder && (
+          <DropdownMenuItem onSelect={() => router.push("/admin")} data-menu-admin="">
+            <ShieldCheck aria-hidden="true" />
+            {t("admin.title")}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" onSelect={() => void signOut()}>
           <LogOut aria-hidden="true" />

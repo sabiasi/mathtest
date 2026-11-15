@@ -91,6 +91,8 @@ import { AiGenerateDialog } from "@/features/ai/AiGenerateDialog";
 import { BankInsertDialog } from "@/features/bank/BankInsertDialog";
 import { useBankMessages } from "@/features/bank/BankView";
 import { saveToBank } from "@/lib/bank/bankStore";
+import { seatActive } from "@/lib/plans/entitlements";
+import { shareWithSchool } from "@/lib/schools/schoolBankStore";
 import { usePlan } from "@/features/plans/PlanProvider";
 import { useUpgrade } from "@/features/plans/UpgradeDialog";
 import { useAuth } from "@/features/auth/AuthProvider";
@@ -289,6 +291,13 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
   async function saveQuestionToBank(question: Question) {
     if (!bankAllowed()) return;
     if (bankReport(await saveToBank(question, { subject: test.subjectId, grade: test.grade }))) toast.success(t("bank.saved"));
+  }
+  // "Save to the school bank" (School plan): only for teachers with a seat in an active school.
+  const schoolBankOffered = READY.sharedBank && !guest && seatActive(plan.entitlements.school) && plan.entitlements.features.sharedBank;
+  async function shareQuestionWithSchool(question: Question) {
+    const result = await shareWithSchool(question, { subject: test.subjectId, grade: test.grade, department: plan.entitlements.school?.department ?? "" });
+    if (result === "ok") toast.success(t("schoolBank.saved"));
+    else toast.error(t(result === "full" ? "schoolBank.full" : `mySchool.error.${result}`));
   }
   function insertFromBank(questions: Question[]) {
     insertFromAi(questions);
@@ -551,6 +560,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                   onPatch={(id, patch) => updateQuestions((qs) => qs.map((q) => (q.id === id ? patch(q) : q)))}
                   onDuplicate={duplicate}
                   onSaveToBank={bankOffered && !readOnly ? (question) => void saveQuestionToBank(question) : undefined}
+                  onShareWithSchool={schoolBankOffered && !readOnly ? (question) => void shareQuestionWithSchool(question) : undefined}
                   onDelete={remove}
                   onMove={moveQuestion}
                   moveTick={moveTick}

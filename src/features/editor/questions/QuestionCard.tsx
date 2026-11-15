@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowDownToLine, ArrowUpToLine, Copy, GripVertical, ImagePlus, Lightbulb, MoreHorizontal, Trash2, X, Library } from "lucide-react";
+import { ArrowDownToLine, ArrowUpToLine, Copy, GripVertical, ImagePlus, Lightbulb, MoreHorizontal, Trash2, X, Library, School } from "lucide-react";
 import { ReorderArrows } from "@/components/ReorderArrows";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { motion, useReducedMotion } from "motion/react";
@@ -116,6 +116,7 @@ export function QuestionCard({
   onDuplicate,
   onDelete,
   onSaveToBank,
+  onShareWithSchool,
   index,
   count,
   moveTick,
@@ -136,6 +137,8 @@ export function QuestionCard({
   onDelete: () => void;
   /** "Save to my bank" (Premium). Absent = the bank isn't offered here. */
   onSaveToBank?: () => void;
+  /** "Save to the school bank" (School plan); undefined = not offered. */
+  onShareWithSchool?: () => void;
   /** Position in the list (0-based) and the list's length: for the up / down arrows. */
   index: number;
   count: number;
@@ -366,6 +369,12 @@ export function QuestionCard({
                     <DropdownMenuItem onSelect={onSaveToBank} data-save-to-bank="">
                       <Library aria-hidden="true" />
                       {t("bank.save")}
+                    </DropdownMenuItem>
+                  )}
+                  {onShareWithSchool && (
+                    <DropdownMenuItem onSelect={onShareWithSchool} data-share-with-school="">
+                      <School aria-hidden="true" />
+                      {t("schoolBank.save")}
                     </DropdownMenuItem>
                   )}
                   <DropdownMenuItem variant="destructive" onSelect={onDelete}>

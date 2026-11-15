@@ -4,7 +4,8 @@
  * Knows the signed-in teacher's plan. Any component asks with `usePlan()`.
  *
  * - Guests: always Free.
- * - Signed in: the `subscriptions` row is loaded from the database, again
+ * - Signed in: the `subscriptions` row (and the school seat, `my_school_seat`)
+ *   is loaded from the database, again
  *   when the tab comes back into view (e.g. after paying in another tab).
  * - The PDF server's Chrome: the server hands over what the plan allows.
  *
@@ -14,8 +15,8 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { entitlementsFor, guestEntitlements, type Entitlements, type Subscription } from "@/lib/plans/entitlements";
-import { loadSubscription, subscriptionFromRow } from "@/lib/plans/subscription";
+import { entitlementsFor, guestEntitlements, type Entitlements, type SchoolSeat, type Subscription } from "@/lib/plans/entitlements";
+import { loadSchoolSeat, loadSubscription, schoolSeatFromJson, subscriptionFromRow } from "@/lib/plans/subscription";
 import { refreshBilling, useBilling } from "@/features/billing/useBilling";
 import { getSupabase } from "@/lib/supabase/client";
 
@@ -43,7 +44,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const { status, user } = useAuth();
   const userId = status === "signed-in" ? (user?.id ?? null) : null;
   // `forUser` remembers whose subscription this is, so a different account never sees it.
-  const [loaded, setLoaded] = useState<{ forUser: string; subscription: Subscription | null } | null>(null);
+  const [loaded, setLoaded] = useState<{ forUser: string; subscription: Subscription | null; seat: SchoolSeat | null } | null>(null);
   const [version, setVersion] = useState(0);
   const refresh = useCallback(() => {
     setVersion((v) => v + 1);
@@ -54,14 +55,15 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!userId || SANDBOX) return;
     let cancelled = false;
-    loadSubscription(getSupabase(), userId)
-      .then((subscription) => {
-        if (!cancelled) setLoaded({ forUser: userId, subscription });
+    // The plan comes from the teacher's own subscription AND their school seat (a school may pay).
+    Promise.all([loadSubscription(getSupabase(), userId), loadSchoolSeat(getSupabase()).catch(() => null)])
+      .then(([subscription, seat]) => {
+        if (!cancelled) setLoaded({ forUser: userId, subscription, seat });
       })
       .catch((error) => {
         console.error("MathTest: could not load the plan", error);
         // Show Free rather than "loading" forever; the next focus tries again.
-        if (!cancelled) setLoaded((previous) => (previous?.forUser === userId ? previous : { forUser: userId, subscription: null }));
+        if (!cancelled) setLoaded((previous) => (previous?.forUser === userId ? previous : { forUser: userId, subscription: null, seat: null }));
       });
     return () => {
       cancelled = true;
@@ -84,7 +86,9 @@ export function PlanProvider({ children }: { children: ReactNode }) {
 
   const injected = typeof window !== "undefined" ? window.__MATHTEST_PRINT__?.entitlements : undefined;
   const fromSandbox = useMemo(
-    () => (SANDBOX && userId && billing.summary?.signedIn ? { forUser: userId, subscription: subscriptionFromRow(billing.summary.subscription) } : null),
+    () => (SANDBOX && userId && billing.summary?.signedIn
+      ? { forUser: userId, subscription: subscriptionFromRow(billing.summary.subscription), seat: schoolSeatFromJson(billing.summary.school) }
+      : null),
     [userId, billing.summary],
   );
   const mine = SANDBOX ? fromSandbox : loaded && loaded.forUser === userId ? loaded : null;
@@ -93,7 +97,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
   const value = useMemo<PlanContextValue>(() => {
     let entitlements: Entitlements;
     if (injected) entitlements = injected;
-    else if (userId && mine) entitlements = entitlementsFor(mine.subscription);
+    else if (userId && mine) entitlements = entitlementsFor(mine.subscription, new Date(), mine.seat);
     else if (userId) entitlements = entitlementsFor(null);
     else entitlements = guestEntitlements();
     return { entitlements, ready, refresh };

@@ -363,11 +363,34 @@ Visitors can try everything without an account (guest mode).
       printed block from headless Chrome), `document.ts` + `zip.ts` (the
       .docx itself, no extra package). Student / key / all variants.
     - **sharing**: see "Sharing and co-editing" in Tech decisions.
-  - [ ] **Stage 5 — School plan + founders' admin**: seats, invites (email or
-    code), remove teachers, usage, shared bank per subject/department,
-    invoice payment activated by hand; `/admin` (users, subscriptions,
-    trials, revenue per month, AI usage, school requests, manual plan
-    changes).
+  - [x] **Stage 5 — School plan + founders' admin** (`READY.schoolAdmin`,
+    `READY.sharedBank`): SQL `migrations/20261121_schools.sql`. `schools`
+    (seats, `paid_until` null = no end, 8-letter `join_code`, `request_id`),
+    `school_members` (PK user_id = one school per teacher; role `admin` /
+    `teacher`; department), `school_invites` (by email, role), founders =
+    `admins` table, `admin_log` (every founder change, with a REQUIRED reason).
+    `plan_of` (the LAST one in schema.sql now) = preview → Free; a seat in an
+    ACTIVE school (`active_school_of`) → School; else the subscription.
+    `entitlements.ts` mirrors it with `SchoolSeat` + `seatActive`
+    (`entitlementsFor(subscription, now, seat)`; `Entitlements.school`). Seat
+    loaded by `my_school_seat()` (browser `loadSchoolSeat`, server
+    `serverEntitlements`, sandbox via the billing summary's `school`). Every
+    teacher / school-admin / founder action is ONE security-definer function
+    that checks the caller (`join_school`, `accept_school_invite`,
+    `leave_school`, `school_overview` / `school_invite` / `school_remove_member`
+    / `school_set_member` / `school_new_code` / `school_usage` (numbers only),
+    `school_bank_list/add/remove`, `admin_*`). Routes `/api/school/[action]`
+    and `/api/admin/[action]` (`lib/schools/http.ts`: origin, rate limits,
+    sign-in; admin = `am_i_admin()` first → 404 for everyone else). Screens:
+    Settings → "My school" (`features/schools/SchoolSection`), `/school`
+    (school admin), `/school/bank` (shared bank; "Save to the school bank" in
+    the question "⋯" menu; "My bank / School bank" switch when inserting —
+    pictures are copied into the teacher's own space), `/admin`
+    (`features/admin/`: overview, users + gift Premium / extend trial / back
+    to Free, revenue per month + failed payments, AI usage, school requests
+    new → contacted → won / lost + "create school" (invoice), schools and
+    seats, log). Account menu: "My school", "Admin" (`useIsFounder`).
+    Invitation email = the existing `schoolInvite` template, sent once.
 - [ ] Later: backup import/export, own email service (SMTP) and hosting.
 
 ## Teaching-subject access (Phase 1 complete)
@@ -400,7 +423,7 @@ Visitors can try everything without an account (guest mode).
 - **Plan preview ("View as Free")**: `subscriptions.preview_free` (+
   `preview_subjects`), written only by `set_plan_preview(free)` (security
   definer, own row). `plan_of` returns Free while it's on (the LAST `plan_of`
-  in schema.sql, from `migrations/20261115_plan_preview.sql`, is the real one).
+  in schema.sql, now from `migrations/20261121_schools.sql`, is the real one).
   Off restores the teaching subjects saved when it was switched on.
   `Entitlements.previewOf` = the real plan; Settings → My plan switch,
   `PlanPreviewBar` on /tests. Can only lower a plan. `PLAN_PREVIEW` flag.
@@ -492,6 +515,7 @@ Visitors can try everything without an account (guest mode).
 | Sharing and co-editing | SQL: `migrations/20261120_sharing.sql`. `test_shares` (owner, test, colleague's EMAIL, role `view` / `edit`; the colleague is whoever signs in with that confirmed email — `my_email()`), `test_links` (64-character token → `test_by_link(token)` for anyone, also signed out), `tests_shared_with_me()`, pictures via `picture_is_shared` / `shared_picture_path`. Sharing needs the OWNER's plan to have `sharing`; when it ends the rows stay but stop working (the owner can still remove them). An editor may only change tests of a subject they teach (`can_edit_test_subject`). No server route: the browser talks to Supabase, RLS decides. App: shared tests live in the repository but APART from `tests` (`SharedTest`, id inside the app = `shared~<owner>~<test id>`; link tests `link~<token>`; `lib/storage/sharedTests.ts` is their cloud side), `lib/sharing/` (`sharing.ts` pure, `sharesStore.ts` = who I shared with, `pictures.ts` = finds a picture in a colleague's folder; registered with `setPictureFinder`), `features/sharing/` (`ShareProvider` + `useShare()` window, `SharedWithMe` on /tests, `useCopyShared` = "make my own copy" incl. pictures, `SharedLinkView` = `/shared/[token]` → the print page, `useCoEditing`, `ConflictDialog`). Pictures an editor adds live in the EDITOR's folder: `keepImages("shared")` protects them from clean-up |
 | Versions and conflicts | `tests.version` goes up on every save (trigger `bump_test_version`; it also pins `user_id` and `id`). The cloud backends save with "…where version = the one I know" (`supabaseTests.ts` keeps a `versions` map; a database without the column → saves the old way). Zero rows changed + a newer version = `VersionConflictError` → the repository keeps the write OUT of the queue as a `Conflict` (`getConflicts`, `resolveConflict(id, "mine" \| "theirs")`); the global `ConflictDialog` (in Providers, can't be closed without choosing) asks. While it is open, more typing only updates `mine`. `refreshTest(id)` (when the editor opens, and "load the new version") replaces the copy in memory only when nothing of mine is on its way, and bumps `getRevision(id)` — part of the editor's `key`, so the editor restarts with the new test. This also covers ONE teacher with two tabs or devices |
 | Co-editing presence | `useCoEditing(testId)`: Supabase Realtime channel `test:<owner>:<test id>`, joined only for tests that are really shared (mine with ≥ 1 colleague, or a colleague's). Presence = who has it open (badges in the editor bar, `othersPresent`); after each successful save a `saved` broadcast → the others see "changed by … / load the new version". No test content goes through the channel. The channels are public by name (the name contains two unguessable ids); move to private channels (Realtime Authorization) if names must be hidden |
+| School plan and admin | Teachers and school admins never write the school tables: every change is a `security definer` function that checks `auth.uid()` (school admin = `my_managed_school()`, founder = `require_admin()` on the `admins` table). Results are words (`ok`, `full`, `invalid`, `alreadyMember`, `lastAdmin`, `seatsInUse`, `paying`…) shown as `mySchool.result.*`; refusals are SQL errors (`42501` → 403, `22023` → 400, `54000` → full) mapped in `lib/schools/http.ts`. The browser talks to these through our routes (not Supabase directly), so the sandbox runs them against the real SQL in the browser tests. Founders: add a row to `public.admins` in the SQL Editor (GO_LIVE.md); `/api/admin/*` answers 404 to everyone else. Manual plan changes stamp `changed_by = admin:<uid>` + reason (→ `subscription_changes`) AND `admin_log`. A school ending (or `paid_until` passing) only stops the School plan; seats, members and the shared bank stay |
 | Tests | Vitest + jsdom (`npm test`) |
 
 Next.js 16 notes (see AGENTS.md: read `node_modules/next/dist/docs/` before
@@ -572,6 +596,9 @@ src/
   features/ai/          AiGenerateDialog, AiQuestionPreview
   lib/server/           db.ts (serverDb, billingSecret), sandbox.ts, supabaseStubs.ts
   lib/plans/billing.ts  priceTetri, periodEnd
+  features/schools/     SchoolSection (Settings), SchoolAdminView (/school), SchoolBankView, schoolStore
+  features/admin/       AdminView (/admin) + AdminReports, AdminUsers, AdminSchools, AdminParts, useIsFounder
+  lib/schools/          api (client fetch), http (route helpers, server), schoolBankStore
   features/sharing/     ShareDialog (ShareProvider, useShare), SharedWithMe, SharedLinkView,
                         ConflictDialog, useCoEditing, useCopyShared, useShares
   lib/sharing/          sharing (pure), sharesStore, pictures; lib/storage/sharedTests.ts
@@ -859,6 +886,20 @@ src/
   test ever reaches the real project.
 - `DialogContent closeLabel={null}` = a window without × (needs an answer).
 - The repository's `revisions` are never reset (tests compare before / after).
+
+- Next.js 16 (cacheComponents) refuses `new Date()` in a client component
+  while pre-building a page ("blocking-prerender-current-time-client"):
+  read the clock only when there is something to compare (see `seatActive`).
+- Dictionary key `school.*` belongs to the School REQUEST form on /pricing;
+  the School plan itself uses `mySchool.*`, `schoolAdmin.*`, `schoolBank.*`.
+- plpgsql: an argument named like a column (`email`, `seats`) or a keyword
+  (`filter`) breaks or confuses queries — name it differently
+  (`invite_email`, `kind`) or qualify it (`school_bank_add.subject`).
+- Sandbox accounts have no profile names: shared-bank authors show "a colleague".
+- `e2e/school.spec.ts`: `person(browser)` = a signed-in teacher in their own
+  window, created in the sandbox by one `/api/billing/summary` call;
+  `/api/sandbox { action: "makeAdmin" }` makes the current account a founder.
+  A teacher whose test must survive a reload needs `signIn(page, { cloud: newCloud() })`.
 
 ## Commands
 

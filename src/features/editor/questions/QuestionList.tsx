@@ -42,6 +42,7 @@ export function QuestionList({
   onPatch,
   onDuplicate,
   onSaveToBank,
+  onShareWithSchool,
   onDelete,
   onMove,
   moveTick,
@@ -56,6 +57,7 @@ export function QuestionList({
   onPatch: (id: string, patch: (question: Question) => Question) => void;
   onDuplicate: (question: Question) => void;
   onSaveToBank?: (question: Question) => void;
+  onShareWithSchool?: (question: Question) => void;
   onDelete: (question: Question, number: number) => void;
   /** Arrows, "⋯" menu, Alt+↑/↓: move a question to position `to` (0-based). */
   onMove: (question: Question, to: number) => void;
@@ -117,6 +119,7 @@ export function QuestionList({
               onPatch={(patch) => onPatch(question.id, patch)}
               onDuplicate={() => onDuplicate(question)}
               onSaveToBank={onSaveToBank && (() => onSaveToBank(question))}
+              onShareWithSchool={onShareWithSchool && (() => onShareWithSchool(question))}
               onDelete={() => onDelete(question, index + 1)}
               index={index}
               count={questions.length}

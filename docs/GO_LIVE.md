@@ -4,9 +4,8 @@ Everything below is what **you** must do yourself; the code is ready and runs in
 test mode. Work top to bottom. Nothing here was done for you, and no SQL was ever
 run on your Supabase project.
 
-> This file grows with each stage. Payments and emails (stage 2), the AI generator
-> (stage 3) and the Premium features (stage 4) are covered below; the School plan
-> and admin sections are added when that stage is finished.
+> Covers every stage: payments and emails (2), the AI generator (3), the Premium
+> features (4), the School plan and the founders' admin page (5).
 
 Words used: an **environment variable** ("env var") is a setting the server reads
 when it starts — on your computer from `.env.local`, on the hosting from its
@@ -49,13 +48,14 @@ For a database that already has the earlier stages:
 3. `supabase/migrations/20261118_custom_header.sql`
 4. `supabase/migrations/20261119_question_bank.sql`
 5. `supabase/migrations/20261120_sharing.sql`
-6. `supabase/plans.sql` (again — it tells the database which plan has which feature)
-7. Then set the server secret (use the same text as `BILLING_SERVER_SECRET` below):
+6. `supabase/migrations/20261121_schools.sql`
+7. `supabase/plans.sql` (again — it tells the database which plan has which feature)
+8. Then set the server secret (use the same text as `BILLING_SERVER_SECRET` below):
    ```sql
    select public.set_server_secret('billing', 'PASTE-THE-LONG-RANDOM-TEXT-HERE');
    ```
 
-For a brand-new database: `supabase/schema.sql`, then `supabase/plans.sql`, then step 7.
+For a brand-new database: `supabase/schema.sql`, then `supabase/plans.sql`, then step 8.
 All files are safe to run twice.
 
 ## 4. Environment variables
@@ -202,6 +202,31 @@ on the real site with a test account that has Premium (a new account's trial wil
 6. Read the new "Sharing with colleagues" paragraph on `/privacy` with your lawyer
    (a colleague's email address is personal data that a teacher types in).
 
+## 7d. The School plan and the admin page
+
+1. **Make yourself (and your co-founders) founders** — once, in the SQL Editor, after
+   signing up on the real site with that email:
+   ```sql
+   insert into public.admins (user_id, note)
+   select id, 'founder' from auth.users where email = 'you@example.com';
+   ```
+   Then open `/admin` (also in the account menu → "ადმინისტრირება"). Everybody else
+   gets "page not found" there, and every admin function checks this table itself.
+   To remove someone: `delete from public.admins where user_id = (select id from auth.users where email = '…');`
+2. **Decide the School price and the invoice text** (not in the code: schools pay by
+   bank transfer). For each school that pays: Admin → School requests → the request →
+   "Create school": seats, "paid until" (the last day of the school year, e.g. 30 June),
+   the school admin's email, and a reason such as the invoice number. To renew: Admin →
+   Schools → Edit → a new "paid until". To end: status "ended" (teachers go back to their
+   own plans; nothing is deleted).
+3. **Try it** with two real accounts: create a school with 2 seats for account A, invite
+   account B from `/school`, accept in B's Settings → "My school", check that B has the
+   School plan, then remove B. The invitation email needs Resend (section 1); without it
+   the invitation still appears in B's Settings.
+4. Read the "Sharing with colleagues" and school parts of `/privacy` with your lawyer:
+   a school admin sees each teacher's NUMBER of tests, AI uses and picture space (never
+   the tests themselves).
+
 ## 8. Switch on
 
 1. `src/lib/plans/plans.ts`: `ONLINE_PAYMENTS = true`. Commit, deploy.
@@ -231,6 +256,14 @@ on the real site with a test account that has Premium (a new account's trial wil
   people typing at once get the conflict window and one version wins.
 - A picture added by a colleague who edits lives in THEIR picture space; if their
   account is deleted, that picture disappears from the test.
+- The School plan has no online payment: schools pay by invoice and a founder sets
+  the seats and the "paid until" date by hand. A teacher who also pays for their own
+  Premium keeps being charged while in a school — tell them to cancel it
+  (Settings → My plan).
+- A school can't be deleted from the admin page (only ended); remove a test school
+  in the SQL Editor if you must: `delete from public.schools where id = '…';`
+- Usage numbers and the admin page read live data; with thousands of users the
+  "users" search may get slow — add indexes then.
 - Word export: only multiple choice, true/false, short, open and matching questions
   are editable Word text; the other types are pictures.
 - The welcome email is sent after email confirmation / Google sign-in, and only

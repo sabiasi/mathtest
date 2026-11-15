@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { PlanSummary } from "@/features/plans/PlanSummary";
 import { READY } from "@/lib/plans/plans";
+import { SchoolSection } from "@/features/schools/SchoolSection";
 import { PaperHeaderSettings } from "./PaperHeaderSettings";
 import { TeachingSubjectsSummary, useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
 import { SubjectPicker } from "@/features/subjects/SubjectPicker";
@@ -48,6 +49,12 @@ export function SettingsView() {
       <Section title={t("plan.title")} id="plan">
         <PlanSummary />
       </Section>
+
+      {READY.schoolAdmin && (
+        <Section title={t("school.title")} id="school">
+          <SchoolSection />
+        </Section>
+      )}
 
       <Section title={t("teaching.settingsTitle")}><TeachingSubjectsSummary /></Section>
 

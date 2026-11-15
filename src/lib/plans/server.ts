@@ -1,7 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { entitlementsFor, guestEntitlements, type Entitlements } from "./entitlements";
-import { loadSubscription } from "./subscription";
+import { loadSchoolSeat, loadSubscription } from "./subscription";
 
 /**
  * What the signed-in user (or a guest) may do, worked out ON THE SERVER.
@@ -14,7 +14,8 @@ import { loadSubscription } from "./subscription";
 export async function serverEntitlements(supabase: SupabaseClient | null, userId: string | null): Promise<Entitlements> {
   if (!supabase || !userId) return guestEntitlements();
   try {
-    return entitlementsFor(await loadSubscription(supabase, userId));
+    const [subscription, seat] = await Promise.all([loadSubscription(supabase, userId), loadSchoolSeat(supabase)]);
+    return entitlementsFor(subscription, new Date(), seat);
   } catch (error) {
     console.error("MathTest: could not load the subscription", error);
     return entitlementsFor(null);

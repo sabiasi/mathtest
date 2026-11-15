@@ -4,7 +4,7 @@ import { supabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { entitlementsFor, guestEntitlements, type Entitlements } from "@/lib/plans/entitlements";
 import { serverEntitlements } from "@/lib/plans/server";
-import { subscriptionFromRow } from "@/lib/plans/subscription";
+import { schoolSeatFromJson, subscriptionFromRow } from "@/lib/plans/subscription";
 import { SANDBOX_SECRET, sandboxEnabled, sandboxEnsureUser, sandboxRpc } from "./sandbox";
 
 /**
@@ -74,7 +74,8 @@ export async function serverDb(): Promise<ServerDb | null> {
       async entitlements() {
         if (!id) return guestEntitlements();
         const summary = await rpc<{ subscription?: Parameters<typeof subscriptionFromRow>[0] }>("billing_summary", { secret: SANDBOX_SECRET, uid: id });
-        return entitlementsFor(subscriptionFromRow(summary.subscription ?? null));
+        const seat = schoolSeatFromJson(await rpc("my_school_seat"));
+        return entitlementsFor(subscriptionFromRow(summary.subscription ?? null), new Date(), seat);
       },
     };
   }

@@ -44,6 +44,8 @@ parts, in order:
 7. `supabase/migrations/20261119_question_bank.sql` — question bank.
 8. `supabase/migrations/20261120_sharing.sql` — sharing, view-only links,
    version numbers on tests.
+9. `supabase/migrations/20261121_schools.sql` — School plan, shared school
+   bank, founders' admin page.
 
 ## Payments in test mode
 
@@ -102,6 +104,31 @@ Settings → My plan → the test tools → "skip 15 days" makes it Free.
   To try sharing by hand you need a real Supabase project with all the SQL
   applied and **two accounts** (two browsers, or one normal + one private
   window). The automated browser tests use made-up teachers and a pretend cloud.
+
+## School plan and the admin page
+
+- **Founders** (you): `/admin`. Make yourself a founder once in the SQL Editor
+  (see `docs/GO_LIVE.md`). Tabs: overview, users (gift Premium, extend a trial,
+  back to Free), payments per month and failed payments, AI usage, School
+  requests (new → contacted → won / lost, "create school"), schools and seats,
+  and the log of every change (each one needs a written reason).
+- **A school paid by invoice**: a School request arrives from `/pricing` →
+  Admin → School requests → "Create school" (seats, paid-until date, the school
+  admin's email). If that person has an account they become the school admin at
+  once; otherwise they get an invitation.
+- **School admin**: `/school` — seats, the school code, invite by email, roles and
+  departments, remove a teacher, usage numbers (never test contents).
+- **Teachers**: Settings → "My school" — accept an invitation or enter the code.
+  While the school is active they have the School plan; leaving or the school
+  ending gives back their own plan. Nothing is deleted.
+- **School question bank**: `/school/bank`; "Save to the school bank" in a
+  question's "⋯" menu; "Insert from bank" → "School bank".
+
+Try it locally with `npm run dev:sandbox`: sign in with two accounts (two
+browsers), then in the first one open the browser console and run
+`fetch("/api/sandbox", { method: "POST", body: JSON.stringify({ action: "makeAdmin" }) })`
+to become a founder of the pretend database. Send a School request from
+`/pricing` with the second account's email and create the school in `/admin`.
 
 ## Comparing the plans ("View as Free")
 
@@ -184,5 +211,4 @@ these duplicate files.
 
 See `CLAUDE.md` for architecture and implementation conventions, and
 `docs/GO_LIVE.md` for what the owner must do before real teachers and real
-money. Still to build: the School plan (seats, invites, shared bank) and the
-founders' admin page.
+money.
