@@ -3,6 +3,7 @@
  * (like migrate.ts does for tests). Pure functions, no React.
  */
 import { parseEdge } from "@/lib/gridEdges";
+import { normalizeGeometry } from "@/subjects/math/geometry/normalize";
 import { normalizeStructure } from "@/subjects/chemistry/structure/normalize";
 import type { CircuitDiagram, CircuitElement, CircuitPart, Diagram, ForceArrow, ForceDiagram } from "@/lib/storage/types";
 
@@ -114,5 +115,6 @@ export function normalizeDiagram(raw: unknown): Diagram | null {
   if (raw.kind === "circuit") return normalizeCircuit(raw);
   if (raw.kind === "forces") return normalizeForces(raw);
   if (raw.kind === "structure") return normalizeStructure(raw);
+  if (raw.kind === "geometry") return normalizeGeometry(raw);
   return null;
 }

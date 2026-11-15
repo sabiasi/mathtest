@@ -113,7 +113,33 @@ export interface StructureDiagram {
   bonds: { at: string; order: 1 | 2 | 3 }[];
 }
 
-export type Diagram = CircuitDiagram | ForceDiagram | StructureDiagram;
+export type GeometryShape = "triangle" | "square" | "rectangle" | "circle" | "parallelogram" | "trapezoid";
+export type TrianglePreset = "general" | "right" | "isosceles" | "equilateral";
+
+/**
+ * Mathematics: one geometric figure with optional letters and side labels.
+ * The labels are only written next to the figure ("5 სმ", "x", "?"); the
+ * figure itself has a fixed, tidy shape and is not drawn to scale.
+ */
+export interface GeometryDiagram {
+  kind: "geometry";
+  shape: GeometryShape;
+  /** Which triangle (used only when `shape` is "triangle"). */
+  triangle: TrianglePreset;
+  /** Letters at the corners (circle: the centre). */
+  showVertices: boolean;
+  /** One letter per corner, in drawing order (circle: one, the centre). */
+  vertices: string[];
+  /** One label per side; side i joins corner i and the next one. "" = none. */
+  sides: string[];
+  /** Circle: draw a radius. */
+  radius: boolean;
+  radiusLabel: string;
+  /** Right triangle: the small square in the right angle. */
+  rightAngle: boolean;
+}
+
+export type Diagram = CircuitDiagram | ForceDiagram | StructureDiagram | GeometryDiagram;
 export type DiagramKind = Diagram["kind"];
 
 /** Graph paper or a coordinate plane printed as an answer area. 5 mm squares. */
