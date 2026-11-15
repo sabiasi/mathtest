@@ -1,5 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-import { accountsConfigured, signIn } from "./account";
+import { expect, test } from "@playwright/test";
+import { accountsConfigured, becomeFree, signIn, teacherWithTest } from "./account";
 import { cards, editor } from "./helpers";
 
 /**
@@ -10,11 +10,6 @@ test.skip(!accountsConfigured, "Account UI requires a public Supabase URL config
 
 /** A 2 × 1 red PNG (a "logo" twice as wide as it is tall). */
 const LOGO = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAD0In+KAAAAEElEQVR4nGP8z8Dwn4GBgQEADAEB/6k8n0cAAAAASUVORK5CYII=", "base64");
-
-export async function becomeFree(page: Page) {
-  await page.request.get("/api/billing/summary"); // makes the sandbox account
-  expect((await page.request.post("/api/sandbox", { data: { action: "skipDays", days: 15 } })).ok()).toBe(true);
-}
 
 test.describe("custom paper header", () => {
   test("Premium: logo, school and extra line are saved and printed at the top of the paper", async ({ page }) => {
@@ -110,6 +105,97 @@ test.describe("template library", () => {
     await page.locator('[data-template="math-7-linear"] [data-template-use]').click();
     await page.waitForURL((url) => url.pathname.startsWith("/editor/"));
     await expect(cards(page)).toHaveCount(6);
+  });
+});
+
+test.describe("question bank", () => {
+  /** A question card's "⋯" menu → "Save to my bank". */
+  async function saveToBank(page: import("@playwright/test").Page, n: number) {
+    await cards(page).nth(n).locator("[data-question-menu]").click();
+    await page.locator("[data-save-to-bank]").click();
+    await expect(page.locator("[data-save-to-bank]")).toHaveCount(0); // the menu has closed
+  }
+
+  test("Premium: save questions, find them in the bank, see one on paper, tag it, insert copies into a test", async ({ page }) => {
+    await teacherWithTest(page);
+    const before = await cards(page).count();
+    await saveToBank(page, 0);
+    await expect(page.getByText("კითხვა შენახულია ბანკში")).toHaveCount(1);
+    await saveToBank(page, 1);
+    await expect(page.getByText("კითხვა შენახულია ბანკში")).toHaveCount(2);
+
+    // To the bank without reloading (the header link, then the button on My tests).
+    await page.locator('header a[href="/tests"]').first().click();
+    await page.locator("[data-bank-link]").click();
+    await page.waitForURL("**/bank");
+    const items = page.locator("[data-bank-list] [data-bank-item]");
+    await expect(items).toHaveCount(2);
+    await expect(items.first().locator("[data-bank-text]")).not.toBeEmpty();
+
+    // The real print rendering, without the test's header; the key shows the answer.
+    await items.first().locator("[data-bank-preview]").click();
+    const dialog = page.locator("[data-bank-dialog]");
+    await expect(dialog.locator('[data-paper-preview="ready"] .sheet [data-print-block]').first()).toBeVisible();
+    await expect(dialog.locator(".sheet .print-header")).toBeHidden();
+    await dialog.getByRole("button", { name: "პასუხები" }).click();
+    await expect(dialog.locator('[data-paper-preview="ready"] .sheet').first()).toBeVisible();
+    await page.keyboard.press("Escape");
+
+    // Tags, then the filters.
+    await items.first().locator("[data-bank-edit-tags]").click();
+    await page.locator("[data-bank-tags-input]").fill("ალგებრა, საკონტროლო, ალგებრა");
+    await page.locator("[data-bank-tags-save]").click();
+    await expect(items.first().locator("[data-bank-tag-chip]")).toHaveText(["ალგებრა", "საკონტროლო"]);
+    await page.locator("[data-bank-tag]").selectOption("საკონტროლო");
+    await expect(items).toHaveCount(1);
+    await page.locator("[data-bank-tag]").selectOption("");
+    await page.locator("[data-bank-search]").fill("ასეთი სიტყვა არ არის");
+    await expect(items).toHaveCount(0);
+    await page.locator("[data-bank-search]").fill("");
+    await expect(items).toHaveCount(2);
+
+    // Back in the editor: insert both as copies at the end of the test.
+    await page.goBack();
+    await page.goBack();
+    await expect(editor(page)).toBeVisible();
+    await editor(page).locator("[data-bank-open]").click();
+    const insert = page.locator("[data-bank-insert-dialog]");
+    await expect(insert.locator("[data-bank-item]")).toHaveCount(2);
+    await expect(insert.locator("[data-bank-insert]")).toBeDisabled();
+    await insert.locator("[data-bank-pick]").first().check();
+    await insert.locator("[data-bank-pick]").nth(1).check();
+    await insert.locator("[data-bank-insert]").click();
+    await expect(cards(page)).toHaveCount(before + 2);
+
+    // Deleting from the bank asks first, and leaves the test alone.
+    await page.locator('header a[href="/tests"]').first().click();
+    await page.locator("[data-bank-link]").click();
+    await items.first().locator("[data-bank-delete]").click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "ბანკიდან წაშლა" }).click();
+    await expect(items).toHaveCount(1);
+  });
+
+  test("Free: saving and inserting explain Premium; the bank page says the saved questions are kept", async ({ page }) => {
+    await teacherWithTest(page);
+    await saveToBank(page, 0);
+    await expect(page.getByText("კითხვა შენახულია ბანკში")).toBeVisible();
+    await becomeFree(page);
+    await page.locator('header a[href="/tests"]').first().click();
+    await page.locator("[data-bank-link]").click();
+    await expect(page.locator("[data-bank-item]")).toHaveCount(1);
+    // The plan is asked again when the tab is looked at; here: reload the plan by opening the page anew.
+    await page.reload();
+    await expect(page.locator("[data-bank-locked]")).toBeVisible();
+    await page.locator("[data-bank-unlock]").click();
+    await expect(page.locator("[data-upgrade-dialog]")).toBeVisible();
+  });
+
+  test("guests are told the bank needs an account", async ({ browser }) => {
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await page.goto("/bank");
+    await expect(page.getByRole("link", { name: "ანგარიშის შექმნა" })).toBeVisible();
+    await context.close();
   });
 });
 

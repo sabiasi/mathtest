@@ -15,6 +15,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { setLanguage, useLanguage } from "@/i18n/language";
 import { loadProfile, saveProfile, type Profile, type ProfileChanges } from "@/lib/auth/profile";
 import { clearImageCache, keepImages, setImageUser } from "@/lib/images/imageStore";
+import { loadBank, resetBank } from "@/lib/bank/bankStore";
 import { normalizePaperHeader } from "@/lib/paperHeader";
 import { localTestsBackend } from "@/lib/storage/localTests";
 import { supabaseTestsBackend } from "@/lib/storage/supabaseTests";
@@ -114,6 +115,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const logo = normalizePaperHeader(profile.paper_header).logoImageId;
     keepImages("header", logo ? [logo] : []);
   }, [profile]);
+
+  // ---- The question bank belongs to the account: load it after sign-in, forget it on sign-out ----
+  const userId = status === "signed-in" ? (user?.id ?? null) : null;
+  useEffect(() => {
+    if (userId) void loadBank(userId);
+    else resetBank();
+  }, [userId]);
 
   // ---- Warn before closing the tab while changes are still being sent ----
   useEffect(() => {

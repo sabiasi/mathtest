@@ -74,3 +74,54 @@ describe("custom paper header", () => {
     expect((await db.query("select 1 from public.profiles where paper_header is not null")).rows).toHaveLength(1);
   });
 });
+
+describe("question bank", () => {
+  const question = JSON.stringify({ id: "q1", type: "short-answer", points: 1, text: [{ type: "text", text: "2 + 2 = ?" }] });
+  const add = (id = teacher, owner = id) => as(id, () => db.query<{ id: string }>(
+    "insert into public.bank_questions (user_id, subject, grade, type, tags, summary, data) values ($1, 'math', '7', 'short-answer', array['algebra'], '2 + 2 = ?', $2::jsonb) returning id", [owner, question]));
+  const count = (id: string) => as(id, async () => (await db.query("select id from public.bank_questions")).rows.length);
+
+  it("only a plan with the feature may add or change; guests can do nothing", async () => {
+    await expect(add()).rejects.toThrow(/row-level security/);
+    await setPlan("premium");
+    const { rows } = await add();
+    await as(teacher, () => db.query("update public.bank_questions set tags = array['geometry'] where id = $1", [rows[0].id]));
+    await expect(as(null, () => db.query("select * from public.bank_questions"))).rejects.toThrow(/permission denied/);
+  });
+
+  it("is private: other teachers neither see, change nor delete a row, and nobody adds a row for someone else", async () => {
+    await setPlan("premium");
+    await setPlan("premium", other);
+    const { rows } = await add();
+    expect(await count(other)).toBe(0);
+    await as(other, () => db.query("update public.bank_questions set summary = 'stolen' where id = $1", [rows[0].id]));
+    await as(other, () => db.query("delete from public.bank_questions where id = $1", [rows[0].id]));
+    expect((await db.query<{ summary: string }>("select summary from public.bank_questions")).rows).toEqual([{ summary: "2 + 2 = ?" }]);
+    await expect(add(other, teacher)).rejects.toThrow(/row-level security/);
+    // A row can't be handed to another teacher either.
+    await as(teacher, () => db.query("update public.bank_questions set user_id = $1", [other]));
+    expect(await count(teacher)).toBe(1);
+  });
+
+  it("when the plan ends the saved questions stay readable and deletable, but nothing new is added", async () => {
+    await setPlan("premium");
+    const { rows } = await add();
+    await add();
+    await setPlan("free");
+    expect(await count(teacher)).toBe(2);
+    await expect(add()).rejects.toThrow(/row-level security/);
+    await expect(as(teacher, () => db.query("update public.bank_questions set summary = 'x' where id = $1", [rows[0].id]))).rejects.toThrow(/row-level security/);
+    await as(teacher, () => db.query("delete from public.bank_questions where id = $1", [rows[0].id]));
+    expect(await count(teacher)).toBe(1);
+  });
+
+  it("holds at most 2000 questions, and the migration is safe to apply twice", async () => {
+    await setPlan("premium");
+    await db.query("insert into public.bank_questions (user_id, subject, type, data) select $1, 'math', 'open-answer', '{}'::jsonb from generate_series(1, 1999)", [teacher]);
+    await add();
+    await expect(add()).rejects.toThrow(/bank is full/);
+    const sql = readFileSync("supabase/migrations/20261119_question_bank.sql", "utf8");
+    await db.exec(sql); await db.exec(sql);
+    expect((await db.query("select 1 from public.bank_questions")).rows).toHaveLength(2000);
+  });
+});

@@ -3,7 +3,7 @@
 import { isDeviceTestId } from "@/lib/auth/teachingSubjects";
 import { useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
 
-import { ArrowLeft, Copy, Download, LoaderCircle, Printer, SearchX, Shuffle, TriangleAlert } from "lucide-react";
+import { ArrowLeft, Copy, Download, FileText, LoaderCircle, Printer, SearchX, Shuffle, TriangleAlert } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -32,7 +32,8 @@ import { usePlan } from "@/features/plans/PlanProvider";
 import { PremiumBadge } from "@/features/plans/PremiumBadge";
 import { useUpgrade } from "@/features/plans/UpgradeDialog";
 import { BRAND } from "@/lib/plans/plans";
-import { PdfError, downloadPdf, pdfFileName, waitForImages } from "./downloadPdf";
+import { PdfError, downloadDocx, downloadPdf, pdfFileName, waitForImages } from "./downloadPdf";
+import { READY } from "@/lib/plans/plans";
 import { PrintHeader, type PrintVersion } from "./PrintBlocks";
 import { usePaperHeader } from "./usePaperHeader";
 import { BLOCK_GAP, COLUMN_GAP, HEADER_GAP, PAGE, usePrintLayout } from "./usePrintLayout";
@@ -120,6 +121,7 @@ function PrintDocument({
   const language = useLanguage();
   const router = useRouter();
   const [pdfBusy, setPdfBusy] = useState(false);
+  const [docxBusy, setDocxBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const options = test.printOptions;
   const toolkit = getToolkit(test.subjectId);
@@ -197,6 +199,27 @@ function PrintDocument({
     toast.success(t("toast.reshuffled"));
   }
 
+  // Word (.docx): a Premium feature — the server checks the plan again.
+  async function handleDocx() {
+    if (!plan.entitlements.features.docxExport) return upgrade("docx");
+    setDocxBusy(true);
+    setNotice(null);
+    try {
+      const complete = await downloadDocx(test, version, showAll ? "all" : current.label, language, pdfFileName(testTitle, suffix, "docx"), paperHeader);
+      if (complete) toast.success(t("docx.ready"));
+      else setNotice(t("docx.partial"));
+    } catch (error) {
+      const status = error instanceof PdfError ? error.status : 0;
+      if (status === 401 || status === 403) upgrade("docx");
+      else if (status === 429) setNotice(t("docx.tooMany", { minutes: Math.max(1, Math.ceil(((error as PdfError).retryAfterSeconds ?? 60) / 60)) }));
+      else if (status === 503) setNotice(t("print.pdfBusy"));
+      else if (status === 413) setNotice(t("docx.tooBig"));
+      else setNotice(t("docx.failed"));
+    } finally {
+      setDocxBusy(false);
+    }
+  }
+
   async function handlePdf() {
     setPdfBusy(true);
     setNotice(null);
@@ -249,6 +272,12 @@ function PrintDocument({
               )}
               {t(pdfBusy ? "print.pdfWorking" : "print.pdf")}
             </Button>
+            {READY.docxExport && (
+              <Button variant="outline" onClick={() => void handleDocx()} disabled={!ready || docxBusy} data-docx-download="">
+                {docxBusy ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <FileText className="size-4" aria-hidden="true" />}
+                {t(docxBusy ? "docx.working" : "docx.button")}
+              </Button>
+            )}
           </div>
           {sample && (
             <div className="flex w-full flex-wrap items-center gap-3 rounded-lg border border-primary-soft-border bg-primary-soft/60 px-3 py-2" data-sample-notice="">

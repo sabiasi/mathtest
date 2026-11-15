@@ -23,7 +23,7 @@ import { formatGel } from "@/lib/plans/pricing";
 import { useBilling, useStartCheckout } from "@/features/billing/useBilling";
 
 /** Why the window opened: picks the title and the sentence. */
-export type UpgradeReason = "variants" | "images" | "footer" | "subjects" | "ai" | "header" | "templates";
+export type UpgradeReason = "variants" | "images" | "footer" | "subjects" | "ai" | "header" | "templates" | "bank" | "docx";
 
 const UpgradeContext = createContext<((reason: UpgradeReason) => void) | null>(null);
 

@@ -42,7 +42,7 @@ async function loadTemplate(id: string): Promise<Test | "premium" | null> {
 export function TemplatesView() {
   const t = useT();
   const upgrade = useUpgrade();
-  const useAsTemplate = useUseAsTemplate();
+  const makeCopy = useUseAsTemplate();
   const { entitlements } = usePlan();
   const limit = entitlements.limits.templates;
   const [subject, setSubject] = useState<SubjectId | "all">("all");
@@ -62,7 +62,7 @@ export function TemplatesView() {
     if (test === "premium") return upgrade("templates");
     if (!test) return void toast.error(t("templates.failed"));
     if (action === "preview") setPreview(test);
-    else await useAsTemplate(test);
+    else await makeCopy(test);
   }
 
   return (
@@ -158,7 +158,7 @@ export function TemplatesView() {
                   onClick={() => {
                     const test = preview;
                     setPreview(null);
-                    void useAsTemplate(test);
+                    void makeCopy(test);
                   }}
                   data-template-use-previewed=""
                 >

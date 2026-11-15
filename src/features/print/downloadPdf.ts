@@ -21,7 +21,21 @@ export class PdfError extends Error {
  * the file. The server opens THIS SAME page in an invisible Chrome, so the
  * PDF looks exactly like the preview. Throws if the server can't do it.
  */
-export async function downloadPdf(
+export function downloadPdf(test: Test, version: PrintVersion, variant: string, language: Language, fileName: string, paperHeader: PaperHeader | null = null) {
+  return downloadFile("/api/pdf", test, version, variant, language, fileName, paperHeader);
+}
+
+/**
+ * The same for a Word file (/api/docx, Premium). Resolves false when the file
+ * was made but some questions couldn't be included as pictures.
+ */
+export async function downloadDocx(test: Test, version: PrintVersion, variant: string, language: Language, fileName: string, paperHeader: PaperHeader | null = null): Promise<boolean> {
+  const response = await downloadFile("/api/docx", test, version, variant, language, fileName, paperHeader);
+  return response.headers.get("X-Docx-Complete") !== "0";
+}
+
+async function downloadFile(
+  route: "/api/pdf" | "/api/docx",
   test: Test,
   version: PrintVersion,
   /** "A"…"F", or "all" for every variant in one file. */
@@ -37,7 +51,7 @@ export async function downloadPdf(
     const logo = await imageDataUrl(paperHeader.logoImageId);
     if (logo) images[paperHeader.logoImageId] = logo;
   }
-  const response = await fetch("/api/pdf", {
+  const response = await fetch(route, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ test, version, variant, language, images, paperHeader }),
@@ -57,6 +71,7 @@ export async function downloadPdf(
   link.click();
   link.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  return response;
 }
 
 /** Resolves once every picture on the page has loaded (so nothing prints blank). */
@@ -65,7 +80,7 @@ export function waitForImages(): Promise<unknown> {
 }
 
 /** A file name that's safe on Windows and Mac: "ალგებრა — მოსწავლე.pdf". */
-export function pdfFileName(title: string, suffix: string) {
+export function pdfFileName(title: string, suffix: string, extension: "pdf" | "docx" = "pdf") {
   const safe = title.replace(/[\\/:*?"<>|]+/g, " ").trim() || "MathTest";
-  return `${safe} — ${suffix}.pdf`;
+  return `${safe} — ${suffix}.${extension}`;
 }

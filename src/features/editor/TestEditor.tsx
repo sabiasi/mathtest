@@ -52,8 +52,7 @@ import {
   CloudSun,
   Ruler,
   Copy,
-  Sparkles,
-} from "lucide-react";
+  Sparkles, Library } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatePresence } from "motion/react";
 import Link from "next/link";
@@ -84,6 +83,11 @@ import { SubjectToolbar } from "./SubjectToolbar";
 import { TestHeaderForm } from "./TestHeaderForm";
 import { useAutosave } from "./useAutosave";
 import { AiGenerateDialog } from "@/features/ai/AiGenerateDialog";
+import { BankInsertDialog } from "@/features/bank/BankInsertDialog";
+import { useBankMessages } from "@/features/bank/BankView";
+import { saveToBank } from "@/lib/bank/bankStore";
+import { usePlan } from "@/features/plans/PlanProvider";
+import { useUpgrade } from "@/features/plans/UpgradeDialog";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { useGuestTrial } from "@/features/auth/GuestTrial";
 import { aiTypesFor } from "@/lib/ai/request";
@@ -240,7 +244,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
   }
 
   // "AI-ით შექმნა": guests are offered a free account; teachers get the dialog.
-  const { guest } = useAuth();
+  const { guest, status: authStatus } = useAuth();
   const guestTrial = useGuestTrial();
   const [aiOpen, setAiOpen] = useState(false);
   const aiOffered = READY.aiGenerator && aiTypesFor(getToolkit(test.subjectId).questionTypes).length > 0;
@@ -248,6 +252,27 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
     if (questions.length === 0) return;
     updateQuestions((qs) => [...qs, ...questions]);
     setFocusId(questions[0].id);
+  }
+
+  // "Save to my bank" / "Insert from bank" (Premium). Guests are offered a free account.
+  const plan = usePlan();
+  const upgrade = useUpgrade();
+  const bankReport = useBankMessages();
+  const [bankOpen, setBankOpen] = useState(false);
+  const bankOffered = READY.questionBank && authStatus !== "unconfigured";
+  const bankAllowed = () => {
+    if (guest) guestTrial.show();
+    else if (!plan.entitlements.features.questionBank) upgrade("bank");
+    else return true;
+    return false;
+  };
+  async function saveQuestionToBank(question: Question) {
+    if (!bankAllowed()) return;
+    if (bankReport(await saveToBank(question, { subject: test.subjectId, grade: test.grade }))) toast.success(t("bank.saved"));
+  }
+  function insertFromBank(questions: Question[]) {
+    insertFromAi(questions);
+    if (questions.length > 0) toast.success(t("bank.inserted", { count: questions.length }));
   }
 
   function duplicate(question: Question) {
@@ -466,6 +491,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                   // newest version of the question, so nothing typed meanwhile is lost.
                   onPatch={(id, patch) => updateQuestions((qs) => qs.map((q) => (q.id === id ? patch(q) : q)))}
                   onDuplicate={duplicate}
+                  onSaveToBank={bankOffered && !readOnly ? (question) => void saveQuestionToBank(question) : undefined}
                   onDelete={remove}
                   onMove={moveQuestion}
                   moveTick={moveTick}
@@ -487,6 +513,22 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                     <span>
                       <span className="block text-brand">{t("ai.button")}</span>
                       <span className="block text-sm font-normal text-muted-foreground">{t("ai.buttonHint")}</span>
+                    </span>
+                  </button>
+                )}
+                {bankOffered && (
+                  <button
+                    type="button"
+                    data-bank-open=""
+                    onClick={() => bankAllowed() && setBankOpen(true)}
+                    className="mb-4 flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left font-medium transition-colors hover:bg-accent"
+                  >
+                    <span className="rounded-lg bg-muted p-1.5 text-soft-foreground">
+                      <Library className="size-5" aria-hidden="true" />
+                    </span>
+                    <span>
+                      <span className="block">{t("bank.insert")}</span>
+                      <span className="block text-sm font-normal text-muted-foreground">{t("bank.insertHint")}</span>
                     </span>
                   </button>
                 )}
@@ -526,6 +568,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
           </SplitView>
         )}
       </div>
+      {bankOffered && !readOnly && !guest && <BankInsertDialog test={test} open={bankOpen} onClose={() => setBankOpen(false)} onInsert={insertFromBank} />}
       {aiOffered && !readOnly && !guest && <AiGenerateDialog test={test} open={aiOpen} onClose={() => setAiOpen(false)} onInsert={insertFromAi} />}
       </PreviewProvider>
     </MathEditingProvider>

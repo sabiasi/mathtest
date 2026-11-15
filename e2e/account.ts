@@ -39,6 +39,7 @@ export async function signIn(page: Page, options: { subjects?: string[]; languag
   await page.context().addCookies([{ name: cookie, value: `base64-${encode(session)}`, url: "http://localhost:3210", sameSite: "Lax" }]);
 
   const uploads = new Map<string, Buffer>();
+  const bank: Record<string, unknown>[] = [];
   await page.route(`${supabaseUrl}/**`, async (route) => {
     const request = route.request();
     const path = new URL(request.url()).pathname;
@@ -49,6 +50,20 @@ export async function signIn(page: Page, options: { subjects?: string[]; languag
       // Saved profile changes are remembered for the rest of the test (also across reloads).
       if (request.method() === "PATCH") Object.assign(profile, request.postDataJSON());
       return reply(request.headers().accept?.includes("vnd.pgrst.object") ? profile : [profile]);
+    }
+    if (path.endsWith("/bank_questions")) {
+      // The question bank: a small pretend table (the real rules are tested in src/lib/premiumSql.test.ts).
+      const wanted = new URL(request.url()).searchParams.get("id")?.replace(/^eq\./, "");
+      if (request.method() === "GET") return reply([...bank].reverse());
+      if (request.method() === "POST") {
+        const row = { ...request.postDataJSON(), id: randomUUID(), created_at: new Date().toISOString() };
+        bank.push(row);
+        return reply(row, 201);
+      }
+      const index = bank.findIndex((row) => row.id === wanted);
+      if (request.method() === "PATCH" && index >= 0) Object.assign(bank[index], request.postDataJSON());
+      if (request.method() === "DELETE" && index >= 0) bank.splice(index, 1);
+      return reply([]);
     }
     if (path.endsWith("/rpc/my_image_storage")) return reply({ used: 0, limit: 50 * 1024 * 1024 });
     if (path.endsWith("/rpc/image_upload_allowed")) return reply(true);
@@ -67,6 +82,25 @@ export async function signIn(page: Page, options: { subjects?: string[]; languag
     return reply([]);
   });
   return { uid, email };
+}
+
+/** A signed-in teacher with an editable test (a copy of the subject's sample) open in the editor. */
+export async function teacherWithTest(page: Page, subject = "math", options: Parameters<typeof signIn>[1] = {}): Promise<Teacher> {
+  const teacher = await signIn(page, { subjects: [subject], ...options });
+  await page.goto(`/editor/sample-${subject}`);
+  // "Use as template" works once the account's subjects have loaded: click until the copy opens.
+  await expect(async () => {
+    if (new URL(page.url()).pathname.includes("sample-")) await page.locator("[data-sample-banner] button").click({ timeout: 2000 });
+    await page.waitForURL((url) => url.pathname.startsWith("/editor/") && !url.pathname.includes("sample-"), { timeout: 3000 });
+  }).toPass({ timeout: 30_000 });
+  await expect(page.locator('[data-editor-ready="true"]:visible')).toBeVisible();
+  return teacher;
+}
+
+/** A new sandbox account starts with the Premium trial; this ends it (→ Free). */
+export async function becomeFree(page: Page) {
+  await page.request.get("/api/billing/summary"); // makes the sandbox account
+  expect((await page.request.post("/api/sandbox", { data: { action: "skipDays", days: 15 } })).ok()).toBe(true);
 }
 
 /** Settings → My plan, once the plan is known. */

@@ -5,7 +5,7 @@ import { TeachingSubjectsSummary, useTeachingSubjects } from "@/features/subject
 
 import { PageBackdrop } from "@/components/PageBackdrop";
 import { PlanPreviewBar } from "@/features/plans/PlanSummary";
-import { ClipboardList, CloudOff, Info, LayoutTemplate, PencilLine, Plus, Printer, RotateCw } from "lucide-react";
+import { ClipboardList, CloudOff, Info, LayoutTemplate, Library, PencilLine, Plus, Printer, RotateCw } from "lucide-react";
 import { READY } from "@/lib/plans/plans";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -128,6 +128,12 @@ export function HomeView() {
             <Link href="/templates" className={buttonVariants({ variant: "outline" })} data-templates-link="">
               <LayoutTemplate className="size-5" aria-hidden="true" />
               {t("templates.nav")}
+            </Link>
+          )}
+          {READY.questionBank && !guest && (
+            <Link href="/bank" className={buttonVariants({ variant: "outline" })} data-bank-link="">
+              <Library className="size-5" aria-hidden="true" />
+              {t("bank.nav")}
             </Link>
           )}
           {tests && tests.length > 0 && view === "all" && (

@@ -2,7 +2,7 @@
 
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowDownToLine, ArrowUpToLine, Copy, GripVertical, ImagePlus, Lightbulb, MoreHorizontal, Trash2, X } from "lucide-react";
+import { ArrowDownToLine, ArrowUpToLine, Copy, GripVertical, ImagePlus, Lightbulb, MoreHorizontal, Trash2, X, Library } from "lucide-react";
 import { ReorderArrows } from "@/components/ReorderArrows";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { motion, useReducedMotion } from "motion/react";
@@ -115,6 +115,7 @@ export function QuestionCard({
   onPatch,
   onDuplicate,
   onDelete,
+  onSaveToBank,
   index,
   count,
   moveTick,
@@ -133,6 +134,8 @@ export function QuestionCard({
   onPatch: (patch: (question: Question) => Question) => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  /** "Save to my bank" (Premium). Absent = the bank isn't offered here. */
+  onSaveToBank?: () => void;
   /** Position in the list (0-based) and the list's length: for the up / down arrows. */
   index: number;
   count: number;
@@ -359,6 +362,12 @@ export function QuestionCard({
                     <Copy aria-hidden="true" />
                     {t("questions.duplicate")}
                   </DropdownMenuItem>
+                  {onSaveToBank && (
+                    <DropdownMenuItem onSelect={onSaveToBank} data-save-to-bank="">
+                      <Library aria-hidden="true" />
+                      {t("bank.save")}
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem variant="destructive" onSelect={onDelete}>
                     <Trash2 aria-hidden="true" />
                     {t("questions.delete")}
