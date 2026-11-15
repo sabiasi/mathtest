@@ -38,6 +38,12 @@ parts, in order:
 2. `supabase/migrations/20261114_teaching_subjects.sql` — assignments, selection
    function, and subject-based write policies.
 3. `supabase/migrations/20261115_plan_preview.sql` — "View as Free".
+4. `supabase/migrations/20261116_payments.sql` — payments, receipts, emails.
+5. `supabase/migrations/20261117_ai_usage.sql` — AI generator limits.
+6. `supabase/migrations/20261118_custom_header.sql` — custom paper header.
+7. `supabase/migrations/20261119_question_bank.sql` — question bank.
+8. `supabase/migrations/20261120_sharing.sql` — sharing, view-only links,
+   version numbers on tests.
 
 ## Payments in test mode
 
@@ -66,6 +72,36 @@ shows suggested questions to review before anything is added to the test.
 Without an `ANTHROPIC_API_KEY` it runs in **mock mode** (ready-made samples,
 nothing is sent anywhere). With `npm run dev:sandbox` the monthly limits work
 too (Free 3, Premium 100 per month — from `lib/plans/plans.ts`).
+
+## Premium features
+
+All of these are checked by the server or the database, not only by the screen.
+With `npm run dev:sandbox` a new account starts in the 14-day Premium trial;
+Settings → My plan → the test tools → "skip 15 days" makes it Free.
+
+- **Paper header** — Settings → "Paper header": logo, school name, extra lines.
+  Printed at the top of every paper and PDF. Free keeps a saved header but
+  prints the default one.
+- **Templates** — `/templates`: 16 ready-made tests; Free can use the first 5.
+- **Question bank** — `/bank`; "Save to my bank" in a question's "⋯" menu,
+  "Insert from bank" under the questions in the editor.
+- **Word export** — the print page → "Word (.docx)": student paper, answer key
+  or all variants. Formulas become Word equations; question types Word can't
+  express go in as pictures (needs Chrome on the server, like PDFs).
+- **Sharing** — "Share" in the editor's top bar or a test card's "…" menu:
+  - a colleague by email, "view and copy" or "edit" (they find the test on
+    My tests → "Shared with me" after signing in with exactly that email);
+  - a view-only link (`/shared/<long code>`), works without an account, can be
+    switched off;
+  - while a shared test is open by several people, each sees the others'
+    initials in the top bar (Supabase Realtime);
+  - saves carry a version number: if someone else saved first, nothing is
+    overwritten and a window asks "load the new version / keep mine". The same
+    protects one teacher with two tabs open.
+
+  To try sharing by hand you need a real Supabase project with all the SQL
+  applied and **two accounts** (two browsers, or one normal + one private
+  window). The automated browser tests use made-up teachers and a pretend cloud.
 
 ## Comparing the plans ("View as Free")
 
@@ -146,6 +182,7 @@ these duplicate files.
    Verify the eligible test migrates, the other remains readable on the device,
    and both retain their pictures.
 
-See `CLAUDE.md` for architecture and implementation conventions. Phase 2
-(Georgian defaults in every tool) and Phase 3 (live question print previews)
-remain planned; this change implements Phase 1 only.
+See `CLAUDE.md` for architecture and implementation conventions, and
+`docs/GO_LIVE.md` for what the owner must do before real teachers and real
+money. Still to build: the School plan (seats, invites, shared bank) and the
+founders' admin page.

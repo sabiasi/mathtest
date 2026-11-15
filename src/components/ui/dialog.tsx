@@ -19,7 +19,7 @@ function DialogContent({
   children,
   closeLabel,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Content> & { closeLabel: string }) {
+}: React.ComponentProps<typeof DialogPrimitive.Content> & { /** The × button's name for screen readers; null = no × (a window that needs an answer). */ closeLabel: string | null }) {
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
@@ -31,12 +31,12 @@ function DialogContent({
         {...props}
       >
         {children}
-        <DialogPrimitive.Close
+        {closeLabel !== null && <DialogPrimitive.Close
           aria-label={closeLabel}
           className="absolute top-3.5 right-3.5 rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
           <X className="size-5" aria-hidden="true" />
-        </DialogPrimitive.Close>
+        </DialogPrimitive.Close>}
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
   );

@@ -30,8 +30,61 @@ export type TestsBackend = {
   /** Present for real account backends; used to prevent cross-account client writes. */
   userId?: string;
   list(): Promise<Test[]>;
+  /**
+   * Saves the test. A cloud backend that counts versions refuses to save over
+   * a version it hasn't seen (someone else changed the test meanwhile) by
+   * throwing VersionConflictError.
+   */
   upsert(test: Test): Promise<void>;
   remove(id: string): Promise<void>;
+  /** The newest saved copy of one test, its version, and whether that is news to this backend. */
+  fetch?(id: string): Promise<{ test: Test; version: number; changed: boolean } | null>;
+  /** "I have seen this version": the next save is allowed to replace it. */
+  acceptVersion?(id: string, version: number): void;
+};
+
+/** A save was refused: the cloud has a newer version (`theirs`) than the one this save was based on. */
+export class VersionConflictError extends Error {
+  constructor(readonly theirs: Test, readonly version: number) {
+    super("The test was changed somewhere else");
+  }
+}
+
+// ---- Tests that OTHER teachers shared with me (sharing, Premium) ----
+
+export const SHARED_PREFIX = "shared~";
+export const LINK_PREFIX = "link~";
+export const isSharedId = (id: string) => id.startsWith(SHARED_PREFIX);
+export const isLinkId = (id: string) => id.startsWith(LINK_PREFIX);
+/** Inside the app a shared test's id is "shared~<owner>~<its real id>", so it can never be mixed up with my own tests. */
+export const sharedKey = (ownerId: string, testId: string) => `${SHARED_PREFIX}${ownerId}~${testId}`;
+export function parseSharedKey(key: string): { ownerId: string; testId: string } | null {
+  if (!isSharedId(key)) return null;
+  const rest = key.slice(SHARED_PREFIX.length);
+  const cut = rest.indexOf("~");
+  return cut > 0 && cut < rest.length - 1 ? { ownerId: rest.slice(0, cut), testId: rest.slice(cut + 1) } : null;
+}
+
+export type ShareRole = "view" | "edit";
+export type SharedTest = {
+  /** = test.id: "shared~<owner>~<id>". */
+  key: string;
+  ownerId: string;
+  ownerName: string;
+  role: ShareRole;
+  version: number;
+  test: Test;
+};
+
+export type SharedBackend = {
+  list(): Promise<SharedTest[]>;
+  /**
+   * Saves my changes over version `shared.version` and returns the new
+   * version. "gone" = no longer shared with me; "readonly" = I may only look
+   * now. Throws VersionConflictError when someone else saved first.
+   */
+  save(shared: SharedTest, test: Test): Promise<number | "gone" | "readonly">;
+  fetch(shared: SharedTest): Promise<{ test: Test; version: number } | null>;
 };
 
 export type SaveState = "saved" | "saving" | "error";
@@ -82,6 +135,26 @@ function assertSubjectAccess(subject: SubjectId) {
     throw new SubjectAccessError("Subject is read-only for this account");
   }
 }
+
+// Tests shared with me: kept apart from `tests`, so they never count as mine.
+let sharedBackend: SharedBackend | null = null;
+let shared: SharedTest[] = [];
+let sharedStatus: Status = "idle";
+
+/** Saves the cloud refused because someone else saved first: the teacher chooses (see resolveConflict). */
+export type Conflict = { id: string; mine: Test; theirs: Test; version: number };
+const conflicts = new Map<string, Conflict>();
+let conflictList: Conflict[] = [];
+function setConflict(id: string, conflict: Conflict | null) {
+  if (conflict) conflicts.set(id, conflict);
+  else conflicts.delete(id);
+  conflictList = [...conflicts.values()];
+}
+
+/** Goes up when a test in memory is REPLACED by a newer copy from the cloud (the open editor then starts again). */
+const revisions = new Map<string, number>();
+const bumpRevision = (id: string) => revisions.set(id, (revisions.get(id) ?? 0) + 1);
+export const getRevision = (id: string) => revisions.get(id) ?? 0;
 
 const listeners = new Set<() => void>();
 function notify() {
@@ -138,11 +211,57 @@ export function stopSync(): void {
   backend = null;
   status = "idle";
   tests = [];
+  sharedBackend = null;
+  shared = [];
+  sharedStatus = "idle";
+  conflicts.clear();
+  conflictList = [];
   queue.clear();
   sending.clear();
   failed.clear();
   if (retryTimer) clearTimeout(retryTimer);
   retryTimer = null;
+  notify();
+}
+
+/** Loads the tests other teachers shared with the signed-in teacher (after startSync; again to refresh the list). */
+export async function startShared(source: SharedBackend): Promise<void> {
+  const myGeneration = generation;
+  sharedBackend = source;
+  if (sharedStatus !== "ready") sharedStatus = "loading";
+  notify();
+  try {
+    const loaded = await source.list();
+    if (myGeneration !== generation) return;
+    // A test with changes still on their way keeps the copy in memory.
+    const busy = (key: string) => queue.has(key) || sending.has(key) || conflicts.has(key);
+    const current = new Map(shared.map((entry) => [entry.key, entry]));
+    for (const entry of loaded) {
+      const old = current.get(entry.key);
+      if (old && !busy(entry.key) && old.version !== entry.version) bumpRevision(entry.key);
+    }
+    shared = loaded.map((entry) => { const old = current.get(entry.key); return old && busy(entry.key) ? { ...old, role: entry.role } : entry; });
+    sharedStatus = "ready";
+  } catch (error) {
+    if (myGeneration !== generation) return;
+    console.error("MathTest: could not load shared tests", error);
+    if (sharedStatus !== "ready") sharedStatus = "error";
+  }
+  notify();
+}
+
+/** Tests shared with me, or null while loading (guests: never loaded). */
+export function getSharedSnapshot(): SharedTest[] | null {
+  return sharedStatus === "ready" ? shared : null;
+}
+export const getSharedStatus = () => sharedStatus;
+export const getShared = (key: string) => shared.find((entry) => entry.key === key);
+/** "I left this shared test" (or the owner stopped sharing): forget it here. */
+export function forgetShared(key: string): void {
+  shared = shared.filter((entry) => entry.key !== key);
+  queue.delete(key);
+  failed.delete(key);
+  setConflict(key, null);
   notify();
 }
 
@@ -183,6 +302,14 @@ export function getTest(id: string): Test | undefined {
 // ---------------------------------------------------------------------------
 
 function enqueue(id: string, write: Write) {
+  // While the teacher is deciding about a conflict, newer typing only updates "mine".
+  const conflict = conflicts.get(id);
+  if (conflict && write.kind === "upsert") {
+    setConflict(id, { ...conflict, mine: write.test });
+    notify();
+    return;
+  }
+  if (conflict) setConflict(id, null); // deleted: nothing left to decide
   queue.set(id, write);
   notify();
   void flush();
@@ -265,7 +392,8 @@ export function duplicateTest(id: string, title: string): Test | undefined {
 /** Saves changes to an existing test (or adds it) and returns the saved version. */
 export function saveTest(test: Test): Test {
   // Sample tests are read-only data from src/samples: never saved or uploaded.
-  if (isSampleId(test.id)) return test;
+  if (isSampleId(test.id) || isLinkId(test.id)) return test;
+  if (isSharedId(test.id)) return saveSharedTest(test);
   try {
     assertSubjectAccess(test.subjectId);
     const previous = getTest(test.id);
@@ -277,6 +405,20 @@ export function saveTest(test: Test): Test {
   }
   const saved: Test = { ...test, updatedAt: new Date().toISOString() };
   setTests([saved, ...tests.filter((t) => t.id !== test.id)]);
+  enqueue(saved.id, { kind: "upsert", test: saved });
+  return saved;
+}
+
+/** Saves my changes to a test someone shared with me "to edit" (in a subject I teach). */
+function saveSharedTest(test: Test): Test {
+  const entry = getShared(test.id);
+  if (!entry || entry.role !== "edit") return test;
+  if (accessUser === null || !allowedSubjects.includes(test.subjectId) || !allowedSubjects.includes(entry.test.subjectId)) {
+    throw new SubjectAccessError("Subject is read-only for this account");
+  }
+  const saved: Test = { ...test, updatedAt: new Date().toISOString() };
+  shared = shared.map((item) => (item.key === test.id ? { ...item, test: saved } : item));
+  notify();
   enqueue(saved.id, { kind: "upsert", test: saved });
   return saved;
 }
@@ -344,13 +486,27 @@ async function flush(): Promise<void> {
     sending.add(id);
     notify();
     try {
-      if (write.kind === "upsert") await cloud.upsert(write.test);
+      if (isSharedId(id)) {
+        if (write.kind === "upsert") await sendShared(id, write.test, myGeneration);
+      } else if (write.kind === "upsert") await cloud.upsert(write.test);
       else await cloud.remove(id);
       if (myGeneration !== generation) return;
       failed.delete(id);
       retryDelay = 2000;
     } catch (error) {
       if (myGeneration !== generation) return;
+      if (error instanceof VersionConflictError && write.kind === "upsert") {
+        // Someone else saved first. Nothing is overwritten: the teacher chooses.
+        const newer = queue.get(id);
+        if (newer?.kind !== "delete") {
+          queue.delete(id);
+          setConflict(id, { id, mine: newer?.test ?? write.test, theirs: error.theirs, version: error.version });
+        }
+        failed.delete(id);
+        sending.delete(id);
+        notify();
+        continue;
+      }
       console.error("MathTest: could not save to the cloud", error);
       failed.add(id);
       // Put it back, unless an even newer change arrived meanwhile.
@@ -365,6 +521,72 @@ async function flush(): Promise<void> {
   }
 }
 
+async function sendShared(key: string, test: Test, myGeneration: number): Promise<void> {
+  const entry = getShared(key);
+  if (!entry || !sharedBackend) return;
+  const result = await sharedBackend.save(entry, test);
+  if (myGeneration !== generation) return;
+  if (result === "gone") shared = shared.filter((item) => item.key !== key);
+  else if (result === "readonly") shared = shared.map((item) => (item.key === key ? { ...item, role: "view" } : item));
+  else shared = shared.map((item) => (item.key === key ? { ...item, version: result } : item));
+}
+
+/** The saves waiting for the teacher's choice ("someone else changed this test"). */
+export function getConflicts(): Conflict[] {
+  return conflictList;
+}
+
+/** "Keep mine" saves my version over theirs; "theirs" drops my unsaved changes and shows the newer test. */
+export function resolveConflict(id: string, keep: "mine" | "theirs"): void {
+  const conflict = conflicts.get(id);
+  if (!conflict) return;
+  setConflict(id, null);
+  if (isSharedId(id)) shared = shared.map((item) => (item.key === id ? { ...item, version: conflict.version, test: keep === "theirs" ? conflict.theirs : item.test } : item));
+  else {
+    backend?.acceptVersion?.(id, conflict.version);
+    if (keep === "theirs") tests = tests.map((test) => (test.id === id ? conflict.theirs : test)).sort(byNewest);
+  }
+  if (keep === "theirs") {
+    bumpRevision(id);
+    notify();
+  } else enqueue(id, { kind: "upsert", test: conflict.mine });
+}
+
+/**
+ * Asks the cloud for the newest copy of one test (when the editor opens, or
+ * "load the new version"). Does nothing while my own changes are on their way.
+ * Returns true when a newer copy was put in memory.
+ */
+export async function refreshTest(id: string): Promise<boolean> {
+  if (status !== "ready" || isSampleId(id)) return false;
+  const busy = () => queue.has(id) || sending.has(id) || conflicts.has(id);
+  if (busy()) return false;
+  const myGeneration = generation;
+  try {
+    if (isSharedId(id)) {
+      const entry = getShared(id);
+      if (!entry || !sharedBackend) return false;
+      const latest = await sharedBackend.fetch(entry);
+      if (myGeneration !== generation || busy() || getShared(id) !== entry) return false;
+      if (!latest) { forgetShared(id); return false; }
+      if (latest.version === entry.version) return false;
+      shared = shared.map((item) => (item.key === id ? { ...item, ...latest } : item));
+    } else {
+      const before = getTest(id);
+      if (!before || !backend?.fetch) return false;
+      const latest = await backend.fetch(id);
+      if (!latest || !latest.changed || myGeneration !== generation || busy() || getTest(id) !== before) return false;
+      backend.acceptVersion?.(id, latest.version);
+      tests = tests.map((test) => (test.id === id ? latest.test : test)).sort(byNewest);
+    }
+  } catch {
+    return false;
+  }
+  bumpRevision(id);
+  notify();
+  return true;
+}
+
 function scheduleRetry() {
   if (retryTimer) return;
   retryTimer = setTimeout(() => {
@@ -377,7 +599,7 @@ function scheduleRetry() {
 /** "saved", "saving" (waiting to be sent) or "error" (sending failed, retrying). */
 export function getSaveState(id: string): SaveState {
   if (failed.has(id)) return "error";
-  if (queue.has(id) || sending.has(id)) return "saving";
+  if (queue.has(id) || sending.has(id) || conflicts.has(id)) return "saving";
   return "saved";
 }
 

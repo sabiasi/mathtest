@@ -14,12 +14,16 @@ import { useTheme } from "next-themes";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { setLanguage, useLanguage } from "@/i18n/language";
 import { loadProfile, saveProfile, type Profile, type ProfileChanges } from "@/lib/auth/profile";
-import { clearImageCache, keepImages, setImageUser } from "@/lib/images/imageStore";
+import { usedImageIds } from "@/lib/images/imageMath";
+import { clearImageCache, keepImages, setImageUser, setPictureFinder } from "@/lib/images/imageStore";
+import { findSharedPicture } from "@/lib/sharing/pictures";
+import { loadShares, resetShares } from "@/lib/sharing/sharesStore";
+import { supabaseSharedBackend } from "@/lib/storage/sharedTests";
 import { loadBank, resetBank } from "@/lib/bank/bankStore";
 import { normalizePaperHeader } from "@/lib/paperHeader";
 import { localTestsBackend } from "@/lib/storage/localTests";
 import { supabaseTestsBackend } from "@/lib/storage/supabaseTests";
-import { hasUnsavedChanges, startSync, stopSync } from "@/lib/storage/testsRepository";
+import { getSharedSnapshot, hasUnsavedChanges, startShared, startSync, stopSync, subscribe } from "@/lib/storage/testsRepository";
 import { getSupabase } from "@/lib/supabase/client";
 import { supabaseConfigured } from "@/lib/supabase/config";
 
@@ -62,6 +66,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const beginGuest = () => {
       stopSync();
       setImageUser(null);
+      // A guest can still open a read-only link: its pictures are found through sharing.
+      setPictureFinder(supabaseConfigured ? (imageId) => findSharedPicture(getSupabase(), null, imageId) : null);
       void startSync(localTestsBackend());
     };
 
@@ -78,8 +84,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("MathTest: could not load the profile", error);
         return null;
       });
+      setPictureFinder((imageId) => findSharedPicture(supabase, next.id, imageId));
       await startSync(supabaseTestsBackend(supabase, next.id));
       if (activeUserId.current !== next.id) return;
+      // Tests colleagues shared with this teacher (their own list, never mixed with "My tests").
+      void startShared(supabaseSharedBackend(supabase));
       const loaded = await profileLoad;
       if (loaded && activeUserId.current === next.id) setProfile(loaded);
     };
@@ -121,6 +130,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (userId) void loadBank(userId);
     else resetBank();
+  }, [userId]);
+
+  // ---- Sharing: who I shared my tests with; pictures I added to colleagues' tests must be kept ----
+  const email = user?.email ?? "";
+  useEffect(() => {
+    if (userId) void loadShares(userId, email);
+    else resetShares();
+  }, [userId, email]);
+  useEffect(() => {
+    if (!userId) return;
+    const report = () => {
+      const shared = getSharedSnapshot();
+      if (shared) keepImages("shared", usedImageIds(shared.filter((entry) => entry.role === "edit").map((entry) => entry.test)));
+    };
+    report();
+    return subscribe(report);
   }, [userId]);
 
   // ---- Warn before closing the tab while changes are still being sent ----

@@ -12,6 +12,7 @@ const SECTIONS: [MessageKey, MessageKey][] = [
   ["privacy.settingsTitle", "privacy.settings"],
   ["privacy.paymentsTitle", "privacy.payments"],
   ["privacy.emailsTitle", "privacy.emails"],
+  ["privacy.sharingTitle", "privacy.sharing"],
   ["privacy.aiTitle", "privacy.ai"],
 ];
 

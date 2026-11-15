@@ -5,6 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { dictionaries } from "@/i18n/dictionaries";
 import { SUBJECT_IDS } from "@/subjects/ids";
 import { plansSql } from "@/lib/plans/plansSql";
+import { SUPABASE_STUBS } from "@/lib/server/supabaseStubs";
 
 const db = new PGlite();
 const teacher = "10000000-0000-0000-0000-000000000001";
@@ -14,19 +15,7 @@ const previewMigration = readFileSync("supabase/migrations/20261115_plan_preview
 
 beforeAll(async () => {
   // Only Supabase's infrastructure is stubbed; the actual app SQL and RLS run in Postgres.
-  await db.exec(`
-    create role anon; create role authenticated;
-    create schema auth; create schema storage;
-    create table auth.users (id uuid primary key, raw_user_meta_data jsonb default '{}');
-    create function auth.uid() returns uuid language sql stable as
-      $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-    create table storage.buckets (id text primary key, name text, public boolean, file_size_limit bigint, allowed_mime_types text[]);
-    create table storage.objects (id uuid default gen_random_uuid(), bucket_id text, name text, metadata jsonb, created_at timestamptz default now());
-    alter table storage.objects enable row level security;
-    create function storage.foldername(text) returns text[] language sql immutable as $$ select string_to_array($1, '/') $$;
-    grant usage on schema public, auth, storage to anon, authenticated;
-    grant select, insert, update, delete on storage.objects to authenticated;
-  `);
+  await db.exec(SUPABASE_STUBS);
   await db.exec(readFileSync("supabase/schema.sql", "utf8"));
   await db.exec(plansSql());
 }, 30_000);

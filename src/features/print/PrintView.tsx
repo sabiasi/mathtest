@@ -16,9 +16,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SegmentedControl } from "@/components/ui/form";
 import { LanguageOverride, useLanguage, useT } from "@/i18n/language";
 import { findProblems } from "@/lib/checks";
-import { saveTest } from "@/lib/storage/testsRepository";
+import { isLinkId, saveTest } from "@/lib/storage/testsRepository";
 import type { PrintOptions, Test, VariantSettings } from "@/lib/storage/types";
-import { useTest } from "@/lib/storage/useTests";
+import { useSharedTest, useTest } from "@/lib/storage/useTests";
 import { isSampleId } from "@/samples/build";
 import { useUseAsTemplate } from "@/features/samples/useTemplate";
 import { MAX_VARIANTS, buildVariants, newSeed, type Variant } from "@/lib/variants";
@@ -39,14 +39,16 @@ import { usePaperHeader } from "./usePaperHeader";
 import { BLOCK_GAP, COLUMN_GAP, HEADER_GAP, PAGE, usePrintLayout } from "./usePrintLayout";
 
 /** The /print/[id] page.  URL: ?version=student|key&variant=A…F|all */
-export function PrintView() {
+export function PrintView({ id: fixedId }: { /** Given by pages that aren't /print/[id] (a view-only link). */ id?: string } = {}) {
   const t = useT();
-  const { id } = useParams<{ id: string }>();
+  const params_ = useParams<{ id?: string }>();
+  const id = fixedId ?? params_.id ?? "";
   const params = useSearchParams();
   const version: PrintVersion = params.get("version") === "key" ? "key" : "student";
   const variant = params.get("variant") ?? "A";
   const lookup = useTest(id);
   const access = useTeachingSubjects();
+  const shared = useSharedTest(id);
 
   if (lookup.status === "loading") return <PrintSkeleton />;
   if (lookup.status === "missing") {
@@ -68,7 +70,8 @@ export function PrintView() {
   const autoPrint = params.get("print") === "1";
   return (
     <PageTransition>
-      {isSampleId(lookup.test.id) || isDeviceTestId(lookup.test.id) || !access.canEdit(lookup.test.subjectId) ? (
+      {/* Tests I can't change: the options I pick here are kept only while the page is open. */}
+      {isSampleId(lookup.test.id) || isDeviceTestId(lookup.test.id) || isLinkId(lookup.test.id) || (shared && shared.role !== "edit") || !access.canEdit(lookup.test.subjectId) ? (
         <SampleDocument key={lookup.test.id} sample={lookup.test} version={version} variantParam={variant} autoPrint={autoPrint} />
       ) : (
         <PrintDocument test={lookup.test} version={version} variantParam={variant} autoPrint={autoPrint} />
@@ -252,14 +255,15 @@ function PrintDocument({
       {/* ---- Top bar: stays visible while scrolling (screen only) ---- */}
       <div className="sticky top-0 z-20 border-b bg-card/85 shadow-sm backdrop-blur-md print:hidden">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center gap-x-5 gap-y-3 px-4 py-3 sm:px-6">
-          <Link
-            href={`/editor/${test.id}`}
+          {/* A view-only link has no editor to go back to. */}
+          {!isLinkId(test.id) && <Link
+            href={`/editor/${encodeURIComponent(test.id)}`}
             className="inline-flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
             {t("print.back")}
-          </Link>
-          <div className="ml-auto flex gap-2">
+          </Link>}
+          <div className="ml-auto flex flex-wrap justify-end gap-2">
             <Button variant="outline" onClick={() => waitForImages().then(() => window.print())} disabled={!ready}>
               <Printer className="size-4" aria-hidden="true" />
               {t("print.print")}
@@ -601,7 +605,8 @@ export function PrintedVariant({
 function ProblemsBanner({ test }: { test: Test }) {
   const t = useT();
   const problems = findProblems(test);
-  if (problems.length === 0) return null;
+  // A view-only link: the visitor can't fix anything.
+  if (problems.length === 0 || isLinkId(test.id)) return null;
   return (
     <div className="mx-auto mt-4 max-w-5xl px-4 sm:px-6 print:hidden">
       <div className="rounded-xl border border-warning-border bg-warning-soft px-4 py-3 text-warning-text">

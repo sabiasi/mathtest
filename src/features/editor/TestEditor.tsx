@@ -52,7 +52,7 @@ import {
   CloudSun,
   Ruler,
   Copy,
-  Sparkles, Library } from "lucide-react";
+  Sparkles, Library, Share2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatePresence } from "motion/react";
 import Link from "next/link";
@@ -67,7 +67,12 @@ import { MathEditingProvider, useMathEditing, useMathLiveReady } from "@/feature
 import { useLanguage, useT } from "@/i18n/language";
 import { createQuestion, duplicateQuestion, formatPoints, questionNumbers, totalPoints } from "@/lib/questions";
 import { isRichTextEmpty } from "@/lib/richText";
-import { useSaveState, useStorageKind } from "@/lib/storage/useTests";
+import { useSaveState, useSharedTest, useStorageKind } from "@/lib/storage/useTests";
+import { isSharedId, refreshTest } from "@/lib/storage/testsRepository";
+import { useShare, useSharingOffered } from "@/features/sharing/ShareDialog";
+import { useCoEditing } from "@/features/sharing/useCoEditing";
+import { useCopyShared } from "@/features/sharing/useCopyShared";
+import { initials } from "@/lib/sharing/sharing";
 import type { Question, QuestionType, Test } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
 import { getToolkit } from "@/subjects/registry";
@@ -165,7 +170,10 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
   const access = useTeachingSubjects();
   const sample = isSampleId(initialTest.id);
   const locked = isDeviceTestId(initialTest.id) || !access.canEdit(initialTest.subjectId);
-  const readOnly = sample || locked;
+  // A colleague's test: "edit" lets me change it (in a subject I teach), "view" doesn't.
+  const shared = useSharedTest(initialTest.id);
+  const foreign = isSharedId(initialTest.id);
+  const readOnly = sample || locked || (foreign && shared?.role !== "edit");
   const language = useLanguage();
   const confirm = useConfirm();
   const [test, setTest] = useState(initialTest);
@@ -213,6 +221,18 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
   const cloudState = useSaveState(test.id);
   const onDevice = useStorageKind() === "device"; // a guest: saved in this browser only
   const saveState = cloudState === "error" ? "error" : dirty || cloudState === "saving" ? "saving" : "saved";
+
+  // Sharing: who else has the test open, and a note to them after each of my saves.
+  const coEditing = useCoEditing(test.id);
+  const { announceSaved } = coEditing;
+  const lastCloudState = useRef(cloudState);
+  useEffect(() => {
+    if (lastCloudState.current === "saving" && cloudState === "saved") announceSaved();
+    lastCloudState.current = cloudState;
+  }, [cloudState, announceSaved]);
+  const share = useShare();
+  const sharingOffered = useSharingOffered();
+  const copyShared = useCopyShared();
 
   // Tell the teacher once when the cloud can't be reached (the indicator keeps showing it).
   const warned = useRef(false);
@@ -380,9 +400,27 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
               {/* On phones only the arrow shows; screen readers still hear the text. */}
               <span className="max-sm:sr-only">{t("editor.back")}</span>
             </Link>
-            <div className="flex flex-1 justify-end gap-2">
+            <div className="flex flex-1 items-center justify-end gap-2">
+              {coEditing.others.length > 0 && (
+                <span className="flex items-center -space-x-1.5" role="status" aria-label={t("shared.editingNow", { names: coEditing.others.map((person) => person.name || t("shared.someone")).join(", ") })} data-co-editors="">
+                  {coEditing.others.slice(0, 4).map((person) => (
+                    <span key={person.id} title={person.name || t("shared.someone")} data-co-editor={person.name}
+                      className="inline-flex size-7 items-center justify-center rounded-full border-2 border-card bg-primary-soft text-[11px] font-semibold text-brand">
+                      {initials(person.name)}
+                    </span>
+                  ))}
+                </span>
+              )}
+              {/* Signed-in teachers only (a guest can't share); the card's "…" menu offers it to guests. */}
+              {sharingOffered && !guest && !sample && !foreign && !isDeviceTestId(test.id) && (
+                <button type="button" className={buttonVariants({ variant: "outline", size: "sm" })} onClick={() => share({ id: test.id, title: test.title })} data-share-button="">
+                  <Share2 className="size-4" aria-hidden="true" />
+                  {/* The bar is crowded on tablets: the word only from 1024 px. */}
+                  <span className="max-lg:sr-only group-data-[split=true]:sr-only">{t("share.action")}</span>
+                </button>
+              )}
               <PaperViewButton />
-              <Link href={`/print/${test.id}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
+              <Link href={`/print/${encodeURIComponent(test.id)}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
                 <Printer className="size-4" aria-hidden="true" />
                 <span className="max-sm:sr-only">{t("editor.printPreview")}</span>
               </Link>
@@ -392,7 +430,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                 <Copy className="size-4" aria-hidden="true" />
                 <span className="max-sm:sr-only">{t("sample.useTemplate")}</span>
               </button>
-            ) : locked ? <span className="text-sm text-muted-foreground">{t("teaching.readOnly")}</span> : (
+            ) : readOnly ? <span className="text-sm text-muted-foreground">{t("teaching.readOnly")}</span> : (
             <span
               className={cn("flex items-center gap-1.5 text-sm", saveState === "error" ? "text-destructive-text" : "text-muted-foreground")}
               aria-live="polite"
@@ -454,7 +492,28 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                 </button>
               </div>
             )}
-            {!sample && locked && <div className="rounded-xl border bg-primary-soft p-4" data-subject-readonly="" role="status">
+            {foreign && shared && (
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary-soft-border bg-primary-soft/60 p-4" data-shared-banner={readOnly ? "view" : "edit"} role="status">
+                <Users className="size-5 shrink-0 text-brand" aria-hidden="true" />
+                <p className="min-w-60 flex-1 text-[15px] text-soft-foreground">
+                  {t(readOnly ? "shared.bannerView" : "shared.bannerEdit", { name: shared.ownerName || t("shared.someone") })}
+                  {shared.role === "edit" && readOnly && <> {t("shared.bannerSubject")}</>}
+                </p>
+                <button type="button" className={buttonVariants({ variant: "outline", size: "sm" })} disabled={copyShared.busy} onClick={() => void copyShared.copy(test)} data-shared-copy="">
+                  <Copy className="size-4" aria-hidden="true" />
+                  {t(copyShared.busy ? "shared.copying" : "shared.copy")}
+                </button>
+              </div>
+            )}
+            {coEditing.changedBy !== null && (
+              <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-4" data-changed-notice="" role="status">
+                <p className="min-w-60 flex-1 text-[15px]">{t("shared.changedBy", { name: coEditing.changedBy || t("shared.someone") })}</p>
+                <button type="button" className={buttonVariants({ size: "sm" })} onClick={() => { coEditing.dismissChange(); void refreshTest(test.id); }} data-changed-reload="">
+                  {t("shared.changedReload")}
+                </button>
+              </div>
+            )}
+            {!sample && locked && !foreign && <div className="rounded-xl border bg-primary-soft p-4" data-subject-readonly="" role="status">
               <h2 className="font-semibold">{t("teaching.readOnly")}</h2>
               <p className="mt-1 text-sm">{t(isDeviceTestId(test.id) ? "teaching.retainedText" : "teaching.lockedText")}</p>
               {!isDeviceTestId(test.id) && <button type="button" className={buttonVariants({ variant: "outline", className: "mt-3" })} onClick={access.manage}>{t("teaching.manage")}</button>}

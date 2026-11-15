@@ -12,6 +12,8 @@
  * - UpgradeProvider: the friendly "this is a Premium feature" window.
  * - ConfirmProvider: our Georgian "Are you sure?" dialogs.
  * - GuestTrialProvider: guests get one free trial test, then "sign up free".
+ * - ShareProvider: the "share this test" window (useShare()).
+ * - ConflictDialog: "someone else changed this test" (load theirs / keep mine).
  * - Toaster: where toasts appear.
  */
 import { MotionConfig } from "motion/react";
@@ -23,6 +25,8 @@ import { GuestTrialProvider } from "@/features/auth/GuestTrial";
 import { TeachingSubjectsProvider } from "@/features/subjects/TeachingSubjectsProvider";
 import { PlanProvider } from "@/features/plans/PlanProvider";
 import { UpgradeProvider } from "@/features/plans/UpgradeDialog";
+import { ConflictDialog } from "@/features/sharing/ConflictDialog";
+import { ShareProvider } from "@/features/sharing/ShareDialog";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ConfirmProvider } from "./ConfirmDialog";
 
@@ -45,7 +49,10 @@ export function Providers({ children }: { children: ReactNode }) {
               <ConfirmProvider>
                 <UpgradeProvider>
                   <TeachingSubjectsProvider>
-                    <GuestTrialProvider>{children}</GuestTrialProvider>
+                    <GuestTrialProvider>
+                      <ShareProvider>{children}</ShareProvider>
+                    </GuestTrialProvider>
+                    <ConflictDialog />
                   </TeachingSubjectsProvider>
                   <Toaster />
                 </UpgradeProvider>

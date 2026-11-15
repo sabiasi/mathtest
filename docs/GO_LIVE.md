@@ -4,9 +4,9 @@ Everything below is what **you** must do yourself; the code is ready and runs in
 test mode. Work top to bottom. Nothing here was done for you, and no SQL was ever
 run on your Supabase project.
 
-> This file grows with each stage. Stage 2 (payments, emails) is complete below;
-> the AI generator, Premium features, School plan and admin sections are added
-> when those stages are finished.
+> This file grows with each stage. Payments and emails (stage 2), the AI generator
+> (stage 3) and the Premium features (stage 4) are covered below; the School plan
+> and admin sections are added when that stage is finished.
 
 Words used: an **environment variable** ("env var") is a setting the server reads
 when it starts — on your computer from `.env.local`, on the hosting from its
@@ -46,12 +46,16 @@ For a database that already has the earlier stages:
 
 1. `supabase/migrations/20261116_payments.sql`
 2. `supabase/migrations/20261117_ai_usage.sql`
-3. Then set the server secret (use the same text as `BILLING_SERVER_SECRET` below):
+3. `supabase/migrations/20261118_custom_header.sql`
+4. `supabase/migrations/20261119_question_bank.sql`
+5. `supabase/migrations/20261120_sharing.sql`
+6. `supabase/plans.sql` (again — it tells the database which plan has which feature)
+7. Then set the server secret (use the same text as `BILLING_SERVER_SECRET` below):
    ```sql
    select public.set_server_secret('billing', 'PASTE-THE-LONG-RANDOM-TEXT-HERE');
    ```
 
-For a brand-new database: `supabase/schema.sql`, then `supabase/plans.sql`, then step 3.
+For a brand-new database: `supabase/schema.sql`, then `supabase/plans.sql`, then step 7.
 All files are safe to run twice.
 
 ## 4. Environment variables
@@ -166,6 +170,38 @@ adapter was written from the documentation only:
 4. Check your privacy text: the topic, grade and any pasted text are sent to
    Anthropic to produce the questions (add this to `/privacy` with your lawyer).
 
+## 7c. The Premium features (paper header, templates, bank, Word, sharing)
+
+None of these needs a new account or key — only the SQL from step 3. Check each one
+on the real site with a test account that has Premium (a new account's trial will do):
+
+1. **Paper header**: Settings → upload a logo, save, print a test and download its PDF.
+2. **Templates**: `/templates` → open one as your own test. With a Free account only
+   the first 5 open.
+3. **Question bank**: save a question (with a picture) to the bank, insert it into
+   another test.
+4. **Word export**: print page → "Word (.docx)" → open the file in Microsoft Word.
+   Look at the formulas and at one question with a diagram. The hosting must be able
+   to run Chrome (the same requirement as PDFs — see CLAUDE.md → PDF); without it the
+   file is still made, but picture-type questions carry a short note instead.
+5. **Sharing** — needs TWO real accounts (use two browsers):
+   1. In Supabase → Authentication → Sign In / Providers → Email, keep **Confirm
+      email** switched ON. Sharing trusts only confirmed addresses; with it off,
+      anyone could sign up with a colleague's address and read tests shared with it.
+   2. Supabase → Realtime must be enabled for the project (it is by default). It
+      shows "who else has this test open". Nothing has to be configured; no table is
+      published.
+   3. Account A (Premium): open a test → Share → account B's email, "edit". Account B:
+      My tests → "Shared with me" → open it. Both should see the other's initials at
+      the top. Type in both; the second one to save gets the "load the new version /
+      keep mine" window.
+   4. Create a view-only link, open it in a private window (signed out), switch it
+      off, reload: it must say the link no longer works.
+   5. Share a test that has a picture; check that B sees the picture and that B's
+      "make my own copy" still shows it after A stops sharing.
+6. Read the new "Sharing with colleagues" paragraph on `/privacy` with your lawyer
+   (a colleague's email address is personal data that a teacher types in).
+
 ## 8. Switch on
 
 1. `src/lib/plans/plans.ts`: `ONLINE_PAYMENTS = true`. Commit, deploy.
@@ -184,5 +220,18 @@ adapter was written from the documentation only:
   and formulas are untested until you add a key (step 7b).
 - The AI writes 9 text-based question types; types that need a picture or a drawing
   (maps, diagrams, crosswords…) are not generated.
+- Sharing has been tested against the real SQL (in a local Postgres) and in the
+  browser with a pretend cloud, but never between two real accounts on a real
+  Supabase project — do step 7c.5 before telling teachers about it.
+- Sharing sends no email: the colleague sees the test under "Shared with me" the
+  next time they open My tests. Tell them yourself (or send the view-only link).
+- "Who else is here" channels are public by name. The name contains the owner's and
+  the test's ids, which only people with access know; names shown are display names.
+- Co-editing is "one at a time, with a warning", not Google-Docs-style merging: two
+  people typing at once get the conflict window and one version wins.
+- A picture added by a colleague who edits lives in THEIR picture space; if their
+  account is deleted, that picture disappears from the test.
+- Word export: only multiple choice, true/false, short, open and matching questions
+  are editable Word text; the other types are pictures.
 - The welcome email is sent after email confirmation / Google sign-in, and only
   once the payments SQL is installed.

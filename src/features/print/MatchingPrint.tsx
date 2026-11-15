@@ -4,7 +4,6 @@ import { RichTextView } from "@/features/math/RichTextView";
 import { useT } from "@/i18n/language";
 import { matchingAnswers, matchingLeftColumn, matchingRightColumn } from "@/lib/matching";
 import { optionLabel } from "@/lib/questions";
-import { isRichTextEmpty } from "@/lib/richText";
 import type { LabelStyle, MatchingQuestion } from "@/lib/storage/types";
 
 // The pure helpers live in lib/matching.ts (the Word export on the server uses them too).

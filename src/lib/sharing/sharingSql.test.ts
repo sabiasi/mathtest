@@ -11,7 +11,7 @@ const owner = "10000000-0000-0000-0000-000000000001";
 const editor = "20000000-0000-0000-0000-000000000002";
 const viewer = "30000000-0000-0000-0000-000000000003";
 const stranger = "40000000-0000-0000-0000-000000000004";
-const mail = { [owner]: "owner@example.test", [editor]: "editor@example.test", [viewer]: "viewer@example.test", [stranger]: "stranger@example.test" };
+const mail: Record<string, string> = { [owner]: "owner@example.test", [editor]: "editor@example.test", [viewer]: "viewer@example.test", [stranger]: "stranger@example.test" };
 const PICTURE = "pic-0000-1111-2222";
 const doc = (title: string, subject = "math") => JSON.stringify({ id: "t1", title, subjectId: subject, questions: [{ id: "q", images: [{ imageId: PICTURE }] }] });
 

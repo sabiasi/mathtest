@@ -52,6 +52,7 @@ export function TestHeaderForm({
           <Input
             className="h-11 text-lg font-semibold"
             value={test.title}
+            data-title-input=""
             placeholder={t("header.titlePlaceholder")}
             onChange={(e) => onChange({ title: e.target.value })}
           />

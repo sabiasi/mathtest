@@ -6,6 +6,7 @@ import { TeachingSubjectsSummary, useTeachingSubjects } from "@/features/subject
 import { PageBackdrop } from "@/components/PageBackdrop";
 import { PlanPreviewBar } from "@/features/plans/PlanSummary";
 import { ClipboardList, CloudOff, Info, LayoutTemplate, Library, PencilLine, Plus, Printer, RotateCw } from "lucide-react";
+import { SharedWithMe } from "@/features/sharing/SharedWithMe";
 import { READY } from "@/lib/plans/plans";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -149,6 +150,7 @@ export function HomeView() {
       <PlanPreviewBar className="mt-6" />
       {!guest && (access.needsSelection || access.error) && <div className="mt-6 rounded-xl border bg-card p-4"><TeachingSubjectsSummary /></div>}
       <RetainedGuestTests />
+      <SharedWithMe className="mt-8" />
 
       {/* A short guide while the teacher is just starting out. */}
       {tests && tests.length <= 1 && <HowItWorks />}

@@ -220,12 +220,39 @@ export async function addImage(file: Blob): Promise<{ imageId: string; width: nu
 // Showing a picture
 // ---------------------------------------------------------------------------
 
+/**
+ * Pictures of SHARED tests live in another teacher's folder. Sharing
+ * (lib/sharing/pictures.ts) registers how to find them; the database decides
+ * whether this visitor may read them.
+ */
+let pictureFinder: ((imageId: string) => Promise<Blob | null>) | null = null;
+export function setPictureFinder(finder: ((imageId: string) => Promise<Blob | null>) | null): void {
+  pictureFinder = finder;
+}
+const findElsewhere = (id: string): Promise<Blob | null> => (pictureFinder ? pictureFinder(id).catch(() => null) : Promise.resolve(null));
+
+/**
+ * "Make my own copy" of a shared test: its pictures are copied into my own
+ * folder, so the copy keeps them even when the sharing stops.
+ * Throws ImageStorageFullError when they don't fit.
+ */
+export async function copyImagesToAccount(test: Test): Promise<void> {
+  const userId = requireUser();
+  for (const id of usedImageIds([test])) {
+    const blob = await getBlob(id);
+    if (!blob) continue; // a missing picture stays missing; the copy is still made
+    await checkRoom(blob.size);
+    await storeAndUpload(userId, id, blob);
+    urlCache.delete(id);
+  }
+}
+
 /** The picture's data: from the browser copy, or downloaded from the cloud (and then kept). */
 async function getBlob(id: string): Promise<Blob | null> {
   const userId = currentUserId;
   if (!userId) {
     const own = await run<DeviceImage | undefined>(DEVICE_STORE, "readonly", (store) => store.get(id)).catch(() => undefined);
-    return own?.blob ?? null;
+    return own?.blob ?? findElsewhere(id);
   }
   const cached = await run<CachedImage | undefined>(CACHE_STORE, "readonly", (store) => store.get(cacheKey(userId, id))).catch(
     () => undefined,
@@ -235,7 +262,7 @@ async function getBlob(id: string): Promise<Blob | null> {
   if (error || !data) {
     // Guest work outside the account's teaching subjects stays on this device.
     const own = await run<DeviceImage | undefined>(DEVICE_STORE, "readonly", (store) => store.get(id)).catch(() => undefined);
-    return own?.blob ?? null;
+    return own?.blob ?? findElsewhere(id);
   }
   const entry: CachedImage = { key: cacheKey(userId, id), userId, id, blob: data, uploaded: true, createdAt: Date.now() };
   await run(CACHE_STORE, "readwrite", (store) => store.put(entry)).catch(() => undefined);
@@ -324,12 +351,13 @@ let lastCleanUp = 0;
 
 /**
  * Pictures that are in use somewhere OTHER than a test: the paper header's
- * logo, questions saved in the bank… Each such place reports its picture ids
+ * logo, questions saved in the bank, pictures I added to a colleague's shared
+ * test… Each such place reports its picture ids
  * here. Until every known place has reported (it may still be loading), an
  * account's pictures are NOT tidied up — deleting a logo by mistake is far
  * worse than keeping a stray file a little longer.
  */
-export const IMAGE_KEEPERS = ["header", "bank"] as const;
+export const IMAGE_KEEPERS = ["header", "bank", "shared"] as const;
 export type ImageKeeper = (typeof IMAGE_KEEPERS)[number];
 const kept = new Map<ImageKeeper, Set<string>>();
 
