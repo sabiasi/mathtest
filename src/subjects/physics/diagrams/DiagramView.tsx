@@ -7,6 +7,8 @@
 import type { CircuitDiagram, CircuitElement, CircuitPart, Diagram, ForceDiagram } from "@/lib/storage/types";
 import { structureViewBox } from "@/subjects/chemistry/structure/geometry";
 import { StructureView } from "@/subjects/chemistry/structure/StructureView";
+import { geometryLayout } from "@/subjects/math/geometry/geometry";
+import { GeometryView } from "@/subjects/math/geometry/GeometryView";
 import {
   BALL_RADIUS,
   BOX,
@@ -32,13 +34,16 @@ export function diagramSize(diagram: Diagram): { width: number; height: number }
       ? circuitViewBox(diagram, false)
       : diagram.kind === "structure"
         ? structureViewBox(diagram, false)
-        : forceLayout(diagram).viewBox;
+        : diagram.kind === "geometry"
+          ? geometryLayout(diagram).viewBox
+          : forceLayout(diagram).viewBox;
   return { width: Math.round(box.width), height: Math.round(box.height) };
 }
 
 export function DiagramView({ diagram, className }: { diagram: Diagram; className?: string }) {
   if (diagram.kind === "circuit") return <CircuitView circuit={diagram} className={className} />;
   if (diagram.kind === "structure") return <StructureView structure={diagram} className={className} />;
+  if (diagram.kind === "geometry") return <GeometryView geometry={diagram} className={className} />;
   return <ForceView diagram={diagram} className={className} />;
 }
 

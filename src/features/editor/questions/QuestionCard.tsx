@@ -54,6 +54,7 @@ import { InstructionMenu } from "./InstructionMenu";
 import { MatchingEditor } from "./MatchingEditor";
 import { DiagramDialog } from "@/subjects/physics/diagrams/DiagramDialog";
 import { diagramSize } from "@/subjects/physics/diagrams/DiagramView";
+import { newGeometry } from "@/subjects/math/geometry/normalize";
 import { newStructure } from "@/subjects/chemistry/structure/normalize";
 import { newCircuit, newForceDiagram } from "@/subjects/physics/diagrams/normalize";
 import type { SubjectToolkit } from "@/subjects/types";
@@ -173,7 +174,9 @@ export function QuestionCard({
         ? newCircuit()
         : kind === "structure"
           ? newStructure()
-          : newForceDiagram({ gravity: t("forces.preset.gravityLabel"), normal: t("forces.preset.normalLabel") }, newId);
+          : kind === "geometry"
+            ? newGeometry()
+            : newForceDiagram({ gravity: t("forces.preset.gravityLabel"), normal: t("forces.preset.normalLabel") }, newId);
     setDiagramEdit({ placementId: null, diagram });
   }
 

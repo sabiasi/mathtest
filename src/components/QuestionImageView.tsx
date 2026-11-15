@@ -29,7 +29,7 @@ export function QuestionImageView({ image, className = "" }: { image: QuestionIm
   // A diagram (circuit, forces…) is drawn from its data; a picture is loaded.
   if (image.diagram) {
     return (
-      <div className={`w-full ${className}`} style={{ aspectRatio: `${image.width} / ${image.height}` }}>
+      <div className={`w-full ${className}`} style={{ aspectRatio: `${image.width} / ${image.height}` }} data-diagram-kind={image.diagram.kind}>
         <DiagramView diagram={image.diagram} />
       </div>
     );

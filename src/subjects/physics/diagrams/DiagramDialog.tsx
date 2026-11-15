@@ -7,6 +7,7 @@ import { useT } from "@/i18n/language";
 import type { Diagram } from "@/lib/storage/types";
 import { CircuitEditor } from "./CircuitEditor";
 import { StructureEditor } from "@/subjects/chemistry/structure/StructureEditor";
+import { GeometryEditor } from "@/subjects/math/geometry/GeometryEditor";
 import { ForceEditor } from "./ForceEditor";
 
 /**
@@ -44,6 +45,7 @@ function DialogBody({ initial, isNew, onSave }: { initial: Diagram; isNew: boole
       {draft.kind === "circuit" && <CircuitEditor circuit={draft} onChange={setDraft} />}
       {draft.kind === "forces" && <ForceEditor diagram={draft} onChange={setDraft} />}
       {draft.kind === "structure" && <StructureEditor structure={draft} onChange={setDraft} />}
+      {draft.kind === "geometry" && <GeometryEditor geometry={draft} onChange={setDraft} />}
       <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <DialogClose asChild>
           <Button variant="outline">{t("dialog.cancel")}</Button>

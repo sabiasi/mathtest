@@ -38,6 +38,7 @@ describe("subject toolkits", () => {
     for (const id of ["units", "vectors", "constants", "formulas"]) expect(ids).toContain(id);
     expect(physics.questionTypes).toContain("given-find");
     expect(physics.diagrams).toEqual(["circuit", "forces"]);
+    expect(getToolkit("math").diagrams).toEqual(["geometry"]);
     expect(getToolkit("math").questionTypes).not.toContain("given-find");
   });
 

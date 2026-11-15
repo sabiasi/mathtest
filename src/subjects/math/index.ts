@@ -13,6 +13,6 @@ export const mathToolkit: SubjectToolkit = {
   toolbar: MATH_TOOLBAR,
   typingShortcuts: MATH_SHORTCUTS,
   questionTypes: QUESTION_TYPES,
-  diagrams: [],
+  diagrams: ["geometry"],
   print: { className: "subject-math" },
 };

@@ -5,10 +5,13 @@
  * two variants. Answers checked by hand (and by samples.test.ts).
  */
 import { builtinImage } from "@/lib/images/builtinPictures";
+import { diagramSize } from "@/subjects/physics/diagrams/DiagramView";
+import { newGeometry } from "@/subjects/math/geometry/normalize";
 import { fillBlank, m, matching, mc, open, rt, sampleTest, short, tf } from "./build";
 
 const id = (n: number) => `sample-math-q${n}`;
 const triangle = builtinImage("triangle-abc");
+const CIRCLE = { ...newGeometry("circle"), radiusLabel: "3 სმ" };
 
 export const mathSample = () =>
   sampleTest({
@@ -58,7 +61,11 @@ export const mathSample = () =>
           tip: "სურათს ამატებს ღილაკი „სურათის დამატება“ (ან Ctrl+V, ან ფაილის გადმოთრევა). მისი ზომა და ადგილი (ზემოთ / მარჯვნივ) აქვე იცვლება.",
         },
       ),
-      short(id(13), 1, rt("იპოვეთ წრის ფართობი, თუ მისი რადიუსია r = 3 სმ."), rt(m("S=\\pi r^{2}=9\\pi"), " სმ²")),
+      {
+        ...short(id(13), 1, rt("იპოვეთ წრის ფართობი, თუ მისი რადიუსია r = 3 სმ."), rt(m("S=\\pi r^{2}=9\\pi"), " სმ²")),
+        // A figure made with the "Geometric figure" tool (kept as data, like physics diagrams).
+        images: [{ id: `${id(13)}-img`, imageId: "", diagram: CIRCLE, ...diagramSize(CIRCLE), widthPercent: 25, position: "right" as const, caption: "" }],
+      },
       matching(
         id(14),
         2,
