@@ -15,7 +15,7 @@
  */
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "@/features/auth/AuthProvider";
-import { entitlementsFor, guestEntitlements, type Entitlements, type SchoolSeat, type Subscription } from "@/lib/plans/entitlements";
+import { entitlementsFor, freeWhilePremiumHidden, guestEntitlements, type Entitlements, type SchoolSeat, type Subscription } from "@/lib/plans/entitlements";
 import { loadSchoolSeat, loadSubscription, schoolSeatFromJson, subscriptionFromRow } from "@/lib/plans/subscription";
 import { refreshBilling, useBilling } from "@/features/billing/useBilling";
 import { getSupabase } from "@/lib/supabase/client";
@@ -100,6 +100,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
     else if (userId && mine) entitlements = entitlementsFor(mine.subscription, new Date(), mine.seat);
     else if (userId) entitlements = entitlementsFor(null);
     else entitlements = guestEntitlements();
+    entitlements = freeWhilePremiumHidden(entitlements); // HIDDEN_FOR_TESTING
     return { entitlements, ready, refresh };
   }, [injected, userId, mine, ready, refresh]);
 

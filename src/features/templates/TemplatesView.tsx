@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { inputClasses } from "@/components/ui/form";
 import { PremiumBadge } from "@/features/plans/PremiumBadge";
+import { HIDDEN_FOR_TESTING } from "@/lib/hiddenForTesting";
 import { usePlan } from "@/features/plans/PlanProvider";
 import { useUpgrade } from "@/features/plans/UpgradeDialog";
 import { PaperPreview } from "@/features/print/PaperPreview";
@@ -50,9 +51,11 @@ export function TemplatesView() {
   const [busy, setBusy] = useState<string | null>(null);
   const [preview, setPreview] = useState<Test | null>(null);
 
-  const subjects = SUBJECT_IDS.filter((id) => TEMPLATES.some((template) => template.subject === id));
-  const grades = [...new Set(TEMPLATES.map((template) => template.gradeNumber))].sort((a, b) => a - b);
-  const shown = TEMPLATES.filter((template) => (subject === "all" || template.subject === subject) && (grade === "" || String(template.gradeNumber) === grade));
+  // HIDDEN_FOR_TESTING: while Premium is hidden, only the free templates are listed.
+  const listed = HIDDEN_FOR_TESTING.premium ? TEMPLATES.filter((template) => templateAllowed(template.id, PLANS.free.limits.templates)) : TEMPLATES;
+  const subjects = SUBJECT_IDS.filter((id) => listed.some((template) => template.subject === id));
+  const grades = [...new Set(listed.map((template) => template.gradeNumber))].sort((a, b) => a - b);
+  const shown = listed.filter((template) => (subject === "all" || template.subject === subject) && (grade === "" || String(template.gradeNumber) === grade));
 
   async function open(template: TemplateInfo, action: "use" | "preview") {
     if (!templateAllowed(template.id, limit)) return upgrade("templates");
@@ -70,7 +73,7 @@ export function TemplatesView() {
       <PageBackdrop className="h-72 opacity-60" />
       <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("templates.title")}</h1>
       <p className="mt-1.5 max-w-2xl text-[15px] text-muted-foreground">{t("templates.lead")}</p>
-      {limit !== "all" && (
+      {limit !== "all" && !HIDDEN_FOR_TESTING.premium && (
         <p className="mt-3 text-sm text-muted-foreground" data-templates-note="">
           {t("templates.freeNote", { count: limit, all: TEMPLATES.length })}
         </p>
@@ -124,7 +127,7 @@ export function TemplatesView() {
                       {t(`subject.${template.subject}`)} · {template.grade}
                     </p>
                   </div>
-                  {free ? <span className="rounded-full bg-success-soft px-2 py-0.5 text-xs font-semibold text-success-text">{t("templates.free")}</span> : <PremiumBadge compact />}
+                  {HIDDEN_FOR_TESTING.premium ? null : free ? <span className="rounded-full bg-success-soft px-2 py-0.5 text-xs font-semibold text-success-text">{t("templates.free")}</span> : <PremiumBadge compact />}
                 </div>
                 <p className="mt-3 flex-1 text-[15px] text-soft-foreground">{template.about}</p>
                 <p className="mt-2 text-sm text-muted-foreground">{t("templates.questions", { count: template.questions })}</p>

@@ -1,5 +1,6 @@
 "use client";
 
+import { HIDDEN_FOR_TESTING } from "@/lib/hiddenForTesting";
 import {
   ArrowRight,
   Check,
@@ -205,6 +206,9 @@ export function LandingView() {
         </ol>
       </section>
 
+      {/* HIDDEN_FOR_TESTING: the prices are hidden while Premium is hidden. */}
+      {!HIDDEN_FOR_TESTING.premium && (
+      <>
       {/* ---- Pricing teaser (numbers come from lib/plans/plans.ts) ---- */}
       <section className="border-y bg-card/60" data-landing-pricing="">
         <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:py-24">
@@ -257,6 +261,8 @@ export function LandingView() {
           </div>
         </div>
       </section>
+      </>
+      )}
 
       {/* ---- Testimonials: PLACEHOLDERS until real reviews arrive (texts: landing.testimonial* in dictionaries.ts) ---- */}
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-24" data-landing-testimonials="placeholder">

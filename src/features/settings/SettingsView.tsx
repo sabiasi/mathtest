@@ -14,6 +14,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { PlanSummary } from "@/features/plans/PlanSummary";
 import { READY } from "@/lib/plans/plans";
+import { HIDDEN_FOR_TESTING } from "@/lib/hiddenForTesting";
 import { SchoolSection } from "@/features/schools/SchoolSection";
 import { PaperHeaderSettings } from "./PaperHeaderSettings";
 import { TeachingSubjectsSummary, useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
@@ -46,9 +47,11 @@ export function SettingsView() {
       <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("settings.title")}</h1>
       <p className="mt-1.5 text-[15px] text-muted-foreground">{t("settings.subtitle")}</p>
 
-      <Section title={t("plan.title")} id="plan">
-        <PlanSummary />
-      </Section>
+      {!HIDDEN_FOR_TESTING.premium && (
+        <Section title={t("plan.title")} id="plan">
+          <PlanSummary />
+        </Section>
+      )}
 
       {READY.schoolAdmin && (
         <Section title={t("school.title")} id="school">

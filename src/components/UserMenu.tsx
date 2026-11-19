@@ -4,6 +4,7 @@ import { Crown, LayoutGrid, LogOut, Settings, School, ShieldCheck } from "lucide
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { buttonVariants } from "@/components/ui/button";
+import { HIDDEN_FOR_TESTING } from "@/lib/hiddenForTesting";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -83,13 +84,15 @@ function UserMenu() {
           <LayoutGrid aria-hidden="true" />
           {t("home.title")}
         </DropdownMenuItem>
-        <DropdownMenuItem onSelect={() => router.push("/settings#plan")}>
-          <Crown aria-hidden="true" />
-          {t("user.plan")}
-          {ready && (
-            <span className="ml-auto rounded-full bg-premium-soft px-2 py-0.5 text-xs font-semibold text-premium-text">{planLabel}</span>
-          )}
-        </DropdownMenuItem>
+        {!HIDDEN_FOR_TESTING.premium && (
+          <DropdownMenuItem onSelect={() => router.push("/settings#plan")}>
+            <Crown aria-hidden="true" />
+            {t("user.plan")}
+            {ready && (
+              <span className="ml-auto rounded-full bg-premium-soft px-2 py-0.5 text-xs font-semibold text-premium-text">{planLabel}</span>
+            )}
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem onSelect={() => router.push("/settings")}>
           <Settings aria-hidden="true" />
           {t("user.settings")}

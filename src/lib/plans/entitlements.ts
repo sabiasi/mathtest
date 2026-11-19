@@ -15,6 +15,7 @@
  * The database has the same rules in SQL (`public.plan_of` in
  * supabase/schema.sql), for limits it checks itself. Change both together.
  */
+import { HIDDEN_FOR_TESTING } from "@/lib/hiddenForTesting";
 import { FEATURES, GRACE_DAYS, PLANS, TRIAL_PLAN, type Feature, type PlanId, type PlanLimits } from "./plans";
 
 export const SUBSCRIPTION_STATUSES = ["trialing", "active", "past_due", "canceled", "expired"] as const;
@@ -91,6 +92,16 @@ function build(plan: PlanId, state: PlanState, extra: Partial<Entitlements> = {}
   const owned = new Set(PLANS[plan].features);
   const features = Object.fromEntries(FEATURES.map((f) => [f, owned.has(f)])) as Record<Feature, boolean>;
   return { plan, state, limits: PLANS[plan].limits, features, trialDaysLeft: null, renewsAt: null, endsAt: null, previewOf: null, school: null, ...extra };
+}
+
+/**
+ * HIDDEN_FOR_TESTING (lib/hiddenForTesting.ts): while Premium is hidden, every
+ * account works as Free (the subscription itself is untouched). Used by
+ * PlanProvider and the server's entitlements; entitlementsFor stays as it was.
+ */
+export function freeWhilePremiumHidden(entitlements: Entitlements): Entitlements {
+  if (!HIDDEN_FOR_TESTING.premium || entitlements.plan === "free") return entitlements;
+  return build("free", entitlements.state === "guest" ? "guest" : "free");
 }
 
 export function guestEntitlements(): Entitlements {

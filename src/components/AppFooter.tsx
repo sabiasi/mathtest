@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { LogoMark } from "./Logo";
+import { HIDDEN_FOR_TESTING } from "@/lib/hiddenForTesting";
 import { useT } from "@/i18n/language";
 
 export function AppFooter() {
@@ -16,9 +17,11 @@ export function AppFooter() {
           </span>
         </span>
         <div className="flex flex-wrap gap-x-5 gap-y-1">
-          <Link href="/pricing" className="rounded font-medium hover:text-foreground">
-            {t("footer.pricing")}
-          </Link>
+          {!HIDDEN_FOR_TESTING.premium && (
+            <Link href="/pricing" className="rounded font-medium hover:text-foreground">
+              {t("footer.pricing")}
+            </Link>
+          )}
           <Link href="/about" className="rounded font-medium hover:text-foreground">
             {t("footer.about")}
           </Link>

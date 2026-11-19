@@ -34,6 +34,7 @@ import { useUpgrade } from "@/features/plans/UpgradeDialog";
 import { BRAND } from "@/lib/plans/plans";
 import { PdfError, downloadDocx, downloadPdf, pdfFileName, waitForImages } from "./downloadPdf";
 import { READY } from "@/lib/plans/plans";
+import { HIDDEN_FOR_TESTING } from "@/lib/hiddenForTesting";
 import { PrintHeader, type PrintVersion } from "./PrintBlocks";
 import { usePaperHeader } from "./usePaperHeader";
 import { BLOCK_GAP, COLUMN_GAP, HEADER_GAP, PAGE, usePrintLayout } from "./usePrintLayout";
@@ -297,7 +298,7 @@ function PrintDocument({
               {notice}
             </p>
           )}
-          {brandFooter && (
+          {brandFooter && !HIDDEN_FOR_TESTING.premium && (
             <p className="w-full text-right text-sm text-muted-foreground" data-footer-hint="">
               {t("print.brandHint", { name: BRAND.name })}{" "}
               <button type="button" onClick={() => upgrade("footer")} className="inline-flex items-center gap-1 font-semibold text-brand underline-offset-2 hover:underline">
@@ -376,7 +377,7 @@ function PrintDocument({
                   setVariants({ count: Number(v) });
                   if (Number(v) === 1) setUrl({ variant: "A" });
                 }}
-                options={Array.from({ length: MAX_VARIANTS }, (_, i) => ({
+                options={Array.from({ length: HIDDEN_FOR_TESTING.premium ? maxVariants : MAX_VARIANTS }, (_, i) => ({
                   value: String(i + 1),
                   label:
                     i + 1 > maxVariants ? (
@@ -414,7 +415,7 @@ function PrintDocument({
               </>
             )}
           </div>
-          {variantsLimited && (
+          {variantsLimited && !HIDDEN_FOR_TESTING.premium && (
             <p className="w-full text-sm text-muted-foreground" data-variants-limited="">
               {t("variants.limited", { count: test.variants.count, max: maxVariants })}{" "}
               <button type="button" onClick={() => upgrade("variants")} className="font-semibold text-brand underline-offset-2 hover:underline">

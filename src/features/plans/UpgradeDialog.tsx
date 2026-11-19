@@ -11,6 +11,7 @@
  *   const upgrade = useUpgrade();
  *   upgrade("variants");
  */
+import { HIDDEN_FOR_TESTING } from "@/lib/hiddenForTesting";
 import { Check, Crown } from "lucide-react";
 import Link from "next/link";
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
@@ -38,10 +39,13 @@ export function UpgradeProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const noUpgrade = () => {};
+
 export function useUpgrade(): (reason: UpgradeReason) => void {
   const value = useContext(UpgradeContext);
   if (!value) throw new Error("useUpgrade must be used inside <UpgradeProvider>");
-  return value;
+  // HIDDEN_FOR_TESTING: no "Get Premium" window while Premium is hidden.
+  return HIDDEN_FOR_TESTING.premium ? noUpgrade : value;
 }
 
 function UpgradeDialog({ reason, onClose }: { reason: UpgradeReason | null; onClose: () => void }) {

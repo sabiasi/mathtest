@@ -1,5 +1,6 @@
 "use client";
 
+import { HIDDEN_FOR_TESTING } from "@/lib/hiddenForTesting";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -172,7 +173,7 @@ function TeachingSubjectsForm({ suggested }: { suggested: SubjectId | null }) {
       await access.save(selected, preferred);
       setBusy(false);
     }}>
-      <p className="text-sm text-muted-foreground">{t(access.multiple ? "teaching.multiple" : "teaching.single")}</p>
+      {(access.multiple || !HIDDEN_FOR_TESTING.premium) && <p className="text-sm text-muted-foreground">{t(access.multiple ? "teaching.multiple" : "teaching.single")}</p>}
       <div className="grid gap-2 sm:grid-cols-2">
         {SUBJECT_IDS.map((id) => (
           <button key={id} type="button" aria-pressed={selected.includes(id)} data-teaching-subject={id} disabled={busy}
@@ -187,7 +188,7 @@ function TeachingSubjectsForm({ suggested }: { suggested: SubjectId | null }) {
           {selected.map((id) => <option key={id} value={id}>{t(`subject.${id}`)}</option>)}
         </select>
       </label>}
-      {!access.multiple && <Button type="button" variant="outline" onClick={() => upgrade("subjects")}>{t("teaching.addSubject")}</Button>}
+      {!access.multiple && !HIDDEN_FOR_TESTING.premium && <Button type="button" variant="outline" onClick={() => upgrade("subjects")}>{t("teaching.addSubject")}</Button>}
       <Button type="submit" disabled={busy || !selected.length || !preferred}>{t(busy ? "editor.saving" : "settings.save")}</Button>
     </form>
   );

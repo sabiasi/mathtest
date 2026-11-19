@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { supabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseServer } from "@/lib/supabase/server";
-import { entitlementsFor, guestEntitlements, type Entitlements } from "@/lib/plans/entitlements";
+import { entitlementsFor, freeWhilePremiumHidden, guestEntitlements, type Entitlements } from "@/lib/plans/entitlements";
 import { serverEntitlements } from "@/lib/plans/server";
 import { schoolSeatFromJson, subscriptionFromRow } from "@/lib/plans/subscription";
 import { SANDBOX_SECRET, sandboxEnabled, sandboxEnsureUser, sandboxRpc } from "./sandbox";
@@ -75,7 +75,7 @@ export async function serverDb(): Promise<ServerDb | null> {
         if (!id) return guestEntitlements();
         const summary = await rpc<{ subscription?: Parameters<typeof subscriptionFromRow>[0] }>("billing_summary", { secret: SANDBOX_SECRET, uid: id });
         const seat = schoolSeatFromJson(await rpc("my_school_seat"));
-        return entitlementsFor(subscriptionFromRow(summary.subscription ?? null), new Date(), seat);
+        return freeWhilePremiumHidden(entitlementsFor(subscriptionFromRow(summary.subscription ?? null), new Date(), seat)); // HIDDEN_FOR_TESTING
       },
     };
   }

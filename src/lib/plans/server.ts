@@ -1,6 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { entitlementsFor, guestEntitlements, type Entitlements } from "./entitlements";
+import { entitlementsFor, freeWhilePremiumHidden, guestEntitlements, type Entitlements } from "./entitlements";
 import { loadSchoolSeat, loadSubscription } from "./subscription";
 
 /**
@@ -15,7 +15,7 @@ export async function serverEntitlements(supabase: SupabaseClient | null, userId
   if (!supabase || !userId) return guestEntitlements();
   try {
     const [subscription, seat] = await Promise.all([loadSubscription(supabase, userId), loadSchoolSeat(supabase)]);
-    return entitlementsFor(subscription, new Date(), seat);
+    return freeWhilePremiumHidden(entitlementsFor(subscription, new Date(), seat)); // HIDDEN_FOR_TESTING
   } catch (error) {
     console.error("MathTest: could not load the subscription", error);
     return entitlementsFor(null);

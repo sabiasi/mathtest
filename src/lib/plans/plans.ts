@@ -16,6 +16,8 @@
  * tests can all use it.
  */
 
+import { HIDDEN_FOR_TESTING as HIDDEN } from "@/lib/hiddenForTesting";
+
 /** Shown in the small footer on Free PDFs: "Made with MathTest". */
 export const BRAND = {
   name: "MathTest",
@@ -78,17 +80,18 @@ export const PLANS: Record<PlanId, Plan> = {
  * "coming soon", so nobody pays for something that doesn't exist yet.
  * Switch one to true when its stage is finished.
  */
+// HIDDEN_FOR_TESTING: `!HIDDEN.x` switches a finished feature off for now (see lib/hiddenForTesting.ts).
 export const READY: Record<Feature | "aiGenerator", boolean> = {
   multipleSubjects: true,
-  noPdfFooter: true,
-  customHeader: true,
+  noPdfFooter: !HIDDEN.premium,
+  customHeader: !HIDDEN.premium,
   allTemplates: true,
-  questionBank: true,
-  docxExport: true,
-  sharing: true,
-  schoolAdmin: true,
-  sharedBank: true,
-  aiGenerator: true,
+  questionBank: !HIDDEN.questionBank && !HIDDEN.premium,
+  docxExport: !HIDDEN.premium,
+  sharing: !HIDDEN.sharing && !HIDDEN.premium,
+  schoolAdmin: !HIDDEN.premium,
+  sharedBank: !HIDDEN.premium,
+  aiGenerator: !HIDDEN.aiGenerator,
 };
 
 // ---------------------------------------------------------------------------
