@@ -72,7 +72,7 @@ export async function serverDb(): Promise<ServerDb | null> {
       user,
       rpc,
       async entitlements() {
-        if (!id) return guestEntitlements();
+        if (!id) return freeWhilePremiumHidden(guestEntitlements()); // HIDDEN_FOR_TESTING
         const summary = await rpc<{ subscription?: Parameters<typeof subscriptionFromRow>[0] }>("billing_summary", { secret: SANDBOX_SECRET, uid: id });
         const seat = schoolSeatFromJson(await rpc("my_school_seat"));
         return freeWhilePremiumHidden(entitlementsFor(subscriptionFromRow(summary.subscription ?? null), new Date(), seat)); // HIDDEN_FOR_TESTING

@@ -16,7 +16,7 @@ const LAYOUTS: Layout[] = [
   { columns: 1, fontSize: "normal", query: "version=key" },
   { columns: 2, fontSize: "normal", query: "version=student" },
   { columns: 2, fontSize: "normal", query: "version=key" },
-  { columns: 2, fontSize: "large", query: "version=student&variant=B" },
+  { columns: 2, fontSize: "large", query: "version=student&variant=II" },
   { columns: 1, fontSize: "large", query: "version=key&variant=all" },
 ];
 

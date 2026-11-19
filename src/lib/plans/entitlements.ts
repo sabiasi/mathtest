@@ -100,9 +100,14 @@ function build(plan: PlanId, state: PlanState, extra: Partial<Entitlements> = {}
  * PlanProvider and the server's entitlements; entitlementsFor stays as it was.
  */
 export function freeWhilePremiumHidden(entitlements: Entitlements): Entitlements {
-  if (!HIDDEN_FOR_TESTING.premium || entitlements.plan === "free") return entitlements;
-  return build("free", entitlements.state === "guest" ? "guest" : "free");
+  if (!HIDDEN_FOR_TESTING.premium) return entitlements;
+  const free = entitlements.plan === "free" ? entitlements : build("free", entitlements.state === "guest" ? "guest" : "free");
+  // During the trial Free may print every variant (I–VI).
+  return { ...free, limits: { ...free.limits, maxVariants: MAX_VARIANTS_FOR_TESTING } };
 }
+
+/** The app supports at most 6 variants (lib/variants.ts MAX_VARIANTS). */
+const MAX_VARIANTS_FOR_TESTING = 6;
 
 export function guestEntitlements(): Entitlements {
   return build("free", "guest");

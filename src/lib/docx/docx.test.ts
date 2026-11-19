@@ -152,7 +152,7 @@ describe("the Word file", () => {
 
   it("student paper: header, numbered questions, real equations, options, lines, the matching table — and no answers", () => {
     const { document } = make("student");
-    expect(document).toContain("ვარიანტი A");
+    expect(document).toContain("ვარიანტი I");
     expect(document).toContain("ალგებრა &amp; &lt;გეომეტრია&gt;");
     expect(document).toContain("წაიკითხეთ ყურადღებით.");
     expect(document).toContain("სახელი, გვარი");
@@ -189,8 +189,8 @@ describe("the Word file", () => {
 
   it("all variants: each starts on a new page with its own label", () => {
     const { document } = make("student", undefined, true);
-    expect(document).toContain("ვარიანტი A");
-    expect(document).toContain("ვარიანტი B");
+    expect(document).toContain("ვარიანტი I");
+    expect(document).toContain("ვარიანტი II");
     expect((document.match(/<w:pageBreakBefore\/>/g) ?? []).length).toBe(1);
   });
 
@@ -198,7 +198,7 @@ describe("the Word file", () => {
     const shot = { data: new Uint8Array([137, 80, 78, 71]), type: "png" as const, width: 600, height: 120 };
     const { document, parts } = make("student", (test) => {
       const special = test.questions.find((q) => q.grid)!;
-      return { [pictureKey("A", "student", special.id)]: shot };
+      return { [pictureKey("I", "student", special.id)]: shot };
     });
     expect(document).not.toContain("Word-ში ვერ გადავიდა");
     expect(document).not.toContain("დახაზეთ გრაფიკი."); // it is inside the picture now

@@ -21,7 +21,7 @@ import type { PrintOptions, Test, VariantSettings } from "@/lib/storage/types";
 import { useSharedTest, useTest } from "@/lib/storage/useTests";
 import { isSampleId } from "@/samples/build";
 import { useUseAsTemplate } from "@/features/samples/useTemplate";
-import { MAX_VARIANTS, buildVariants, newSeed, type Variant } from "@/lib/variants";
+import { MAX_VARIANTS, VARIANT_LABELS, buildVariants, newSeed, type Variant } from "@/lib/variants";
 import { getToolkit } from "@/subjects/registry";
 import { printBlocks } from "./blocks";
 import { renderBlock } from "./pieces";
@@ -39,7 +39,7 @@ import { PrintHeader, type PrintVersion } from "./PrintBlocks";
 import { usePaperHeader } from "./usePaperHeader";
 import { BLOCK_GAP, COLUMN_GAP, HEADER_GAP, PAGE, usePrintLayout } from "./usePrintLayout";
 
-/** The /print/[id] page.  URL: ?version=student|key&variant=A…F|all */
+/** The /print/[id] page.  URL: ?version=student|key&variant=I…VI|all */
 export function PrintView({ id: fixedId }: { /** Given by pages that aren't /print/[id] (a view-only link). */ id?: string } = {}) {
   const t = useT();
   const params_ = useParams<{ id?: string }>();
@@ -375,7 +375,7 @@ function PrintDocument({
                   // More than the plan allows: explain Premium, change nothing.
                   if (Number(v) > maxVariants) return upgrade("variants");
                   setVariants({ count: Number(v) });
-                  if (Number(v) === 1) setUrl({ variant: "A" });
+                  if (Number(v) === 1) setUrl({ variant: VARIANT_LABELS[0] });
                 }}
                 options={Array.from({ length: HIDDEN_FOR_TESTING.premium ? maxVariants : MAX_VARIANTS }, (_, i) => ({
                   value: String(i + 1),

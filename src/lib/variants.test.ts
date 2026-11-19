@@ -37,7 +37,7 @@ describe("seededRandom / shuffle", () => {
 describe("buildVariants", () => {
   it("makes only the original when count is 1", () => {
     const test = makeTest(questions(), { count: 1 });
-    expect(buildVariants(test)).toEqual([{ label: "A", test }]);
+    expect(buildVariants(test)).toEqual([{ label: "I", test }]);
   });
 
   it("keeps variant A exactly as the teacher wrote it", () => {
@@ -75,7 +75,7 @@ describe("buildVariants", () => {
 
   it("makes A, B, C, D that are all different", () => {
     const variants = buildVariants(makeTest(questions()));
-    expect(variants.map((v) => v.label)).toEqual(["A", "B", "C", "D"]);
+    expect(variants.map((v) => v.label)).toEqual(["I", "II", "III", "IV"]);
     const arrangements = variants.map((v) => JSON.stringify(v.test.questions.map((q) => [q.id, optionIds(q)])));
     expect(new Set(arrangements).size).toBe(4);
   });
@@ -180,7 +180,7 @@ describe("buildVariants with a plan limit", () => {
     const test = makeTest(questions(), { count: 5 });
     const all = buildVariants(test);
     const limited = buildVariants(test, 2);
-    expect(limited.map((v) => v.label)).toEqual(["A", "B"]);
+    expect(limited.map((v) => v.label)).toEqual(["I", "II"]);
     expect(limited.map((v) => ids(v.test))).toEqual(all.slice(0, 2).map((v) => ids(v.test)));
     // The test's own setting is untouched.
     expect(test.variants.count).toBe(5);

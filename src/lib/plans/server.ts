@@ -12,12 +12,12 @@ import { loadSchoolSeat, loadSubscription } from "./subscription";
  * bit too strict for a moment is better than one that can be skipped.
  */
 export async function serverEntitlements(supabase: SupabaseClient | null, userId: string | null): Promise<Entitlements> {
-  if (!supabase || !userId) return guestEntitlements();
+  if (!supabase || !userId) return freeWhilePremiumHidden(guestEntitlements()); // HIDDEN_FOR_TESTING
   try {
     const [subscription, seat] = await Promise.all([loadSubscription(supabase, userId), loadSchoolSeat(supabase)]);
     return freeWhilePremiumHidden(entitlementsFor(subscription, new Date(), seat)); // HIDDEN_FOR_TESTING
   } catch (error) {
     console.error("MathTest: could not load the subscription", error);
-    return entitlementsFor(null);
+    return freeWhilePremiumHidden(entitlementsFor(null)); // HIDDEN_FOR_TESTING
   }
 }

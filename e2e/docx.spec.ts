@@ -14,7 +14,7 @@ test.describe("Word export", () => {
   for (const version of ["student", "key"] as const) {
     test(`Premium: the ${version} paper downloads as a valid .docx`, async ({ page }) => {
       await signIn(page);
-      await page.goto(`/print/sample-math?version=${version}&variant=A`);
+      await page.goto(`/print/sample-math?version=${version}&variant=I`);
       await expect(page.locator('[data-print-ready="true"]')).toBeVisible();
       const [download] = await Promise.all([page.waitForEvent("download", { timeout: 60_000 }), page.locator("[data-docx-download]").click()]);
       expect(download.suggestedFilename()).toMatch(/\.docx$/);

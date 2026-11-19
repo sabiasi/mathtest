@@ -28,7 +28,8 @@ import type {
   Test,
 } from "@/lib/storage/types";
 
-export const VARIANT_LABELS = ["A", "B", "C", "D", "E", "F"] as const;
+/** Variant names on the paper: Roman numerals, as Georgian schools write them (I = the original order). */
+export const VARIANT_LABELS = ["I", "II", "III", "IV", "V", "VI"] as const;
 export const MAX_VARIANTS = VARIANT_LABELS.length;
 
 export type Variant = { label: string; test: Test };
