@@ -227,6 +227,24 @@ Visitors can try everything without an account (guest mode).
   labels ("5 სმ", "x", "?"), circle radius + label, right-angle mark. Labels
   are placed automatically and the viewBox grows to hold them. The default
   figure inserts with no typing. `e2e/geometry.spec.ts`.
+  Added (2026-11-20): rhombus, right trapezoid, regular pentagon / hexagon,
+  obtuse triangle; extras `inscribed` / `circumscribed` circle (+ centre
+  letter), `diagonals`, `height` (dashed, right-angle mark, label "h"),
+  `diameter` — offered only where `geometryExtras(shape)` allows (a
+  trapezoid with an inscribed circle switches to a tangential shape).
+- **Teacher-trial changes (2026-11-20)**: the editor header shows only the
+  test's own subject (no subject switch there any more); open answers have
+  a per-question choice `answerSpace` "lines" / "blank" (not set = the
+  toolkit's `print.openAnswerSpace`: blank in math, lines elsewhere;
+  `openAnswerSpace()` in registry.ts; print, live paper and Word export); `OPEN_FOR_TESTING.allSubjectsEditable`
+  (src/lib/hiddenForTesting.ts) + SQL switch `app_switches`
+  ('all_subjects_editable', `migrations/20261122_all_subjects_editable.sql`):
+  after choosing their subject(s) a teacher may edit tests of EVERY subject;
+  their own subjects come first (`useTeachingSubjects().ordered`) in the
+  "which subject?" window and the My tests sidebar. The app opens the other
+  subjects only when the database agrees (rpc `all_subjects_editable()`;
+  missing = strict), so it never offers edits the database would refuse. SQL tests turn the
+  switch off to keep testing the strict rules.
 - [ ] **Biology toolkit** (in phases; stop for review after each):
   - [x] **B1 — subject + "Label the diagram"**: subject id `biology` (Dna
     icon, green `--subject-biology`, Georgian typography, `chemistry: true`).

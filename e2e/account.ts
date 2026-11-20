@@ -116,6 +116,7 @@ export async function signIn(page: Page, options: { subjects?: string[]; languag
     const path = new URL(request.url()).pathname;
     const reply = (body: unknown, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
     if (request.method() === "OPTIONS") return reply({});
+    if (path.endsWith("/rpc/all_subjects_editable")) return reply(true);
     if (path.endsWith("/teacher_subjects")) return reply([{ subjects: options.subjects ?? ["math"], completed_at: "2026-11-14T10:00:00Z" }]);
     if (path.endsWith("/profiles")) {
       // Saved profile changes are remembered for the rest of the test (also across reloads).

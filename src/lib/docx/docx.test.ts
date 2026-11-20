@@ -66,6 +66,23 @@ function make(version: DocxVersion, pictures: (test: Test) => BlockPictures = ()
   return { test, file, parts, document: text(parts.get("word/document.xml")) };
 }
 
+describe("open answers: lines or blank space", () => {
+  const borders = (subjectId: string, answerSpace?: "lines" | "blank") => {
+    const open = { ...createQuestion("open-answer"), text: richTextFromString("ახსენით."), lines: 3, ...(answerSpace && { answerSpace }) };
+    const test = normalizeTest({ id: "o", title: "o", subjectId, questions: [open] });
+    if (!test) throw new Error("bad test");
+    expect((test.questions[0] as { answerSpace?: string }).answerSpace).toBe(answerSpace);
+    const blocks = testToBlocks({ variants: [buildVariants(test)[0]], showVariant: false, version: "student", language: "ka", images: {}, pictures: {}, header: null, blockKeys });
+    return (text(unzip(buildDocx({ title: "o", blocks })).get("word/document.xml")).match(/<w:pBdr>/g) ?? []).length;
+  };
+  it("follows the subject's default unless the teacher chose", () => {
+    expect(borders("math")).toBe(0);
+    expect(borders("math", "lines")).toBe(3);
+    expect(borders("history")).toBe(3);
+    expect(borders("history", "blank")).toBe(0);
+  });
+});
+
 describe("zip", () => {
   it("writes an archive that reads back byte for byte (compressed text, stored pictures)", () => {
     const files = [{ name: "a/ქართული.xml", data: new TextEncoder().encode("<x>" + "გამარჯობა ".repeat(500) + "</x>") }, { name: "word/media/image1.png", data: new Uint8Array([1, 2, 3, 250]) }];
@@ -150,7 +167,7 @@ describe("the Word file", () => {
     }
   });
 
-  it("student paper: header, numbered questions, real equations, options, lines, the matching table — and no answers", () => {
+  it("student paper: header, numbered questions, real equations, options, blank space, the matching table — and no answers", () => {
     const { document } = make("student");
     expect(document).toContain("ვარიანტი I");
     expect(document).toContain("ალგებრა &amp; &lt;გეომეტრია&gt;");
@@ -161,7 +178,8 @@ describe("the Word file", () => {
     expect(document).toContain("<m:f><m:num>"); // the fraction is an equation, not a picture
     expect(document).toContain('<w:vertAlign w:val="subscript"/>'); // H₂O
     expect(document).toContain("<w:b/>"); // bold text mark kept
-    expect((document.match(/<w:pBdr>/g) ?? []).length).toBe(3); // three writing lines
+    // Mathematics: the open answer's three rows are blank space, without writing lines.
+    expect((document.match(/<w:pBdr>/g) ?? []).length).toBe(0);
     expect(document).toContain("<w:tbl>");
     expect(document).toContain("სურ. 1");
     expect(document).not.toContain("✓");

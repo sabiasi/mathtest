@@ -1,6 +1,6 @@
 "use client";
 
-import { HIDDEN_FOR_TESTING } from "@/lib/hiddenForTesting";
+import { HIDDEN_FOR_TESTING, OPEN_FOR_TESTING } from "@/lib/hiddenForTesting";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -20,6 +20,8 @@ import { SubjectIcon } from "./SubjectPicker";
 type Access = {
   ready: boolean;
   subjects: SubjectId[];
+  /** Every subject, the teacher's own first (their default subject at the very top). */
+  ordered: SubjectId[];
   assignment: TeachingSubjects | null;
   multiple: boolean;
   needsSelection: boolean;
@@ -40,6 +42,9 @@ export function TeachingSubjectsProvider({ children }: { children: ReactNode }) 
   const loadStatus = useLoadStatus();
   const userId = status === "signed-in" ? user?.id : undefined;
   const [loaded, setLoaded] = useState<{ userId: string; assignment: TeachingSubjects | null; error: boolean } | null>(null);
+  // Does the DATABASE also let teachers edit every subject? (False until the owner has run
+  // migrations/20261122_all_subjects_editable.sql — otherwise saves would be refused.)
+  const [openInDatabase, setOpenInDatabase] = useState<{ userId: string; open: boolean } | null>(null);
   const [version, setVersion] = useState(0);
   const [requested, setRequested] = useState(false);
   const [dismissed, setDismissed] = useState("");
@@ -52,6 +57,12 @@ export function TeachingSubjectsProvider({ children }: { children: ReactNode }) 
       (assignment) => { if (!cancelled) setLoaded({ userId, assignment, error: false }); },
       () => { if (!cancelled) setLoaded({ userId, assignment: null, error: true }); },
     );
+    if (OPEN_FOR_TESTING.allSubjectsEditable) {
+      void Promise.resolve(getSupabase().rpc("all_subjects_editable")).then(
+        ({ data, error }) => { if (!cancelled) setOpenInDatabase({ userId, open: !error && data === true }); },
+        () => { if (!cancelled) setOpenInDatabase({ userId, open: false }); },
+      );
+    }
     return () => { cancelled = true; };
   }, [userId, version]);
 
@@ -72,20 +83,28 @@ export function TeachingSubjectsProvider({ children }: { children: ReactNode }) 
     [guest, injected, ready, assignment, plan.entitlements]);
   const needsSelection = Boolean(userId && ready && subjects.length === 0);
   const selectionKey = `${userId}:${assignment?.completedAt ?? "new"}:${multiple}`;
+  // OPEN_FOR_TESTING: once the teacher has chosen their subject(s), every subject is editable.
+  const openAll = OPEN_FOR_TESTING.allSubjectsEditable && subjects.length > 0 && (guest || injected || (openInDatabase?.userId === userId && openInDatabase?.open === true));
+  const editable = useMemo(() => openAll ? [...SUBJECT_IDS] : subjects, [openAll, subjects]);
+  const preferredSubject = subjectFromText(profile?.default_subject ?? "");
+  const ordered = useMemo(() => {
+    const first = preferredSubject && subjects.includes(preferredSubject) ? [preferredSubject] : [];
+    return [...first, ...subjects.filter((id) => !first.includes(id)), ...SUBJECT_IDS.filter((id) => !subjects.includes(id))];
+  }, [preferredSubject, subjects]);
 
   useEffect(() => {
-    setSubjectWriteAccess(userId ?? null, subjects);
-  }, [userId, subjects]);
+    setSubjectWriteAccess(userId ?? null, editable);
+  }, [userId, editable]);
 
   // Only eligible guest tests migrate. Others remain on the device and can be read/printed.
   useEffect(() => {
     if (!userId || !ready || !subjects.length || loadStatus !== "ready") return;
     let cancelled = false;
-    void moveGuestTestsIntoAccount(subjects, () => !cancelled).then((count) => {
+    void moveGuestTestsIntoAccount(editable, () => !cancelled).then((count) => {
       if (!cancelled && count) toast.success(t("guest.moved", { count }));
     }).catch(() => { if (!cancelled) toast.error(t("teaching.migrationError")); });
     return () => { cancelled = true; };
-  }, [userId, ready, subjects, loadStatus, t]);
+  }, [userId, ready, subjects, editable, loadStatus, t]);
 
   async function save(chosen: SubjectId[], preferred: SubjectId) {
     if (!userId) return false;
@@ -106,11 +125,11 @@ export function TeachingSubjectsProvider({ children }: { children: ReactNode }) 
   }
 
   const value: Access = {
-    ready, subjects, assignment, multiple, needsSelection, error: Boolean(mine?.error), refresh, save,
-    canEdit: (subject) => ready && subjects.includes(subject),
+    ready, subjects, ordered, assignment, multiple, needsSelection, error: Boolean(mine?.error), refresh, save,
+    canEdit: (subject) => ready && editable.includes(subject),
     manage: () => setRequested(true),
     requestSubject: (subject) => {
-      if (ready && subjects.includes(subject)) return true;
+      if (ready && editable.includes(subject)) return true;
       if (!ready) { toast.error(t("teaching.loadError")); refresh(); return false; }
       if (needsSelection || multiple) setRequested(true);
       else upgrade("subjects");

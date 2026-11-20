@@ -20,3 +20,16 @@ export const HIDDEN_FOR_TESTING = {
    */
   premium: true,
 } as const;
+
+/**
+ * OPEN FOR TESTING — rules relaxed while the first teachers try the site.
+ *
+ * `allSubjectsEditable`: every signed-in teacher may create and edit tests in EVERY
+ * subject. Teachers still choose the subject(s) they teach once (that choice is kept
+ * and its subjects are shown first), it just doesn't lock the others any more.
+ * The database has the same switch: `public.app_switches` ('all_subjects_editable'),
+ * see supabase/migrations/20261122_all_subjects_editable.sql. Change BOTH together.
+ */
+export const OPEN_FOR_TESTING = {
+  allSubjectsEditable: true,
+} as const;

@@ -19,7 +19,7 @@ function configuredUrl() {
 const supabaseUrl = configuredUrl();
 test.skip(!supabaseUrl.startsWith("https://"), "Account UI requires a public Supabase URL configured at build time");
 
-type FixtureOptions = { previewFree?: boolean; subjects?: SubjectId[]; plan?: "free" | "premium" | "school"; guestTests?: Test[]; unavailable?: boolean; failImages?: boolean };
+type FixtureOptions = { previewFree?: boolean; subjects?: SubjectId[]; plan?: "free" | "premium" | "school"; guestTests?: Test[]; unavailable?: boolean; failImages?: boolean; strictDatabase?: boolean };
 async function account(page: Page, options: FixtureOptions = {}) {
   const uid = "10000000-0000-0000-0000-000000000001";
   let assignment = options.subjects ? { subjects: options.subjects, completed_at: "2026-11-14T10:00:00Z" } : null;
@@ -69,6 +69,7 @@ async function account(page: Page, options: FixtureOptions = {}) {
       if (options.unavailable) return reply({ message: "missing migration" }, 404);
       return reply(assignment ? [assignment] : []);
     }
+    if (path.endsWith("/rpc/all_subjects_editable")) return reply(!options.strictDatabase);
     if (path.endsWith("/rpc/set_teaching_subjects")) {
       const body = request.postDataJSON();
       selectionCalls.push(body.chosen);
@@ -113,13 +114,16 @@ test("first account sign-in asks for teaching subjects and persists the selectio
   await expect(dialog).not.toBeVisible();
 });
 
-test("Free cannot create in another subject or change an existing test's subject", async ({ page }) => {
+test("the editor shows only the test's own subject, and other subjects are editable (teacher trial)", async ({ page }) => {
   const fixture = await account(page, { subjects: ["math"] });
-  await page.goto("/editor/old-math");
+  await page.goto("/editor/old-physics");
   await expect(page.locator('[data-editor-ready="true"]')).toBeVisible();
-  await page.locator('[data-subject="physics"]').click();
-  await expect(page.locator("[data-upgrade-dialog]")).toBeVisible();
-  expect(fixture.writes).toHaveLength(0);
+  const header = editor(page).locator("[data-test-header]");
+  await expect(header.locator("[data-header-subject]")).toHaveAttribute("data-header-subject", "physics");
+  await expect(header.locator("[data-subject]")).toHaveCount(0);
+  await expect(page.locator("[data-subject-readonly]")).toHaveCount(0);
+  await header.locator("[data-title-input]").fill("Changed");
+  await expect.poll(() => fixture.writes.some((test) => test.id === "old-physics" && test.title === "Changed")).toBe(true);
 });
 
 test("Premium can select more subjects and create from their templates", async ({ page }) => {
@@ -136,17 +140,28 @@ test("Premium can select more subjects and create from their templates", async (
   await expect.poll(() => fixture.writes.some((test) => test.subjectId === "physics")).toBe(true);
 });
 
-test("downgrade asks for one subject and leaves the other test read-only and printable", async ({ page }) => {
+test("a database without the teacher-trial SQL: other subjects stay read-only, so no typing is lost", async ({ page }) => {
+  const fixture = await account(page, { subjects: ["math"], strictDatabase: true });
+  await page.goto("/editor/old-physics");
+  await expect(page.locator('[data-editor-ready="true"]')).toBeVisible();
+  await expect(page.locator("[data-subject-readonly]")).toBeVisible();
+  await page.goto("/editor/old-math");
+  await expect(page.locator('[data-editor-ready="true"]')).toBeVisible();
+  await expect(page.locator("[data-subject-readonly]")).toHaveCount(0);
+  expect(fixture.writes).toHaveLength(0);
+});
+
+test("downgrade asks for one subject; the other test stays editable during the teacher trial", async ({ page }) => {
   const fixture = await account(page, { subjects: ["math", "physics"] });
   await page.goto("/editor/old-physics");
   const dialog = page.locator("[data-teaching-dialog]");
   await dialog.locator('[data-teaching-subject="math"]').click();
   await dialog.getByRole("button", { name: "შენახვა", exact: true }).click();
-  await expect(page.locator("[data-subject-readonly]")).toBeVisible();
-  expect(await page.locator('[data-editor-ready="true"] [inert]').count()).toBe(1);
+  await expect(dialog).not.toBeVisible();
+  expect(fixture.selectionCalls).toEqual([["math"]]);
+  await expect(page.locator("[data-subject-readonly]")).toHaveCount(0);
   await page.goto("/print/old-physics");
   await expect(page.locator('[data-print-ready="true"]')).toBeVisible();
-  expect(fixture.writes).toHaveLength(0);
 });
 
 test("previewing Free applies Free rules on My tests, and switching back restores the subjects", async ({ page }) => {
@@ -170,16 +185,19 @@ test("previewing Free applies Free rules on My tests, and switching back restore
   expect(fixture.selectionCalls).toEqual([["math"]]);
 });
 
-test("out-of-subject guest work stays on the device with a readable preview", async ({ page }) => {
+test("guest work of another subject moves into the account too (teacher trial)", async ({ page }) => {
   const guest = { ...structuredClone(sampleFor("physics")), id: "guest-physics" };
   const fixture = await account(page, { subjects: ["math"], guestTests: [guest] });
   await page.goto("/tests");
-  await page.locator("[data-retained-tests] a").click();
-  await expect(page.locator("[data-subject-readonly]")).toBeVisible();
-  expect(fixture.writes).toHaveLength(0);
-  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("mathtest:tests:v1") ?? "[]").length)).toBe(1);
-  await page.goto("/print/device~guest-physics");
-  await expect(page.locator('[data-print-ready="true"]')).toBeVisible();
+  await expect.poll(() => fixture.writes.some((test) => test.id === "guest-physics")).toBe(true);
+  await expect(page.locator("[data-retained-tests]")).toHaveCount(0);
+});
+
+test("the teacher's own subject comes first in the \"which subject?\" window", async ({ page }) => {
+  await account(page, { subjects: ["chemistry"] });
+  await page.goto("/tests");
+  await page.locator("main").getByRole("button", { name: "ახალი ტესტი" }).first().click();
+  await expect(page.locator("[data-new-test-dialog] [data-subject]").first()).toHaveAttribute("data-subject", "chemistry");
 });
 
 test("a missing database migration fails closed but still allows reading an existing test", async ({ page }) => {

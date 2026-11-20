@@ -39,3 +39,8 @@ export const SUBJECTS: SubjectToolkit[] = SUBJECT_IDS.map((id) => TOOLKITS[id]);
 export function getToolkit(id: SubjectId): SubjectToolkit {
   return TOOLKITS[id] ?? TOOLKITS[DEFAULT_SUBJECT];
 }
+
+/** An open answer's room: the teacher's choice, else the subject's default. */
+export function openAnswerSpace(question: { answerSpace?: "lines" | "blank" }, subjectId: SubjectId): "lines" | "blank" {
+  return question.answerSpace ?? getToolkit(subjectId).print.openAnswerSpace ?? "lines";
+}

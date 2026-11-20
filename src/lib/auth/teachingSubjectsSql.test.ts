@@ -18,6 +18,8 @@ beforeAll(async () => {
   await db.exec(SUPABASE_STUBS);
   await db.exec(readFileSync("supabase/schema.sql", "utf8"));
   await db.exec(plansSql());
+  // The strict rules below are tested with the teacher-trial switch off; the last test turns it on.
+  await db.exec("update public.app_switches set enabled = false where name = 'all_subjects_editable'");
 }, 30_000);
 
 afterAll(async () => { await db.close(); });
@@ -185,6 +187,26 @@ describe("teaching subject database enforcement", () => {
     await db.exec("set role anon");
     try { await expect(db.exec("select public.set_plan_preview(true)")).rejects.toThrow(/permission denied/); }
     finally { await db.exec("reset role"); }
+  });
+
+  it("teacher trial switch: after choosing a subject, every subject is editable", async () => {
+    // Earlier tests re-run older migrations (which bring back the strict function): apply ours again.
+    await db.exec(readFileSync("supabase/migrations/20261122_all_subjects_editable.sql", "utf8"));
+    await db.exec("update public.app_switches set enabled = true where name = 'all_subjects_editable'");
+    try {
+      // Choosing a subject is still required first.
+      await expect(asTeacher(() => insert("before", "physics"))).rejects.toThrow(/row-level security/);
+      await choose(["math"]);
+      await asTeacher(() => insert("m", "math"));
+      await asTeacher(() => insert("p", "physics"));
+      await asTeacher(() => db.exec(`update public.tests set data=jsonb_set(data,'{subjectId}','"biology"') where id='m'`));
+      // Other teachers' rows are still out of reach, and the switch can't be read or changed.
+      await expect(asTeacher(() => insert("other", "math", other))).rejects.toThrow(/row-level security/);
+      await expect(asTeacher(() => db.exec("update public.app_switches set enabled=false"))).rejects.toThrow(/permission denied/);
+      expect((await db.query("select * from public.tests")).rows).toHaveLength(2);
+    } finally {
+      await db.exec("update public.app_switches set enabled = false where name = 'all_subjects_editable'");
+    }
   });
 
   it("does not expose subject selection to anonymous callers", async () => {

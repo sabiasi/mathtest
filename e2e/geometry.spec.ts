@@ -16,7 +16,7 @@ test("a geometric figure: insert, edit, cancel, reload, print", async ({ page })
   // Insert the default figure: two clicks, no typing.
   await card.locator('[data-new-diagram="geometry"]').click();
   await expect(dialog.locator("[data-geometry-preview] svg")).toHaveAttribute("data-geometry-figure", "triangle");
-  await expect(dialog.locator("[data-geometry-shape]")).toHaveCount(6);
+  await expect(dialog.locator("[data-geometry-shape]")).toHaveCount(10);
   await dialog.locator("[data-diagram-save]").click();
   await expect(figure).toHaveAttribute("data-geometry-figure", "triangle");
   await expect(figure.locator("text")).toHaveText(["A", "B", "C"]);

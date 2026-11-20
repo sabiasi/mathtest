@@ -38,6 +38,7 @@ import {
 } from "@/subjects/english/EnglishPrint";
 import { MatchingPrint } from "./MatchingPrint";
 import { useTypography } from "./Typography";
+import { openAnswerSpace } from "@/subjects/registry";
 
 export type PrintVersion = "student" | "key";
 
@@ -267,8 +268,9 @@ function QuestionBody({
     case "open-answer":
       return (
         <div>
+          {/* "Blank": the same height, without ruled lines — room for a worked solution. */}
           {Array.from({ length: question.lines }, (_, i) => (
-            <div key={i} className="print-line" />
+            <div key={i} className={openAnswerSpace(question, test.subjectId) === "blank" ? "print-line print-line-blank" : "print-line"} />
           ))}
         </div>
       );

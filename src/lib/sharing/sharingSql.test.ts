@@ -19,6 +19,8 @@ beforeAll(async () => {
   await db.exec(SUPABASE_STUBS);
   await db.exec(readFileSync("supabase/schema.sql", "utf8"));
   await db.exec(plansSql());
+  // The strict teaching-subject rules (the teacher-trial switch off).
+  await db.exec("update public.app_switches set enabled = false where name = 'all_subjects_editable'");
 }, 30_000);
 afterAll(async () => { await db.close(); });
 

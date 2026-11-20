@@ -139,6 +139,8 @@ export interface SubjectToolkit {
   /**
    * The printed sheets get `className`, so ./<id>/print.css can style them.
    * `typography: "georgian"` prints „quotes“ and long dashes (lib/typography.ts).
+   * `openAnswerSpace: "blank"`: open-answer questions START with empty space (the height
+   * of their lines) instead of ruled lines (mathematics); each question can switch it.
    */
-  print: { className: string; typography?: "georgian"; language?: Language };
+  print: { className: string; typography?: "georgian"; language?: Language; openAnswerSpace?: "lines" | "blank" };
 }

@@ -459,7 +459,7 @@ export function QuestionCard({
             )}
             {question.type === "true-false" && <TrueFalseEditor question={question} onChange={onChange} />}
             {question.type === "short-answer" && <ShortAnswerEditor question={question} onChange={onChange} />}
-            {question.type === "open-answer" && <OpenAnswerEditor question={question} onChange={onChange} />}
+            {question.type === "open-answer" && <OpenAnswerEditor question={question} onChange={onChange} defaultSpace={toolkit.print.openAnswerSpace ?? "lines"} />}
             {question.type === "given-find" && <GivenFindEditor question={question} onChange={onChange} />}
             {question.type === "matching" && <MatchingEditor question={question} templates={toolkit.matchingTemplates} onChange={onChange} />}
             {question.type === "order" && <OrderEditor question={question} onChange={onChange} />}

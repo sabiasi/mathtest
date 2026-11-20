@@ -15,12 +15,15 @@ export function NewTestDialog({
   open,
   onOpenChange,
   defaultSubject,
+  order,
   onPick,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /** Marked as "Default" and focused first (from Settings). */
   defaultSubject: SubjectId | null;
+  /** The subjects in the order shown (the teacher's own first). Default: the registry order. */
+  order?: readonly SubjectId[];
   onPick: (id: SubjectId) => void;
 }) {
   const t = useT();
@@ -42,7 +45,7 @@ export function NewTestDialog({
           <DialogDescription>{t("subjects.pickText")}</DialogDescription>
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
-          {SUBJECTS.map(({ id }) => (
+          {(order ?? SUBJECTS.map((s) => s.id)).map((id) => (
             <button
               key={id}
               ref={id === defaultSubject ? defaultButton : undefined}

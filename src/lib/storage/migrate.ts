@@ -153,7 +153,8 @@ function normalizeQuestion(raw: unknown): Question | null {
       return { ...base, type: "short-answer", answer: normalizeRichText(raw.answer) };
     case "open-answer": {
       const lines = Math.min(MAX_LINES, Math.max(0, Math.round(num(raw.lines, DEFAULT_LINES))));
-      return { ...base, type: "open-answer", lines };
+      const answerSpace = raw.answerSpace === "lines" || raw.answerSpace === "blank" ? raw.answerSpace : undefined;
+      return { ...base, type: "open-answer", lines, ...(answerSpace && { answerSpace }) };
     }
     case "matching":
       return {
