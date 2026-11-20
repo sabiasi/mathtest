@@ -58,7 +58,7 @@ test("split screen: what is typed appears on the paper, the edited question is s
   expect(left!.x + left!.width).toBeLessThanOrEqual(right!.x);
 
   // A new question: the paper scrolls to it and outlines it.
-  await editor(page).locator('[data-add-type="short-answer"]').click();
+  await editor(page).locator('[data-add-type="open-answer"]').click();
   const last = (await cards(page).count()) - 1;
   const area = typingArea(questionBox(page, last));
   await expect(area).toBeFocused();

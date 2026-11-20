@@ -7,7 +7,11 @@
  * Adding a sample for a new subject: write src/samples/<id>.ts (copy one
  * that is close), add it below; samples.test.ts checks it uses every
  * question type of its toolkit and that its answer key is complete.
+ *
+ * Teachers see the sample WITHOUT the question types hidden for the teacher
+ * trial (`sampleFor`, lib/offeredTypes.ts); `fullSampleFor` is the whole file.
  */
+import { withoutHiddenTypes } from "@/lib/offeredTypes";
 import type { Test } from "@/lib/storage/types";
 import type { SubjectId } from "@/subjects/ids";
 import { SAMPLE_PREFIX, isSampleId } from "./build";
@@ -32,14 +36,25 @@ const BUILDERS: Record<SubjectId, () => Test> = {
 };
 
 const cache = new Map<SubjectId, Test>();
+const fullCache = new Map<SubjectId, Test>();
 
 export { SAMPLE_PREFIX, isSampleId };
 
-/** The sample test of a subject (built once, then reused). */
+/** The whole sample of a subject, every question type included (built once, then reused). */
+export function fullSampleFor(subjectId: SubjectId): Test {
+  let test = fullCache.get(subjectId);
+  if (!test) {
+    test = BUILDERS[subjectId]();
+    fullCache.set(subjectId, test);
+  }
+  return test;
+}
+
+/** The sample test teachers see: without the question types hidden for the teacher trial. */
 export function sampleFor(subjectId: SubjectId): Test {
   let test = cache.get(subjectId);
   if (!test) {
-    test = BUILDERS[subjectId]();
+    test = withoutHiddenTypes(fullSampleFor(subjectId));
     cache.set(subjectId, test);
   }
   return test;

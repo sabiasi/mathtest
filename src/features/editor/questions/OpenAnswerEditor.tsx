@@ -3,6 +3,7 @@
 import { Minus, Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { FieldLabel, SegmentedControl } from "@/components/ui/form";
+import { RichTextInput } from "@/features/math/RichTextInput";
 import { useT } from "@/i18n/language";
 import { MAX_LINES } from "@/lib/questions";
 import type { OpenAnswerQuestion } from "@/lib/storage/types";
@@ -59,38 +60,63 @@ export function OpenAnswerEditor({
   const t = useT();
   const { lines } = question;
   const space = question.answerSpace ?? defaultSpace;
+  const short = space === "short";
   const blank = space === "blank";
 
   return (
-    <div className="flex flex-wrap items-start gap-x-8 gap-y-4">
-      <LinesStepper id={question.id} value={lines} min={0} onChange={(n) => onChange({ ...question, lines: n })} label={blank ? "oa.space" : "oa.lines"} />
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start gap-x-8 gap-y-4">
+        <div data-open-answer-space={space}>
+          <FieldLabel>{t("oa.style")}</FieldLabel>
+          <SegmentedControl
+            label={t("oa.style")}
+            value={space}
+            onChange={(answerSpace) => onChange({ ...question, answerSpace })}
+            options={[
+              { value: "short", label: t("oa.style.short") },
+              { value: "lines", label: t("oa.style.lines") },
+              { value: "blank", label: t("oa.style.blank") },
+            ]}
+          />
+        </div>
 
-      <div data-open-answer-space={space}>
-        <FieldLabel>{t("oa.style")}</FieldLabel>
-        <SegmentedControl
-          label={t("oa.style")}
-          value={space}
-          onChange={(answerSpace) => onChange({ ...question, answerSpace })}
-          options={[
-            { value: "lines", label: t("oa.style.lines") },
-            { value: "blank", label: t("oa.style.blank") },
-          ]}
-        />
+        {!short && (
+          <LinesStepper id={question.id} value={lines} min={0} onChange={(n) => onChange({ ...question, lines: n })} label={blank ? "oa.space" : "oa.lines"} />
+        )}
+
+        {(short || lines > 0) && (
+          <div className="min-w-48 flex-1" aria-hidden="true">
+            <p className="mb-1.5 text-sm text-muted-foreground">{t("oa.preview")}</p>
+            <div className="paper rounded-lg border px-4 py-1" data-open-answer-preview={space}>
+              {short ? (
+                <div className="flex h-8 items-end gap-2 pb-1 text-sm text-neutral-700">
+                  <span>{t("print.answer")}</span>
+                  <span className="mb-0.5 h-px max-w-60 flex-1 bg-neutral-400" />
+                </div>
+              ) : (
+                <>
+                  {Array.from({ length: Math.min(lines, PREVIEW_LINES) }, (_, i) => (
+                    <div key={i} className={blank ? "h-6" : "h-6 border-b border-neutral-300"} />
+                  ))}
+                  {lines > PREVIEW_LINES && <p className="py-1 text-center text-xs text-neutral-500">… +{lines - PREVIEW_LINES}</p>}
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      {lines > 0 && (
-        <div className="min-w-48 flex-1" aria-hidden="true">
-          <p className="mb-1.5 text-sm text-muted-foreground">{t("oa.preview")}</p>
-          <div className="paper rounded-lg border px-4 py-1" data-open-answer-preview={blank ? "blank" : "lines"}>
-            {Array.from({ length: Math.min(lines, PREVIEW_LINES) }, (_, i) => (
-              <div key={i} className={blank ? "h-6" : "h-6 border-b border-neutral-300"} />
-            ))}
-            {lines > PREVIEW_LINES && (
-              <p className="py-1 text-center text-xs text-neutral-500">… +{lines - PREVIEW_LINES}</p>
-            )}
-          </div>
-        </div>
-      )}
+      {/* A <div> rather than a <label>: clicking a label would steal focus from the formula boxes. */}
+      <div className="max-w-md" data-open-answer-key="">
+        <FieldLabel hint={t(short ? "sa.answerHint" : "oa.answerHint")}>{t("sa.answer")}</FieldLabel>
+        <RichTextInput
+          singleLine
+          value={question.answer ?? []}
+          ariaLabel={t("sa.answer")}
+          placeholder={t("sa.answerPlaceholder")}
+          onChange={(answer) => onChange({ ...question, answer })}
+        />
+      </div>
     </div>
   );
 }

@@ -57,6 +57,7 @@ function richTexts(question: Question): RichText[] {
   const all = [question.text];
   if (question.type === "multiple-choice") all.push(...question.options.map((option) => option.text));
   if (question.type === "short-answer") all.push(question.answer);
+  if (question.type === "open-answer" && question.answer) all.push(question.answer);
   if (question.type === "matching") all.push(...question.pairs.flatMap((pair) => [pair.left, pair.right]), ...question.extras.map((extra) => extra.text));
   return all;
 }
@@ -209,10 +210,19 @@ function nativeQuestion(
       blocks.push(p([{ text: `${t("print.answer")} ` }, ...(answer ?? [{ text: blank(40) }])], { indent: INDENT, before: 4 }));
       break;
     }
-    case "open-answer":
+    case "open-answer": {
+      const space = openAnswerSpace(question, test.subjectId);
+      const answer = key && question.answer && !isRichTextEmpty(question.answer) ? runs(question.answer, { bold: true }) : null;
+      // "One line": like a short answer.
+      if (space === "short") {
+        blocks.push(p([{ text: `${t("print.answer")} ` }, ...(answer ?? [{ text: blank(40) }])], { indent: INDENT, before: 4 }));
+        break;
+      }
       // "Blank" (the default in mathematics): the same room, without lines.
-      for (let i = 0; i < question.lines; i++) blocks.push(p([], { indent: INDENT, line: openAnswerSpace(question, test.subjectId) === "lines", before: 10, after: 0 }));
+      for (let i = 0; i < question.lines; i++) blocks.push(p([], { indent: INDENT, line: space === "lines", before: 10, after: 0 }));
+      if (answer) blocks.push(p([{ text: `${t("print.answer")} ` }, ...answer], { indent: INDENT, before: 4 }));
       break;
+    }
     case "matching": {
       const left = matchingLeftColumn(question);
       const right = matchingRightColumn(question);

@@ -19,6 +19,21 @@ export const HIDDEN_FOR_TESTING = {
    * Word export and the landing page's prices are hidden.
    */
   premium: true,
+  /**
+   * Question types left out of the "add a question" menu (and the type switch) for the
+   * teacher trial, so ordinary school teachers see a short, clear list. `all` = every subject.
+   * Nothing is deleted: tests that already use one of these still open, edit and print,
+   * and the samples / templates simply leave them out (lib/offeredTypes.ts).
+   * "short-answer" is not lost: "open-answer" has a "one line (Answer: ___)" choice.
+   * To bring a type back, remove it from its list.
+   */
+  questionTypes: {
+    all: ["short-answer"],
+    history: ["timeline"],
+    georgian: ["mark-words"],
+    biology: ["pedigree", "sequence", "codon-table", "pyramid", "dichotomous-key", "taxonomy"],
+    english: ["section", "listening", "transformation", "word-formation", "speaking"],
+  },
 } as const;
 
 /**

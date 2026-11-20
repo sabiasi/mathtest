@@ -60,6 +60,8 @@ export function findProblems(test: Test): Problem[] {
     }
     if (q.type === "true-false" && q.correct === null) problems.push({ kind: "noCorrect", number, keyOnly: true });
     if (q.type === "short-answer" && isRichTextEmpty(q.answer)) problems.push({ kind: "noAnswer", number, keyOnly: true });
+    // An open answer "on one line" is a short answer: it needs one too (other open answers may have none).
+    if (q.type === "open-answer" && q.answerSpace === "short" && isRichTextEmpty(q.answer ?? [])) problems.push({ kind: "noAnswer", number, keyOnly: true });
     if (q.type === "matching" && q.pairs.filter((p) => !isRichTextEmpty(p.left) && !isRichTextEmpty(p.right)).length < 2) {
       problems.push({ kind: "fewItems", number, keyOnly: false });
     }

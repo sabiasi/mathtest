@@ -245,6 +245,19 @@ Visitors can try everything without an account (guest mode).
   subjects only when the database agrees (rpc `all_subjects_editable()`;
   missing = strict), so it never offers edits the database would refuse. SQL tests turn the
   switch off to keep testing the strict rules.
+- **Question types for the teacher trial (2026-11-20)**: open answers have a
+  third choice `answerSpace: "short"` ("ერთ ხაზზე (პასუხი: ___)", printed like
+  the old short answer) and an optional key `answer` (any space: on the key
+  under the room, and in the answer table); `changeQuestionType` turns a short
+  answer into that and back. `HIDDEN_FOR_TESTING.questionTypes` hides types from
+  the add menu and the type switch (`lib/offeredTypes.ts`: `offeredQuestionTypes`,
+  `isTypeHidden`); hidden: short-answer everywhere, history timeline, Georgian
+  mark-words, biology pedigree / sequence / codon-table / pyramid /
+  dichotomous-key / taxonomy, English section / listening / transformation /
+  word-formation / speaking. Toolkits still list every type (AI, bank, old
+  tests unchanged). `withoutHiddenTypes(test)` shows samples (`sampleFor`; the
+  whole file = `fullSampleFor`, used by the unit tests) and templates without
+  them: short → open "on one line", a hidden listening takes its questions along.
 - [ ] **Biology toolkit** (in phases; stop for review after each):
   - [x] **B1 — subject + "Label the diagram"**: subject id `biology` (Dna
     icon, green `--subject-biology`, Georgian typography, `chemistry: true`).

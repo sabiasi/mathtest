@@ -10,16 +10,18 @@ import { totalPoints } from "@/lib/questions";
 import { normalizeTest } from "@/lib/storage/migrate";
 import { buildVariants } from "@/lib/variants";
 import { SUBJECT_IDS } from "@/subjects/ids";
-import { getToolkit } from "@/subjects/registry";
-import { getSample, isSampleId, sampleFor } from ".";
+import { getToolkit, offeredQuestionTypes } from "@/subjects/registry";
+import { isTypeHidden } from "@/lib/offeredTypes";
+import { fullSampleFor, getSample, isSampleId, sampleFor } from ".";
 
 describe.each(SUBJECT_IDS)("the %s sample", (subjectId) => {
-  const sample = sampleFor(subjectId);
+  // The whole sample file: every question type of the toolkit, hidden ones too.
+  const sample = fullSampleFor(subjectId);
 
   it("has a fixed id, its subject and a full header", () => {
     expect(sample.id).toBe(`sample-${subjectId}`);
     expect(isSampleId(sample.id)).toBe(true);
-    expect(getSample(sample.id)).toBe(sample);
+    expect(getSample(sample.id)).toBe(sampleFor(subjectId));
     expect(sample.subjectId).toBe(subjectId);
     for (const field of ["schoolName", "title", "subject", "grade", "date", "instructions"] as const) expect(sample[field], field).not.toBe("");
     expect(sample.timeLimitMinutes).toBeGreaterThan(0);
@@ -54,11 +56,22 @@ describe.each(SUBJECT_IDS)("the %s sample", (subjectId) => {
   it("makes variants", () => {
     expect(buildVariants(sample).length).toBe(sample.variants.count);
   });
+
+  it("is shown to teachers without hidden question types, still complete", () => {
+    const shown = sampleFor(subjectId);
+    expect(shown.questions.filter((q) => isTypeHidden(subjectId, q.type))).toEqual([]);
+    const used = new Set(shown.questions.map((q) => q.type));
+    expect(offeredQuestionTypes(subjectId).filter((type) => !used.has(type))).toEqual([]);
+    expect(normalizeTest(JSON.parse(JSON.stringify(shown)))).toEqual(shown);
+    expect(findProblems(shown)).toEqual([]);
+    expect(totalPoints(shown.questions)).toBeGreaterThan(10);
+    expect(buildVariants(shown).length).toBe(shown.variants.count);
+  });
 });
 
 describe("worked answers", () => {
   it("geography: scale and climate", () => {
-    const geo = sampleFor("geography");
+    const geo = fullSampleFor("geography");
     const scale = geo.questions.find((q) => q.type === "scale-calc")!;
     if (scale.type !== "scale-calc") throw new Error();
     expect(scale.rows.map((r) => scaleAnswer(r, scale.denominator, scale.realUnit))).toEqual([2, 3.75, 6]);
@@ -83,7 +96,7 @@ describe("worked answers", () => {
   });
 
   it("english: the puzzles fit", () => {
-    const en = sampleFor("english");
+    const en = fullSampleFor("english");
     for (const q of en.questions) {
       if (q.type === "crossword") expect(buildCrossword(q.entries, q.seed).placed.length).toBe(q.entries.length);
       if (q.type === "word-search") expect(buildWordSearch(q.words, q.size, q.allDirections, q.seed).unplaced).toEqual([]);

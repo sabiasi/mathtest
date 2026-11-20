@@ -3,7 +3,7 @@ import { boxContent, cards, editor, openSampleCopy, questionBox, toolbar, typing
 
 // A fresh browser = a new teacher or a guest: nothing saved yet, Georgian interface.
 async function newQuestion(page: Page) {
-  await editor(page).locator('[data-add-type="short-answer"]').click();
+  await editor(page).locator('[data-add-type="open-answer"]').click();
   const box = questionBox(page, (await cards(page).count()) - 1);
   await expect(typingArea(box)).toBeFocused();
   return box;

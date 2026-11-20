@@ -12,6 +12,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { RichTextInput } from "@/features/math/RichTextInput";
 import type { MessageKey } from "@/i18n/dictionaries";
 import { useT } from "@/i18n/language";
+import { offeredQuestionTypes } from "@/subjects/registry";
 import { newId } from "@/lib/ids";
 import { addImage } from "@/lib/images/imageStore";
 import { useImageError } from "@/features/plans/useImageError";
@@ -161,7 +162,8 @@ export function QuestionCard({
   const [mediaBusy, setMediaBusy] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [dropActive, setDropActive] = useState(false);
-  const questionTypes = toolkit.questionTypes;
+  // HIDDEN_FOR_TESTING: only the offered types (a question of a hidden type still shows its own).
+  const questionTypes = offeredQuestionTypes(toolkit.id);
   const textBlock = isTextBlock(question);
   const [textVersion, setTextVersion] = useState(0);
 

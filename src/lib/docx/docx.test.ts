@@ -8,7 +8,7 @@ import { richTextFromString, type RichText } from "@/lib/richText";
 import { normalizeTest } from "@/lib/storage/migrate";
 import type { Question, Test } from "@/lib/storage/types";
 import { buildVariants } from "@/lib/variants";
-import { sampleFor } from "@/samples";
+import { fullSampleFor, sampleFor } from "@/samples";
 import { SUBJECT_IDS } from "@/subjects/ids";
 import { buildDocx } from "./document";
 import { needsPicture, pictureKey, richTextRuns, testToBlocks, type BlockPictures, type DocxVersion } from "./fromTest";
@@ -238,7 +238,7 @@ describe("the Word file", () => {
   });
 
   it("every sample test of every subject becomes a valid Word file (student and key)", () => {
-    for (const sample of SUBJECT_IDS.map(sampleFor)) {
+    for (const sample of [...SUBJECT_IDS.map(fullSampleFor), ...SUBJECT_IDS.map(sampleFor)]) {
       for (const version of ["student", "key"] as const) {
         const variants = buildVariants(sample);
         const blocks = testToBlocks({ variants, showVariant: variants.length > 1, version, language: "ka", images: {}, pictures: {}, header: null, blockKeys });

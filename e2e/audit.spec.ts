@@ -27,7 +27,7 @@ for (const subject of SUBJECTS) {
     await expect(editor(page)).toBeVisible();
     const add = editor(page).locator("[data-add-type]");
     const count = await add.count();
-    expect(count).toBeGreaterThan(5);
+    expect(count).toBeGreaterThanOrEqual(5); // math offers exactly the 5 common types
     for (let i = 0; i < count; i++) {
       await add.nth(i).click();
       await expect(cards(page)).toHaveCount(i + 1);

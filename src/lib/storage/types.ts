@@ -214,11 +214,17 @@ export interface OpenAnswerQuestion extends QuestionBase {
   /** How many blank lines students get for their work. */
   lines: number;
   /**
-   * Ruled lines or blank space of the same height. Not set = the subject's
-   * default (toolkit `print.openAnswerSpace`: blank in mathematics, else lines).
+   * Ruled lines, blank space of the same height, or "short": one line
+   * "Answer: ______" (like the old short answer; `lines` is then ignored).
+   * Not set = the subject's default (toolkit `print.openAnswerSpace`:
+   * blank in mathematics, else lines).
    */
-  answerSpace?: "lines" | "blank";
+  answerSpace?: OpenAnswerSpace;
+  /** The expected answer, shown only on the answer key. Optional (not set = none). */
+  answer?: RichText;
 }
+
+export type OpenAnswerSpace = "short" | "lines" | "blank";
 
 /**
  * A physics problem in the standard Georgian school layout:
