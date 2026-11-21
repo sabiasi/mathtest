@@ -5,6 +5,7 @@
  * (guests too); the rest need a plan with all templates. The questions never
  * reach a browser that isn't allowed to use them.
  */
+import { withoutHiddenTypes } from "@/lib/offeredTypes";
 import { READY } from "@/lib/plans/plans";
 import { guestEntitlements } from "@/lib/plans/entitlements";
 import { serverDb } from "@/lib/server/db";
@@ -28,6 +29,8 @@ export async function GET(request: Request, context: RouteContext<"/api/template
     // The plan couldn't be read: treat as Free (a bit too strict beats skippable).
   }
   if (!templateAllowed(id, entitlements.limits.templates)) return refuse(403, "premium");
-  const test = templateContent(id);
+  // Without the question types hidden for the teacher trial (short answers → open "on one line").
+  const content = templateContent(id);
+  const test = content && withoutHiddenTypes(content);
   return test ? Response.json({ test }, { headers: { "Cache-Control": "private, no-store" } }) : refuse(404, "notFound");
 }

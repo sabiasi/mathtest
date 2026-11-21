@@ -13,8 +13,10 @@ import type {
   ChoiceOption,
   LabelStyle,
   MultipleChoiceQuestion,
+  OpenAnswerQuestion,
   Question,
   QuestionType,
+  ShortAnswerQuestion,
 } from "@/lib/storage/types";
 
 export const MIN_OPTIONS = 2;
@@ -275,6 +277,11 @@ export function createQuestion(
 /** Switches a question to another type, keeping its id, text, points, images and grid. */
 export function changeQuestionType(question: Question, type: QuestionType): Question {
   if (question.type === type) return question;
+  // Short answer ↔ open answer "on one line": the same question, the answer is kept.
+  if (question.type === "short-answer" && type === "open-answer") {
+    return { ...(createQuestion(type, question) as OpenAnswerQuestion), points: question.points, answerSpace: "short", ...(question.answer.length > 0 && { answer: question.answer }) };
+  }
+  if (question.type === "open-answer" && type === "short-answer") return { ...(createQuestion(type, question) as ShortAnswerQuestion), answer: question.answer ?? [] };
   return createQuestion(type, question);
 }
 

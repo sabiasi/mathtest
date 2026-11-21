@@ -7,7 +7,7 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 test("typing and leaving at once loses nothing (autosave on leave)", async ({ page }) => {
   await openSampleCopy(page, "history");
   const url = page.url();
-  await editor(page).locator('[data-add-type="short-answer"]').click();
+  await editor(page).locator('[data-add-type="open-answer"]').click();
   await expect(typingArea(questionBox(page, (await cards(page).count()) - 1))).toBeFocused();
   await page.keyboard.type("ბოლო წამის ცვლილება");
   // No waiting for the autosave delay: go back straight away.
@@ -53,7 +53,7 @@ test("changing a question's type keeps its text and points", async ({ page }) =>
   await openSampleCopy(page, "math");
   const card = cards(page).nth(0);
   const before = await boxContent(questionBox(page, 0));
-  await card.locator("select").first().selectOption("short-answer");
+  await card.locator("select").first().selectOption("open-answer");
   await expect.poll(() => boxContent(questionBox(page, 0))).toBe(before);
   expect(JSON.parse(before).math).toHaveLength(1); // the formula is still there
   await page.keyboard.press("Meta+z"); // nothing weird happens on undo in another box

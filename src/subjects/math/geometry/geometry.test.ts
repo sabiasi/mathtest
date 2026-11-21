@@ -5,7 +5,7 @@ import { normalizeTest } from "@/lib/storage/migrate";
 import { DiagramView, diagramSize } from "@/subjects/physics/diagrams/DiagramView";
 import { newCircuit, normalizeDiagram } from "@/subjects/physics/diagrams/normalize";
 import type { GeometryDiagram } from "@/lib/storage/types";
-import { CIRCLE_RADIUS, geometryLayout, shapePoints, sideCount, vertexCount, type Point } from "./geometry";
+import { CIRCLE_RADIUS, geometryExtras, geometryLayout, shapePoints, sideCount, vertexCount, type Point } from "./geometry";
 import { GEOMETRY_SHAPES, TRIANGLE_PRESETS, newGeometry, normalizeGeometry, withShape } from "./normalize";
 
 const dist = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y);
@@ -112,6 +112,81 @@ describe("geometric figures: labels", () => {
     expect(geometryLayout({ ...newGeometry("triangle", "right"), rightAngle: false }).rightAngle).toBeNull();
     expect(geometryLayout(newGeometry("triangle", "isosceles")).rightAngle).toBeNull();
     expect(geometryLayout(newGeometry("square")).rightAngle).toBeNull();
+  });
+});
+
+describe("geometric figures: new shapes and extras", () => {
+  /** Distance from p to the line through a and b. */
+  const toLine = (p: Point, a: Point, b: Point) => Math.abs(cross(a, b, a, p)) / dist(a, b);
+  const allOn = (figure: GeometryDiagram) => ({ ...figure, inscribed: true, circumscribed: true, diagonals: true, height: true, diameter: true });
+
+  it("the new shapes keep their defining properties", () => {
+    const rhombus = sides(shapePoints("rhombus", "general"));
+    for (const side of rhombus) expect(side).toBeCloseTo(rhombus[0], 6);
+    const rt = shapePoints("right-trapezoid", "general");
+    expect(angle(rt, 0)).toBeCloseTo(90, 6);
+    expect(angle(rt, 1)).toBeCloseTo(90, 6);
+    expect(cross(rt[1], rt[2], rt[0], rt[3])).toBeCloseTo(0, 6);
+    for (const shape of ["pentagon", "hexagon"] as const) {
+      const points = shapePoints(shape, "general");
+      expect(points).toHaveLength(vertexCount(shape));
+      for (const side of sides(points)) expect(side).toBeCloseTo(sides(points)[0], 6);
+      // The bottom side is flat.
+      expect(points[0].y).toBeCloseTo(points[points.length - 1].y, 6);
+    }
+    expect(angle(shapePoints("triangle", "obtuse"), 1)).toBeGreaterThan(95);
+  });
+
+  it("an inscribed circle touches every side; a circumscribed one passes through every corner", () => {
+    for (const figure of everyFigure()) {
+      const extras = geometryExtras(figure.shape);
+      const layout = geometryLayout(allOn(figure));
+      const inscribed = layout.circles.find((c) => c.kind === "inscribed");
+      const around = layout.circles.find((c) => c.kind === "circumscribed");
+      expect(Boolean(inscribed), `${figure.shape} inscribed`).toBe(extras.inscribed);
+      expect(Boolean(around), `${figure.shape} circumscribed`).toBe(extras.circumscribed);
+      const points = layout.points;
+      if (inscribed) points.forEach((p, i) => expect(toLine(inscribed.center, p, points[(i + 1) % points.length]), `${figure.shape}/${figure.triangle} side ${i}`).toBeCloseTo(inscribed.r, 6));
+      if (around) for (const p of points) expect(dist(around.center, p), `${figure.shape}/${figure.triangle}`).toBeCloseTo(around.r, 6);
+      // The whole drawing (circles too) fits in the picture.
+      const { viewBox } = layout;
+      for (const c of layout.circles) {
+        expect(c.center.x - c.r).toBeGreaterThanOrEqual(viewBox.x);
+        expect(c.center.x + c.r).toBeLessThanOrEqual(viewBox.x + viewBox.width);
+        expect(c.center.y - c.r).toBeGreaterThanOrEqual(viewBox.y);
+        expect(c.center.y + c.r).toBeLessThanOrEqual(viewBox.y + viewBox.height);
+      }
+    }
+  });
+
+  it("diagonals, the height and the diameter", () => {
+    expect(geometryLayout(allOn(newGeometry("square"))).segments.filter((s) => !s.dashed)).toHaveLength(2);
+    expect(geometryLayout({ ...newGeometry("pentagon"), diagonals: true }).segments).toHaveLength(5);
+    expect(geometryLayout({ ...newGeometry("hexagon"), diagonals: true }).segments).toHaveLength(9);
+    expect(geometryLayout({ ...newGeometry("triangle"), diagonals: true }).segments).toHaveLength(0);
+    for (const preset of TRIANGLE_PRESETS) {
+      const layout = geometryLayout({ ...newGeometry("triangle", preset), height: true });
+      const [height] = layout.segments;
+      expect(height.dashed).toBe(true);
+      // Perpendicular to the side it falls on, with a right-angle mark and its label.
+      const [a, b] = preset === "right" ? [layout.points[0], layout.points[1]] : [layout.points[0], layout.points[2]];
+      expect(Math.abs((height.to.x - height.from.x) * (b.x - a.x) + (height.to.y - height.from.y) * (b.y - a.y))).toBeLessThan(1e-6);
+      expect(layout.marks).toHaveLength(1);
+      expect(layout.sideLabels.map((l) => l.text)).toContain("h");
+    }
+    const circle = geometryLayout({ ...newGeometry("circle"), diameter: true });
+    expect(dist(circle.segments[0].from, circle.segments[0].to)).toBeCloseTo(2 * CIRCLE_RADIUS, 6);
+    // Old figures (no extras saved) draw exactly as before.
+    expect(geometryLayout(newGeometry("trapezoid")).points).toEqual(shapePoints("trapezoid", "general"));
+    expect(geometryLayout(newGeometry("square")).segments).toHaveLength(0);
+  });
+
+  it("the centre letter is drawn with a circle, and extras survive normalizing", () => {
+    const figure = { ...newGeometry("triangle"), inscribed: true, centerLetter: "I" };
+    expect(geometryLayout(figure).vertexLabels.map((l) => l.text)).toContain("I");
+    expect(geometryLayout(figure).centerDot).not.toBeNull();
+    expect(normalizeGeometry(structuredClone(figure) as unknown as Record<string, unknown>)).toEqual(figure);
+    expect(withShape(figure, "square").inscribed).toBe(true);
   });
 });
 

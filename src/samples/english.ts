@@ -228,6 +228,13 @@ export const englishSample = () =>
       transformation,
       wordFormation,
       findMistake,
+      order(
+        id(28),
+        2,
+        rt("Put the lines of the dialogue in the correct order."),
+        ["Excuse me, how can I get to the bus station?", "Go straight on and turn left at the bank.", "Is it far from here?", "No, it's about five minutes on foot.", "Thank you very much!"],
+        ka("დაალაგეთ დიალოგის რეპლიკები სწორი თანმიმდევრობით."),
+      ),
       section(17, "vocabulary"),
       pictureMatch,
       oddOneOut,

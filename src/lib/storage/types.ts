@@ -113,8 +113,10 @@ export interface StructureDiagram {
   bonds: { at: string; order: 1 | 2 | 3 }[];
 }
 
-export type GeometryShape = "triangle" | "square" | "rectangle" | "circle" | "parallelogram" | "trapezoid";
-export type TrianglePreset = "general" | "right" | "isosceles" | "equilateral";
+export type GeometryShape =
+  | "triangle" | "square" | "rectangle" | "circle" | "parallelogram" | "trapezoid"
+  | "rhombus" | "right-trapezoid" | "pentagon" | "hexagon";
+export type TrianglePreset = "general" | "right" | "isosceles" | "equilateral" | "obtuse";
 
 /**
  * Mathematics: one geometric figure with optional letters and side labels.
@@ -137,6 +139,19 @@ export interface GeometryDiagram {
   radiusLabel: string;
   /** Right triangle: the small square in the right angle. */
   rightAngle: boolean;
+  /**
+   * Extras, each drawn only where the shape allows it (see `geometryExtras`):
+   * a circle inside touching every side, a circle through every corner,
+   * the diagonals, a height (dashed, with its label), a circle's diameter.
+   */
+  inscribed: boolean;
+  circumscribed: boolean;
+  diagonals: boolean;
+  height: boolean;
+  heightLabel: string;
+  diameter: boolean;
+  /** The letter at the centre of an inscribed / circumscribed circle ("" = none). */
+  centerLetter: string;
 }
 
 export type Diagram = CircuitDiagram | ForceDiagram | StructureDiagram | GeometryDiagram;
@@ -198,7 +213,18 @@ export interface OpenAnswerQuestion extends QuestionBase {
   type: "open-answer";
   /** How many blank lines students get for their work. */
   lines: number;
+  /**
+   * Ruled lines, blank space of the same height, or "short": one line
+   * "Answer: ______" (like the old short answer; `lines` is then ignored).
+   * Not set = the subject's default (toolkit `print.openAnswerSpace`:
+   * blank in mathematics, else lines).
+   */
+  answerSpace?: OpenAnswerSpace;
+  /** The expected answer, shown only on the answer key. Optional (not set = none). */
+  answer?: RichText;
 }
+
+export type OpenAnswerSpace = "short" | "lines" | "blank";
 
 /**
  * A physics problem in the standard Georgian school layout:

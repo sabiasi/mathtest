@@ -1,9 +1,9 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { boxContent, cards, editor, openSampleCopy, questionBox, toolbar, typingArea } from "./helpers";
 
-/** A fresh short-answer question at the end of the test, with its text box focused. */
+/** A fresh open question at the end of the test, with its text box focused. */
 async function newQuestion(page: Page) {
-  await editor(page).locator('[data-add-type="short-answer"]').click();
+  await editor(page).locator('[data-add-type="open-answer"]').click();
   const box = questionBox(page, (await cards(page).count()) - 1);
   await expect(typingArea(box)).toBeFocused();
   return box;

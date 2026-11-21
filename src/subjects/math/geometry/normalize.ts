@@ -5,12 +5,15 @@
 import type { GeometryDiagram, GeometryShape, TrianglePreset } from "@/lib/storage/types";
 import { sideCount, vertexCount } from "./geometry";
 
-export const GEOMETRY_SHAPES: readonly GeometryShape[] = ["triangle", "square", "rectangle", "circle", "parallelogram", "trapezoid"];
-export const TRIANGLE_PRESETS: readonly TrianglePreset[] = ["general", "right", "isosceles", "equilateral"];
+export const GEOMETRY_SHAPES: readonly GeometryShape[] = [
+  "triangle", "square", "rectangle", "circle", "parallelogram", "trapezoid",
+  "rhombus", "right-trapezoid", "pentagon", "hexagon",
+];
+export const TRIANGLE_PRESETS: readonly TrianglePreset[] = ["general", "right", "isosceles", "equilateral", "obtuse"];
 /** Longest letter at a corner ("A", "A1") and longest side label ("12,5 სმ"). */
 export const GEOMETRY_LIMITS = { vertex: 3, label: 12 };
 
-const LETTERS = ["A", "B", "C", "D"];
+const LETTERS = ["A", "B", "C", "D", "E", "F"];
 const defaultVertices = (shape: GeometryShape) => (shape === "circle" ? ["O"] : LETTERS.slice(0, vertexCount(shape)));
 
 /** A ready figure with letters and no side labels: it can be inserted as it is. */
@@ -25,6 +28,13 @@ export function newGeometry(shape: GeometryShape = "triangle", triangle: Triangl
     radius: true,
     radiusLabel: "r",
     rightAngle: true,
+    inscribed: false,
+    circumscribed: false,
+    diagonals: false,
+    height: false,
+    heightLabel: "h",
+    diameter: false,
+    centerLetter: "O",
   };
 }
 
@@ -42,6 +52,14 @@ export function withShape(diagram: GeometryDiagram, shape: GeometryShape, triang
     radius: diagram.radius,
     radiusLabel: diagram.radiusLabel,
     rightAngle: diagram.rightAngle,
+    // Extras stay switched on; a shape that can't have one simply doesn't draw it.
+    inscribed: diagram.inscribed,
+    circumscribed: diagram.circumscribed,
+    diagonals: diagram.diagonals,
+    height: diagram.height,
+    heightLabel: diagram.heightLabel,
+    diameter: diagram.diameter,
+    centerLetter: diagram.centerLetter,
     vertices: keep ? fresh.vertices.map((letter, i) => diagram.vertices[i] ?? letter) : fresh.vertices,
     sides: keep ? fresh.sides.map((_, i) => diagram.sides[i] ?? "") : fresh.sides,
   };
@@ -71,5 +89,13 @@ export function normalizeGeometry(raw: Record<string, unknown>): GeometryDiagram
     radius: raw.radius !== false,
     radiusLabel: typeof raw.radiusLabel === "string" ? cleanLabel(raw.radiusLabel, GEOMETRY_LIMITS.label).trimEnd() : fresh.radiusLabel,
     rightAngle: raw.rightAngle !== false,
+    // Older figures have no extras: all off.
+    inscribed: raw.inscribed === true,
+    circumscribed: raw.circumscribed === true,
+    diagonals: raw.diagonals === true,
+    height: raw.height === true,
+    heightLabel: typeof raw.heightLabel === "string" ? cleanLabel(raw.heightLabel, GEOMETRY_LIMITS.label).trimEnd() : fresh.heightLabel,
+    diameter: raw.diameter === true,
+    centerLetter: typeof raw.centerLetter === "string" ? cleanLabel(raw.centerLetter, GEOMETRY_LIMITS.vertex).trimEnd() : fresh.centerLetter,
   };
 }

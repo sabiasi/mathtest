@@ -1,5 +1,6 @@
 "use client";
 
+import { isTypeHidden } from "@/lib/offeredTypes";
 import { isDeviceTestId } from "@/lib/auth/teachingSubjects";
 import { useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
 
@@ -75,7 +76,8 @@ import { useCopyShared } from "@/features/sharing/useCopyShared";
 import { initials } from "@/lib/sharing/sharing";
 import type { Question, QuestionType, Test } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
-import { getToolkit } from "@/subjects/registry";
+import { GuideButton } from "@/features/tutorials/TutorialButton";
+import { getToolkit, offeredQuestionTypes } from "@/subjects/registry";
 import type { SubjectToolkit } from "@/subjects/types";
 import { useUseAsTemplate } from "@/features/samples/useTemplate";
 import { isSampleId } from "@/samples/build";
@@ -429,6 +431,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                   <span className="max-lg:sr-only group-data-[split=true]:sr-only">{t("share.action")}</span>
                 </button>
               )}
+              {toolkit.guideVideo && <GuideButton name={toolkit.guideVideo} look="bar" />}
               <PaperViewButton />
               <Link href={`/print/${encodeURIComponent(test.id)}`} className={buttonVariants({ variant: "outline", size: "sm" })}>
                 <Printer className="size-4" aria-hidden="true" />
@@ -602,9 +605,10 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                     </span>
                   </button>
                 )}
+                {toolkit.guideVideo && <GuideButton name={toolkit.guideVideo} look="panel" />}
                 <p className="mb-3 text-sm font-medium text-soft-foreground">{t("questions.add")}:</p>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                  {toolkit.questionTypes.map((type) => {
+                  {offeredQuestionTypes(test.subjectId).map((type) => {
                     // A subject may name a type its own way ("Label the picture").
                     const own = toolkit.typeLabels?.[type];
                     return (
@@ -618,7 +622,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
                       />
                     );
                   })}
-                  {toolkit.presets?.map((preset) => (
+                  {toolkit.presets?.filter((preset) => !isTypeHidden(test.subjectId, preset.type)).map((preset) => (
                     <AddButton
                       key={preset.id}
                       Icon={TYPE_ICONS[preset.type]}

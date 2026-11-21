@@ -134,11 +134,25 @@ export interface SubjectToolkit {
   typeLabels?: Partial<Record<QuestionType, { ka: string; en: string; hintKa: string; hintEn: string }>>;
   /** Extra "add" buttons that create a ready-set-up question of an existing type. */
   presets?: { id: string; type: QuestionType; ka: string; en: string; hintKa: string; hintEn: string; apply: (question: Question) => Question }[];
+  /**
+   * Short "how to use it" videos per question type: the name of the recording in
+   * public/tutorials/ (`<name>.ka.webm` + `<name>.en.webm`, made by `npm run tutorials`).
+   * A question card of such a type shows a "▶ How to use it?" button.
+   */
+  tutorials?: Partial<Record<QuestionType, string>>;
+  /**
+   * The subject's guide video: every question type of the toolkit in one video,
+   * with chapters (`<name>.<ka|en>.webm` + `.json` in public/tutorials/). Shown
+   * from the editor's top bar and the "add a question" panel.
+   */
+  guideVideo?: string;
   /** Ready-made column headings for matching questions (e.g. Person ↔ Date). */
   matchingTemplates?: { id: string; left: { ka: string; en: string }; right: { ka: string; en: string } }[];
   /**
    * The printed sheets get `className`, so ./<id>/print.css can style them.
    * `typography: "georgian"` prints „quotes“ and long dashes (lib/typography.ts).
+   * `openAnswerSpace: "blank"`: open-answer questions START with empty space (the height
+   * of their lines) instead of ruled lines (mathematics); each question can switch it.
    */
-  print: { className: string; typography?: "georgian"; language?: Language };
+  print: { className: string; typography?: "georgian"; language?: Language; openAnswerSpace?: "lines" | "blank" };
 }

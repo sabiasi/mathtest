@@ -14,5 +14,8 @@ export const mathToolkit: SubjectToolkit = {
   typingShortcuts: MATH_SHORTCUTS,
   questionTypes: QUESTION_TYPES,
   diagrams: ["geometry"],
-  print: { className: "subject-math" },
+  // The video guide (every math question type, with chapters): tutorials/math-all-types.spec.ts.
+  guideVideo: "math-all-types",
+  // Open answers: blank room for the solution, not ruled lines.
+  print: { className: "subject-math", openAnswerSpace: "blank" },
 };

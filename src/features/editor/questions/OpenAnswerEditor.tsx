@@ -2,7 +2,8 @@
 
 import { Minus, Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
-import { FieldLabel } from "@/components/ui/form";
+import { FieldLabel, SegmentedControl } from "@/components/ui/form";
+import { RichTextInput } from "@/features/math/RichTextInput";
 import { useT } from "@/i18n/language";
 import { MAX_LINES } from "@/lib/questions";
 import type { OpenAnswerQuestion } from "@/lib/storage/types";
@@ -16,19 +17,21 @@ export function LinesStepper({
   min,
   max = MAX_LINES,
   onChange,
+  label = "oa.lines",
 }: {
   id: string;
   value: number;
   min: number;
   max?: number;
   onChange: (lines: number) => void;
+  label?: "oa.lines" | "oa.space";
 }) {
   const t = useT();
   const set = (n: number) => onChange(Math.min(max, Math.max(min, n)));
   const stepButton = buttonVariants({ variant: "outline", size: "icon-sm" });
   return (
     <div>
-      <FieldLabel id={`${id}-lines`}>{t("oa.lines")}</FieldLabel>
+      <FieldLabel id={`${id}-lines`}>{t(label)}</FieldLabel>
       <div className="flex items-center gap-2" role="group" aria-labelledby={`${id}-lines`}>
         <button type="button" className={stepButton} onClick={() => set(value - 1)} disabled={value <= min} aria-label={t("common.decrease")}>
           <Minus className="size-4" aria-hidden="true" />
@@ -47,30 +50,73 @@ export function LinesStepper({
 export function OpenAnswerEditor({
   question,
   onChange,
+  defaultSpace = "lines",
 }: {
   question: OpenAnswerQuestion;
   onChange: (question: OpenAnswerQuestion) => void;
+  /** The subject's default when the teacher hasn't chosen (toolkit print.openAnswerSpace). */
+  defaultSpace?: "lines" | "blank";
 }) {
   const t = useT();
   const { lines } = question;
+  const space = question.answerSpace ?? defaultSpace;
+  const short = space === "short";
+  const blank = space === "blank";
 
   return (
-    <div className="flex flex-wrap items-start gap-x-8 gap-y-4">
-      <LinesStepper id={question.id} value={lines} min={0} onChange={(n) => onChange({ ...question, lines: n })} />
-
-      {lines > 0 && (
-        <div className="min-w-48 flex-1" aria-hidden="true">
-          <p className="mb-1.5 text-sm text-muted-foreground">{t("oa.preview")}</p>
-          <div className="paper rounded-lg border px-4 py-1">
-            {Array.from({ length: Math.min(lines, PREVIEW_LINES) }, (_, i) => (
-              <div key={i} className="h-6 border-b border-neutral-300" />
-            ))}
-            {lines > PREVIEW_LINES && (
-              <p className="py-1 text-center text-xs text-neutral-500">… +{lines - PREVIEW_LINES}</p>
-            )}
-          </div>
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-start gap-x-8 gap-y-4">
+        <div data-open-answer-space={space}>
+          <FieldLabel>{t("oa.style")}</FieldLabel>
+          <SegmentedControl
+            label={t("oa.style")}
+            value={space}
+            onChange={(answerSpace) => onChange({ ...question, answerSpace })}
+            options={[
+              { value: "short", label: t("oa.style.short") },
+              { value: "lines", label: t("oa.style.lines") },
+              { value: "blank", label: t("oa.style.blank") },
+            ]}
+          />
         </div>
-      )}
+
+        {!short && (
+          <LinesStepper id={question.id} value={lines} min={0} onChange={(n) => onChange({ ...question, lines: n })} label={blank ? "oa.space" : "oa.lines"} />
+        )}
+
+        {(short || lines > 0) && (
+          <div className="min-w-48 flex-1" aria-hidden="true">
+            <p className="mb-1.5 text-sm text-muted-foreground">{t("oa.preview")}</p>
+            <div className="paper rounded-lg border px-4 py-1" data-open-answer-preview={space}>
+              {short ? (
+                <div className="flex h-8 items-end gap-2 pb-1 text-sm text-neutral-700">
+                  <span>{t("print.answer")}</span>
+                  <span className="mb-0.5 h-px max-w-60 flex-1 bg-neutral-400" />
+                </div>
+              ) : (
+                <>
+                  {Array.from({ length: Math.min(lines, PREVIEW_LINES) }, (_, i) => (
+                    <div key={i} className={blank ? "h-6" : "h-6 border-b border-neutral-300"} />
+                  ))}
+                  {lines > PREVIEW_LINES && <p className="py-1 text-center text-xs text-neutral-500">… +{lines - PREVIEW_LINES}</p>}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* A <div> rather than a <label>: clicking a label would steal focus from the formula boxes. */}
+      <div className="max-w-md" data-open-answer-key="">
+        <FieldLabel hint={t(short ? "sa.answerHint" : "oa.answerHint")}>{t("sa.answer")}</FieldLabel>
+        <RichTextInput
+          singleLine
+          value={question.answer ?? []}
+          ariaLabel={t("sa.answer")}
+          placeholder={t("sa.answerPlaceholder")}
+          onChange={(answer) => onChange({ ...question, answer })}
+        />
+      </div>
     </div>
   );
 }

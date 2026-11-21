@@ -817,6 +817,10 @@ math-field::part(virtual-keyboard-toggle) {
 .sheet-font-large .print-line {
   height: 9.5mm;
 }
+/* Open answers in mathematics: the same room, without the lines. */
+.print-line-blank {
+  border-bottom: 0;
+}
 
 /* Picture captions ("სურ. 1. …") */
 .print-caption {

@@ -64,7 +64,7 @@ describe("duplicateQuestion", () => {
 
   it("copies every question type of every sample: no id is shared, links inside still work", async () => {
     const { SUBJECT_IDS } = await import("@/subjects/ids");
-    const { sampleFor } = await import("@/samples");
+    const { fullSampleFor } = await import("@/samples");
     const { normalizeTest } = await import("./storage/migrate");
     /** Every id inside a value (not the names of picture files). */
     const idsIn = (value: unknown, found: string[] = []): string[] => {
@@ -79,7 +79,7 @@ describe("duplicateQuestion", () => {
     };
     const types = new Set<string>();
     for (const subject of SUBJECT_IDS) {
-      const sample = sampleFor(subject);
+      const sample = fullSampleFor(subject);
       for (const question of sample.questions) {
         types.add(question.type);
         const before = JSON.stringify(question);

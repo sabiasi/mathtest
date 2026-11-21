@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useT } from "@/i18n/language";
 import type { GeometryDiagram, GeometryShape } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
-import { sideCount, vertexCount } from "./geometry";
+import { geometryExtras, sideCount, vertexCount } from "./geometry";
 import { GeometryView } from "./GeometryView";
 import { GEOMETRY_LIMITS, GEOMETRY_SHAPES, TRIANGLE_PRESETS, cleanLabel, newGeometry, withShape } from "./normalize";
 
@@ -41,6 +41,10 @@ export function GeometryEditor({ geometry, onChange }: { geometry: GeometryDiagr
   const corners = vertexCount(geometry.shape);
   const sides = sideCount(geometry.shape);
   const setAt = (list: string[], index: number, value: string) => list.map((old, i) => (i === index ? value : old));
+  const extras = geometryExtras(geometry.shape);
+  const hasCenter = (extras.inscribed && geometry.inscribed) || (extras.circumscribed && geometry.circumscribed);
+  // The extras this shape can have, in a fixed order (each a checkbox).
+  const extraOptions = (["inscribed", "circumscribed", "diagonals", "height", "diameter"] as const).filter((name) => extras[name]);
   const sideName = (i: number) => `${geometry.vertices[i] || "?"}${geometry.vertices[(i + 1) % corners] || "?"}`;
 
   return (
@@ -67,7 +71,7 @@ export function GeometryEditor({ geometry, onChange }: { geometry: GeometryDiagr
       {geometry.shape === "triangle" && (
         <div>
           <FieldLabel id="geometry-triangle-label">{t("geometry.triangleKind")}</FieldLabel>
-          <div role="group" aria-labelledby="geometry-triangle-label" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div role="group" aria-labelledby="geometry-triangle-label" className="grid grid-cols-2 gap-2 sm:grid-cols-5">
             {TRIANGLE_PRESETS.map((preset) => (
               <button
                 key={preset}
@@ -79,6 +83,21 @@ export function GeometryEditor({ geometry, onChange }: { geometry: GeometryDiagr
               >
                 {t(`geometry.triangle.${preset}`)}
               </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ---- Extras: circles inside / around, diagonals, height, diameter ---- */}
+      {extraOptions.length > 0 && (
+        <div>
+          <FieldLabel id="geometry-extras-label">{t("geometry.extras")}</FieldLabel>
+          <div role="group" aria-labelledby="geometry-extras-label" className="flex flex-wrap gap-2">
+            {extraOptions.map((name) => (
+              <label key={name} className={cn(choiceClass(geometry[name]), "min-h-11 cursor-pointer px-3 py-2 text-sm")}>
+                <input type="checkbox" className="size-5 accent-primary" checked={geometry[name]} onChange={(e) => set({ [name]: e.target.checked })} data-geometry-extra={name} />
+                {t(`geometry.extra.${name}`)}
+              </label>
             ))}
           </div>
         </div>
@@ -174,7 +193,33 @@ export function GeometryEditor({ geometry, onChange }: { geometry: GeometryDiagr
                 </>
               )}
 
-              {geometry.shape === "triangle" && geometry.triangle === "right" && (
+              {geometry.showVertices && hasCenter && (
+                <label className="block">
+                  <FieldLabel>{t("geometry.centerLetter")}</FieldLabel>
+                  <Input
+                    className="w-16 text-center"
+                    value={geometry.centerLetter}
+                    maxLength={GEOMETRY_LIMITS.vertex}
+                    data-geometry-center-letter=""
+                    onChange={(e) => set({ centerLetter: cleanLabel(e.target.value, GEOMETRY_LIMITS.vertex) })}
+                  />
+                </label>
+              )}
+
+              {extras.height && geometry.height && (
+                <label className="block">
+                  <FieldLabel hint={t("geometry.sidesHint")}>{t("geometry.heightLabel")}</FieldLabel>
+                  <Input
+                    className="w-40"
+                    value={geometry.heightLabel}
+                    maxLength={GEOMETRY_LIMITS.label}
+                    data-geometry-height-label=""
+                    onChange={(e) => set({ heightLabel: cleanLabel(e.target.value, GEOMETRY_LIMITS.label) })}
+                  />
+                </label>
+              )}
+
+              {((geometry.shape === "triangle" && geometry.triangle === "right") || geometry.shape === "right-trapezoid") && (
                 <label className="flex min-h-8 items-center gap-2 text-soft-foreground">
                   <input type="checkbox" className="size-5 accent-primary" checked={geometry.rightAngle} onChange={(e) => set({ rightAngle: e.target.checked })} data-geometry-right-angle="" />
                   {t("geometry.showRightAngle")}

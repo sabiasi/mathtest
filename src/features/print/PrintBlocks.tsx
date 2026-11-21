@@ -14,7 +14,7 @@ import { RichTextView } from "@/features/math/RichTextView";
 import { useLanguage, useT } from "@/i18n/language";
 import { formatDate } from "@/lib/format";
 import { formatPoints, optionLabel, totalPoints, visibleOptions } from "@/lib/questions";
-import { isRichTextEmpty } from "@/lib/richText";
+import { isRichTextEmpty, type RichText } from "@/lib/richText";
 import type { Question, Test } from "@/lib/storage/types";
 import { MapPrint, OrderPrint, SourcePrint, TimelinePrint } from "@/subjects/history/HistoryPrint";
 import { GivenFindPrint } from "@/subjects/physics/GivenFindPrint";
@@ -38,6 +38,7 @@ import {
 } from "@/subjects/english/EnglishPrint";
 import { MatchingPrint } from "./MatchingPrint";
 import { useTypography } from "./Typography";
+import { openAnswerSpace } from "@/subjects/registry";
 
 export type PrintVersion = "student" | "key";
 
@@ -249,29 +250,28 @@ function QuestionBody({
     }
 
     case "short-answer":
-      return (
-        <div className="print-short-area">
-          <div className="print-short flex items-end gap-[2mm]">
-            <span>{t("print.answer")}</span>
-            <span className="print-answer-line">
-              {key && !isRichTextEmpty(question.answer) && (
-                <span className="print-key-answer">
-                  <RichTextView value={question.answer} />
-                </span>
-              )}
-            </span>
-          </div>
-        </div>
-      );
+      return <AnswerLine label={t("print.answer")} answer={key ? question.answer : undefined} />;
 
-    case "open-answer":
+    case "open-answer": {
+      const space = openAnswerSpace(question, test.subjectId);
+      const answer = key && question.answer && !isRichTextEmpty(question.answer) ? question.answer : undefined;
+      // "One line": exactly like a short answer — "Answer: ______".
+      if (space === "short") return <AnswerLine label={t("print.answer")} answer={answer} />;
       return (
         <div>
+          {/* "Blank": the same height, without ruled lines — room for a worked solution. */}
           {Array.from({ length: question.lines }, (_, i) => (
-            <div key={i} className="print-line" />
+            <div key={i} className={space === "blank" ? "print-line print-line-blank" : "print-line"} />
           ))}
+          {/* The key adds the final answer under the room for working. */}
+          {answer && (
+            <div className="mt-[2mm]">
+              <AnswerLine label={t("print.answer")} answer={answer} />
+            </div>
+          )}
         </div>
       );
+    }
 
     case "given-find":
       return <GivenFindPrint question={question} answerKey={key} />;
@@ -371,4 +371,22 @@ function QuestionBody({
     case "speaking":
       return null;
   }
+}
+
+/** "Answer: ______" — on the key with the answer written on the line. */
+function AnswerLine({ label, answer }: { label: string; answer?: RichText }) {
+  return (
+    <div className="print-short-area">
+      <div className="print-short flex items-end gap-[2mm]">
+        <span>{label}</span>
+        <span className="print-answer-line">
+          {answer && !isRichTextEmpty(answer) && (
+            <span className="print-key-answer">
+              <RichTextView value={answer} />
+            </span>
+          )}
+        </span>
+      </div>
+    </div>
+  );
 }

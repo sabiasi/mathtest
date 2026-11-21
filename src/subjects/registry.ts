@@ -20,6 +20,8 @@ import { DEFAULT_SUBJECT, SUBJECT_IDS, type SubjectId } from "./ids";
 import { mathToolkit } from "./math";
 import { englishToolkit } from "./english";
 import { physicsToolkit } from "./physics";
+import { isTypeHidden } from "@/lib/offeredTypes";
+import type { OpenAnswerSpace, QuestionType } from "@/lib/storage/types";
 import type { SubjectToolkit } from "./types";
 
 const TOOLKITS: Record<SubjectId, SubjectToolkit> = {
@@ -38,4 +40,14 @@ export const SUBJECTS: SubjectToolkit[] = SUBJECT_IDS.map((id) => TOOLKITS[id]);
 
 export function getToolkit(id: SubjectId): SubjectToolkit {
   return TOOLKITS[id] ?? TOOLKITS[DEFAULT_SUBJECT];
+}
+
+/** The subject's question types, in the toolkit's order, without the ones hidden for the teacher trial. */
+export function offeredQuestionTypes(subjectId: SubjectId): QuestionType[] {
+  return getToolkit(subjectId).questionTypes.filter((type) => !isTypeHidden(subjectId, type));
+}
+
+/** An open answer's room: the teacher's choice, else the subject's default. */
+export function openAnswerSpace(question: { answerSpace?: OpenAnswerSpace }, subjectId: SubjectId): OpenAnswerSpace {
+  return question.answerSpace ?? getToolkit(subjectId).print.openAnswerSpace ?? "lines";
 }

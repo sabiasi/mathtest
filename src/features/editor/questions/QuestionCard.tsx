@@ -12,6 +12,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { RichTextInput } from "@/features/math/RichTextInput";
 import type { MessageKey } from "@/i18n/dictionaries";
 import { useT } from "@/i18n/language";
+import { offeredQuestionTypes } from "@/subjects/registry";
 import { newId } from "@/lib/ids";
 import { addImage } from "@/lib/images/imageStore";
 import { useImageError } from "@/features/plans/useImageError";
@@ -64,6 +65,7 @@ import { PointsInput } from "./PointsInput";
 import { ImageStrip, MediaBar } from "./QuestionMedia";
 import { ShortAnswerEditor } from "./ShortAnswerEditor";
 import { TrueFalseEditor } from "./TrueFalseEditor";
+import { TutorialButton } from "@/features/tutorials/TutorialButton";
 
 /** What the question box suggests writing, for types that need a different hint. */
 const TEXT_PLACEHOLDERS: Partial<Record<QuestionType, MessageKey>> = {
@@ -161,7 +163,8 @@ export function QuestionCard({
   const [mediaBusy, setMediaBusy] = useState(false);
   const [mediaError, setMediaError] = useState<string | null>(null);
   const [dropActive, setDropActive] = useState(false);
-  const questionTypes = toolkit.questionTypes;
+  // HIDDEN_FOR_TESTING: only the offered types (a question of a hidden type still shows its own).
+  const questionTypes = offeredQuestionTypes(toolkit.id);
   const textBlock = isTextBlock(question);
   const [textVersion, setTextVersion] = useState(0);
 
@@ -329,6 +332,10 @@ export function QuestionCard({
                 </option>
               ))}
             </select>
+            {/* "▶ How to use it?": a short video, for the types the subject has one for. */}
+            {toolkit.tutorials?.[question.type] && (
+              <TutorialButton name={toolkit.tutorials[question.type]!} typeLabel={t(`type.${question.type}`)} />
+            )}
 
             <div className="ml-auto flex items-center gap-1">
               {!textBlock && (
@@ -459,7 +466,7 @@ export function QuestionCard({
             )}
             {question.type === "true-false" && <TrueFalseEditor question={question} onChange={onChange} />}
             {question.type === "short-answer" && <ShortAnswerEditor question={question} onChange={onChange} />}
-            {question.type === "open-answer" && <OpenAnswerEditor question={question} onChange={onChange} />}
+            {question.type === "open-answer" && <OpenAnswerEditor question={question} onChange={onChange} defaultSpace={toolkit.print.openAnswerSpace ?? "lines"} />}
             {question.type === "given-find" && <GivenFindEditor question={question} onChange={onChange} />}
             {question.type === "matching" && <MatchingEditor question={question} templates={toolkit.matchingTemplates} onChange={onChange} />}
             {question.type === "order" && <OrderEditor question={question} onChange={onChange} />}

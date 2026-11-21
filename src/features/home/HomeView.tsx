@@ -207,6 +207,7 @@ export function HomeView() {
               showAll={showAllSubjects}
               onShowAll={toggleShowAll}
               onSelect={setView}
+              order={access.ordered}
             />
             <div className="min-w-0 max-lg:mt-6">
               {view === "all" ? (
@@ -233,6 +234,7 @@ export function HomeView() {
         open={choosingSubject}
         onOpenChange={setChoosingSubject}
         defaultSubject={defaultSubject}
+        order={access.ordered}
         onPick={(id) => void handleCreate(id)}
       />
     </PageTransition>

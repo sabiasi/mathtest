@@ -1,17 +1,13 @@
 "use client";
 
-import { useTeachingSubjects } from "@/features/subjects/TeachingSubjectsProvider";
-
 import { Sparkles } from "lucide-react";
 import { DateField } from "@/components/DateField";
 import { Field, FieldLabel, SegmentedControl } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { SubjectPicker } from "@/features/subjects/SubjectPicker";
-import { dictionaries } from "@/i18n/dictionaries";
+import { SubjectIcon } from "@/features/subjects/SubjectPicker";
 import { useT } from "@/i18n/language";
 import { CEFR_LEVELS, type LabelStyle, type Test } from "@/lib/storage/types";
-import type { SubjectId } from "@/subjects/ids";
 import { getToolkit } from "@/subjects/registry";
 
 /** The top part of the test: school, title, subject, grade, date, time, instructions. */
@@ -23,17 +19,7 @@ export function TestHeaderForm({
   onChange: (changes: Partial<Test>) => void;
 }) {
   const t = useT();
-  const access = useTeachingSubjects();
   const toolkit = getToolkit(test.subjectId);
-
-  function changeSubject(subjectId: SubjectId) {
-    if (!access.requestSubject(subjectId)) return;
-    // The printed name follows the subject — unless the teacher wrote their
-    // own (e.g. "ალგებრა"), which we keep.
-    const oldNames = [dictionaries.ka[`subject.${test.subjectId}`], dictionaries.en[`subject.${test.subjectId}`]];
-    const ownName = test.subject.trim() !== "" && !oldNames.includes(test.subject.trim());
-    onChange(ownName ? { subjectId } : { subjectId, subject: t(`subject.${subjectId}`) });
-  }
 
   return (
     <section className="rounded-2xl border bg-card p-5 shadow-sm sm:p-6" data-test-header="">
@@ -60,7 +46,11 @@ export function TestHeaderForm({
 
         <div className="sm:col-span-2">
           <FieldLabel>{t("header.subject")}</FieldLabel>
-          <SubjectPicker compact value={test.subjectId} onChange={changeSubject} label={t("header.subject")} />
+          {/* Only the test's own subject: it is chosen when the test is created and never changes here. */}
+          <span className="inline-flex items-center gap-3 rounded-xl border bg-primary-soft/60 py-1.5 pr-3 pl-1.5" data-header-subject={test.subjectId}>
+            <SubjectIcon id={test.subjectId} className="rounded-lg p-1.5" iconClassName="size-4" />
+            <span className="text-sm font-medium text-foreground">{t(`subject.${test.subjectId}`)}</span>
+          </span>
           {toolkit.status === "placeholder" && (
             <p className="mt-2.5 flex items-start gap-2 text-sm text-muted-foreground" data-coming-soon="">
               <Sparkles className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden="true" />

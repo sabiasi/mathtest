@@ -48,7 +48,7 @@ describe("shared env files contain no secrets", () => {
 
   it(".env.example names every server setting the code reads", () => {
     const names = new Set(settingsOf(".env.example").map((line) => line.split("=")[0]));
-    for (const name of ["SITE_URL", "PAYMENT_PROVIDER", "BILLING_SERVER_SECRET", "CRON_SECRET", "FLITT_MERCHANT_ID", "FLITT_SECRET_KEY", "BOG_CLIENT_ID", "BOG_CLIENT_SECRET", "BOG_CALLBACK_PUBLIC_KEY", "RESEND_API_KEY", "EMAIL_FROM", "MATHTEST_SANDBOX", "ANTHROPIC_API_KEY"]) {
+    for (const name of ["SITE_URL", "PAYMENT_PROVIDER", "BILLING_SERVER_SECRET", "CRON_SECRET", "FLITT_MERCHANT_ID", "FLITT_SECRET_KEY", "BOG_CLIENT_ID", "BOG_CLIENT_SECRET", "BOG_CALLBACK_PUBLIC_KEY", "RESEND_API_KEY", "EMAIL_FROM", "MATHTEST_SANDBOX", "ANTHROPIC_API_KEY", "AZURE_SPEECH_KEY", "AZURE_SPEECH_REGION"]) {
       expect(names.has(name), name).toBe(true);
     }
   });

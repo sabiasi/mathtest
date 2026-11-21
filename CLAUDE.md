@@ -227,6 +227,48 @@ Visitors can try everything without an account (guest mode).
   labels ("5 სმ", "x", "?"), circle radius + label, right-angle mark. Labels
   are placed automatically and the viewBox grows to hold them. The default
   figure inserts with no typing. `e2e/geometry.spec.ts`.
+  Added (2026-11-20): rhombus, right trapezoid, regular pentagon / hexagon,
+  obtuse triangle; extras `inscribed` / `circumscribed` circle (+ centre
+  letter), `diagonals`, `height` (dashed, right-angle mark, label "h"),
+  `diameter` — offered only where `geometryExtras(shape)` allows (a
+  trapezoid with an inscribed circle switches to a tangential shape).
+- **Teacher-trial changes (2026-11-20)**: the editor header shows only the
+  test's own subject (no subject switch there any more); open answers have
+  a per-question choice `answerSpace` "lines" / "blank" (not set = the
+  toolkit's `print.openAnswerSpace`: blank in math, lines elsewhere;
+  `openAnswerSpace()` in registry.ts; print, live paper and Word export); `OPEN_FOR_TESTING.allSubjectsEditable`
+  (src/lib/hiddenForTesting.ts) + SQL switch `app_switches`
+  ('all_subjects_editable', `migrations/20261122_all_subjects_editable.sql`):
+  after choosing their subject(s) a teacher may edit tests of EVERY subject;
+  their own subjects come first (`useTeachingSubjects().ordered`) in the
+  "which subject?" window and the My tests sidebar. The app opens the other
+  subjects only when the database agrees (rpc `all_subjects_editable()`;
+  missing = strict), so it never offers edits the database would refuse. SQL tests turn the
+  switch off to keep testing the strict rules.
+- **Question types for the teacher trial (2026-11-20)**: open answers have a
+  third choice `answerSpace: "short"` ("ერთ ხაზზე (პასუხი: ___)", printed like
+  the old short answer) and an optional key `answer` (any space: on the key
+  under the room, and in the answer table); `changeQuestionType` turns a short
+  answer into that and back. `HIDDEN_FOR_TESTING.questionTypes` hides types from
+  the add menu and the type switch (`lib/offeredTypes.ts`: `offeredQuestionTypes`,
+  `isTypeHidden`); hidden: short-answer everywhere, history timeline, Georgian
+  mark-words, biology pedigree / sequence / codon-table / pyramid /
+  dichotomous-key / taxonomy, English section / listening / transformation /
+  word-formation / speaking. Toolkits still list every type (AI, bank, old
+  tests unchanged). `withoutHiddenTypes(test)` shows samples (`sampleFor`; the
+  whole file = `fullSampleFor`, used by the unit tests) and templates without
+  them: short → open "on one line", a hidden listening takes its questions along.
+- [x] **How-to videos (2026-11-21, first one)**: "▶ როგორ გამოვიყენო?" on a
+  question card opens a short silent video of that type being made
+  (`features/tutorials/TutorialButton`, window with `<video>` autoplay muted).
+  Which types have one = `toolkit.tutorials` (type → name); files
+  `public/tutorials/<name>.ka.webm` (Georgian only for now: `TUTORIAL_LANGUAGES` in features/tutorials/tutorials.ts; the English interface plays the Georgian video; the scripts keep English texts for later). No per-type videos at the moment (the math multiple-choice one was removed 2026-11-21: the guide covers it); the mechanism stays for later. See
+  Tech decisions: Tutorial videos.
+  Guide video per subject (`toolkit.guideVideo`; math: `math-all-types`, ~2 min,
+  every math type + geometry figure + paper / key): "▶ ვიდეო" in the editor's
+  top bar and a card above "add a question" (`GuideButton`). Chapters
+  (`<name>.<lang>.json`, written by the recorder's `d.chapter(title)`) are
+  buttons under the video (`TutorialDialog`: jump, the playing one highlighted).
 - [ ] **Biology toolkit** (in phases; stop for review after each):
   - [x] **B1 — subject + "Label the diagram"**: subject id `biology` (Dna
     icon, green `--subject-biology`, Georgian typography, `chemistry: true`).
@@ -525,6 +567,7 @@ Visitors can try everything without an account (guest mode).
 | Versions and conflicts | `tests.version` goes up on every save (trigger `bump_test_version`; it also pins `user_id` and `id`). The cloud backends save with "…where version = the one I know" (`supabaseTests.ts` keeps a `versions` map; a database without the column → saves the old way). Zero rows changed + a newer version = `VersionConflictError` → the repository keeps the write OUT of the queue as a `Conflict` (`getConflicts`, `resolveConflict(id, "mine" \| "theirs")`); the global `ConflictDialog` (in Providers, can't be closed without choosing) asks. While it is open, more typing only updates `mine`. `refreshTest(id)` (when the editor opens, and "load the new version") replaces the copy in memory only when nothing of mine is on its way, and bumps `getRevision(id)` — part of the editor's `key`, so the editor restarts with the new test. This also covers ONE teacher with two tabs or devices |
 | Co-editing presence | `useCoEditing(testId)`: Supabase Realtime channel `test:<owner>:<test id>`, joined only for tests that are really shared (mine with ≥ 1 colleague, or a colleague's). Presence = who has it open (badges in the editor bar, `othersPresent`); after each successful save a `saved` broadcast → the others see "changed by … / load the new version". No test content goes through the channel. The channels are public by name (the name contains two unguessable ids); move to private channels (Realtime Authorization) if names must be hidden |
 | School plan and admin | Teachers and school admins never write the school tables: every change is a `security definer` function that checks `auth.uid()` (school admin = `my_managed_school()`, founder = `require_admin()` on the `admins` table). Results are words (`ok`, `full`, `invalid`, `alreadyMember`, `lastAdmin`, `seatsInUse`, `paying`…) shown as `mySchool.result.*`; refusals are SQL errors (`42501` → 403, `22023` → 400, `54000` → full) mapped in `lib/schools/http.ts`. The browser talks to these through our routes (not Supabase directly), so the sandbox runs them against the real SQL in the browser tests. Founders: add a row to `public.admins` in the SQL Editor (GO_LIVE.md); `/api/admin/*` answers 404 to everyone else. Manual plan changes stamp `changed_by = admin:<uid>` + reason (→ `subscription_changes`) AND `admin_log`. A school ending (or `paid_until` passing) only stops the School plan; seats, members and the shared bank stay |
+| Tutorial videos | Recorded from the REAL app: `npm run tutorials` (`playwright.tutorials.config.ts`, scripts `tutorials/<name>.spec.ts`, one per type, ka + en). `tutorials/recorder.ts`: Chrome's DevTools screencast (JPEG frames, starts only when the page is ready = no loading screen) → Playwright's own ffmpeg (`npx playwright install ffmpeg` once; it can only write VP9 WebM, not read videos, so nothing can be trimmed afterwards) at 25 fps, 1200×800 (`TUTORIAL_SIZE`), drawn at 2× for sharp letters. A drawn pointer, step captions and a title card live on the page (`Director`: `click`, `type`, `caption`, `scrollBelow`). The test is put into localStorage before the app starts. `tutorials.test.ts` fails when a listed video is missing or too big (one type ≤ 2 MB, a guide ≤ 6 MB + its chapters). Scripts take button names from `dictionaries` so they follow the UI. VOICE (`tutorials/voice.ts`, setup in docs/TUTORIAL_VIDEOS.md): Azure neural TTS, Georgian `ka-GE-EkaNeural`, English `en-US-AvaNeural`, key in `.env.local` (`AZURE_SPEECH_KEY` / `_REGION`, loaded by the tutorials config; only on the recording computer). `d.caption(step, text, speech)` / `d.say()`: sentences are made first (`d.prepare`, cached in `tutorials/.voice-cache/`, gitignored), the next caption waits until the previous sentence ends, each is placed at its caption's moment; `addVoice` mixes them with a FULL ffmpeg (`ffmpeg-static` dev package / FFMPEG_PATH / system) → Opus 96k, loudnorm -16 LUFS. The window plays WITH sound (the ▶ click allows it; refused → muted). `TUTORIAL_VOICE=none` silent, `=say` Mac voice for timing checks. No Azure key → `edge-tts` (same voices via the Edge browser's free Read Aloud service, NOT official for apps — use Azure before go-live) from `tutorials/.venv` (gitignored); its MP3 → WAV via ffmpeg. The sound's length is set with `-t` (apad + -shortest never ends). `actionTimeout` 15 s: a missing button fails fast. Re-record after the editor's look changes. To add one: a script + a line in the toolkit's `tutorials` |
 | Tests | Vitest + jsdom (`npm test`) |
 
 Next.js 16 notes (see AGENTS.md: read `node_modules/next/dist/docs/` before

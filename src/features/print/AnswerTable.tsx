@@ -41,7 +41,9 @@ function Cell({ question, labelStyle }: { question: Question; labelStyle: Test["
     case "short-answer":
       return isRichTextEmpty(question.answer) ? <>—</> : <RichTextView value={question.answer} />;
     case "open-answer":
-      return <span className="is-open">{t("variants.open")}</span>;
+      // The teacher's answer when there is one; "one line" without one is a missing answer.
+      if (question.answer && !isRichTextEmpty(question.answer)) return <RichTextView value={question.answer} />;
+      return question.answerSpace === "short" ? <>—</> : <span className="is-open">{t("variants.open")}</span>;
     case "matching":
       return <>{matchingAnswers(question, labelStyle).map((letter, i) => `${i + 1}${letter}`).join(" ")}</>;
     case "order":

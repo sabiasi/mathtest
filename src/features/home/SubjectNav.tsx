@@ -21,6 +21,7 @@ export function SubjectNav({
   showAll,
   onShowAll,
   onSelect,
+  order,
 }: {
   view: HomeView;
   counts: Record<SubjectId, number>;
@@ -28,9 +29,12 @@ export function SubjectNav({
   showAll: boolean;
   onShowAll: () => void;
   onSelect: (view: HomeView) => void;
+  /** Subject order (the teacher's own first). Default: the registry order. */
+  order?: readonly SubjectId[];
 }) {
   const t = useT();
-  const subjects = SUBJECTS.filter((s) => showAll || counts[s.id] > 0 || view === s.id);
+  const sorted = order ? order.map((id) => SUBJECTS.find((s) => s.id === id)!).filter(Boolean) : SUBJECTS;
+  const subjects = sorted.filter((s) => showAll || counts[s.id] > 0 || view === s.id);
   const hidden = SUBJECTS.length - SUBJECTS.filter((s) => counts[s.id] > 0).length;
 
   const item = (active: boolean) =>
