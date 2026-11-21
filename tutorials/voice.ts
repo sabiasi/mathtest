@@ -1,6 +1,6 @@
 import { execFile, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { join } from "node:path";
 import { promisify } from "node:util";
@@ -21,6 +21,13 @@ import { promisify } from "node:util";
  *
  * Every sentence is made once and kept in tutorials/.voice-cache/ (not committed),
  * so recording a video again costs nothing and sounds exactly the same.
+ *
+ * A REAL VOICE wins over all of these: tutorials/recorded/<video>/<language>/SENTENCES.md
+ * lists the sentences as table rows "| 07 | the sentence |", and 07.flac (or .m4a / .mp3 /
+ * .wav…) next to it is that sentence spoken by a person. A sentence found there (exact text)
+ * is taken from the recording: silence at both ends cut, low rumble and hiss removed, all
+ * sentences made equally loud. A sentence with no recording gets the computer voice (with a
+ * warning), so change a sentence in the script → record that number again.
  */
 
 export type VoiceLanguage = "ka" | "en";
@@ -92,8 +99,67 @@ export function wavSeconds(wav: Buffer): number {
   return dataSize / byteRate;
 }
 
-/** The sentence spoken (from the cache, or made now). `null` = silent videos. */
+const RECORDED = join("tutorials", "recorded");
+const AUDIO = [".flac", ".wav", ".m4a", ".mp3", ".aac", ".ogg"];
+
+/** The rows "| 07 | the sentence |" of a SENTENCES.md: number → sentence. */
+export function readSentenceList(markdown: string): Map<string, string> {
+  const rows = new Map<string, string>();
+  for (const line of markdown.split("\n")) {
+    const row = /^\|\s*(\d+)\s*\|\s*(.+?)\s*\|\s*$/.exec(line);
+    if (row) rows.set(row[1], row[2]);
+  }
+  return rows;
+}
+
+const sameText = (text: string) => text.replace(/\s+/g, " ").trim();
+
+/** The person's recording of this sentence (any video's folder), if there is one. */
+export function recordingOf(text: string, language: VoiceLanguage, root = RECORDED): string | null {
+  if (!existsSync(root)) return null;
+  for (const video of readdirSync(root)) {
+    const folder = join(root, video, language);
+    const list = join(folder, "SENTENCES.md");
+    if (!existsSync(list)) continue;
+    for (const [number, sentence] of readSentenceList(readFileSync(list, "utf8"))) {
+      if (sameText(sentence) !== sameText(text)) continue;
+      for (const ext of AUDIO) if (existsSync(join(folder, number + ext))) return join(folder, number + ext);
+      console.warn(`[voice] ${folder}: no recording for sentence ${number} yet (computer voice used)`);
+      return null;
+    }
+  }
+  return null;
+}
+
+/**
+ * Cleans a person's recording: rumble below 80 Hz and steady hiss removed, silence at both ends
+ * cut (a little kept), then made as loud as the other sentences. Change it → every clip is made again.
+ */
+const CLEAN = [
+  "highpass=f=80",
+  "afftdn=nf=-30",
+  "silenceremove=start_periods=1:start_threshold=-42dB:start_silence=0.12",
+  "areverse",
+  "silenceremove=start_periods=1:start_threshold=-42dB:start_silence=0.2",
+  "areverse",
+  "loudnorm=I=-16:TP=-1.5:LRA=11",
+].join(",");
+
+async function recorded(source: string): Promise<Clip> {
+  const name = createHash("sha256").update(CLEAN).update(readFileSync(source)).digest("hex").slice(0, 24);
+  const file = join(CACHE, `rec-${name}.wav`);
+  if (!existsSync(file)) {
+    mkdirSync(CACHE, { recursive: true });
+    await promisify(execFile)(fullFfmpeg(), ["-y", "-loglevel", "error", "-i", source, "-af", CLEAN, "-ar", "48000", "-ac", "1", "-c:a", "pcm_s16le", file]);
+  }
+  return { file, seconds: wavSeconds(readFileSync(file)) };
+}
+
+/** The sentence spoken (a person's recording, else from the cache or made now). `null` = silent videos. */
 export async function speak(text: string, language: VoiceLanguage): Promise<Clip | null> {
+  if (process.env.TUTORIAL_VOICE === "none") return null;
+  const recording = recordingOf(text, language);
+  if (recording) return recorded(recording);
   const mode = voiceMode();
   if (mode === "none") return null;
   const voice = mode === "say" ? "mac-say" : VOICES[language];

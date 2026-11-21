@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ssml, wavSeconds } from "./voice";
+import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { readSentenceList, recordingOf, ssml, wavSeconds } from "./voice";
 
 /** A tiny WAV file: `seconds` of silence, 48 kHz, 16 bit, mono. */
 function wav(seconds: number): Buffer {
@@ -33,5 +36,17 @@ describe("tutorial voice", () => {
   it("reads how long a WAV file plays", () => {
     expect(wavSeconds(wav(1.5))).toBeCloseTo(1.5, 3);
     expect(() => wavSeconds(Buffer.from("not a wav file at all, nope"))).toThrow();
+  });
+
+  it("finds a person's recording of a sentence by its number in SENTENCES.md", () => {
+    const list = "| File | Sentence |\n| --- | --- |\n| 01 | პირველი წინადადება. |\n| 02 | მეორე   წინადადება. |\n";
+    expect([...readSentenceList(list)]).toEqual([["01", "პირველი წინადადება."], ["02", "მეორე   წინადადება."]]);
+    const root = mkdtempSync(join(tmpdir(), "recorded-"));
+    mkdirSync(join(root, "video", "ka"), { recursive: true });
+    writeFileSync(join(root, "video", "ka", "SENTENCES.md"), list);
+    writeFileSync(join(root, "video", "ka", "02.m4a"), "");
+    expect(recordingOf("მეორე წინადადება.", "ka", root)).toBe(join(root, "video", "ka", "02.m4a"));
+    expect(recordingOf("მეორე წინადადება.", "en", root)).toBeNull();
+    expect(recordingOf("სხვა წინადადება.", "ka", root)).toBeNull();
   });
 });
