@@ -45,3 +45,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# tour video: rendered output and captured frames (re-made by video/README.md)
+/output
+/video/node_modules
+/video/public/capture
+/video/out

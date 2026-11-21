@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // The tour video (its own package: Remotion + Playwright capture).
+    "video/**",
   ]),
 ]);
 
