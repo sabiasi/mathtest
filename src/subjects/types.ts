@@ -134,6 +134,12 @@ export interface SubjectToolkit {
   typeLabels?: Partial<Record<QuestionType, { ka: string; en: string; hintKa: string; hintEn: string }>>;
   /** Extra "add" buttons that create a ready-set-up question of an existing type. */
   presets?: { id: string; type: QuestionType; ka: string; en: string; hintKa: string; hintEn: string; apply: (question: Question) => Question }[];
+  /**
+   * Short "how to use it" videos per question type: the name of the recording in
+   * public/tutorials/ (`<name>.ka.webm` + `<name>.en.webm`, made by `npm run tutorials`).
+   * A question card of such a type shows a "▶ How to use it?" button.
+   */
+  tutorials?: Partial<Record<QuestionType, string>>;
   /** Ready-made column headings for matching questions (e.g. Person ↔ Date). */
   matchingTemplates?: { id: string; left: { ka: string; en: string }; right: { ka: string; en: string } }[];
   /**

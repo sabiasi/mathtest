@@ -65,6 +65,7 @@ import { PointsInput } from "./PointsInput";
 import { ImageStrip, MediaBar } from "./QuestionMedia";
 import { ShortAnswerEditor } from "./ShortAnswerEditor";
 import { TrueFalseEditor } from "./TrueFalseEditor";
+import { TutorialButton } from "@/features/tutorials/TutorialButton";
 
 /** What the question box suggests writing, for types that need a different hint. */
 const TEXT_PLACEHOLDERS: Partial<Record<QuestionType, MessageKey>> = {
@@ -331,6 +332,10 @@ export function QuestionCard({
                 </option>
               ))}
             </select>
+            {/* "▶ How to use it?": a short video, for the types the subject has one for. */}
+            {toolkit.tutorials?.[question.type] && (
+              <TutorialButton name={toolkit.tutorials[question.type]!} typeLabel={t(`type.${question.type}`)} />
+            )}
 
             <div className="ml-auto flex items-center gap-1">
               {!textBlock && (

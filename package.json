@@ -11,6 +11,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
+    "tutorials": "playwright test -c playwright.tutorials.config.ts",
     "plans:sql": "WRITE_PLANS_SQL=1 vitest run src/lib/plans/plansSql.test.ts"
   },
   "dependencies": {
