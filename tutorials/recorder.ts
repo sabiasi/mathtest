@@ -1,9 +1,10 @@
 import { spawn } from "node:child_process";
-import { existsSync, mkdirSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { Browser, CDPSession, Locator, Page } from "@playwright/test";
 import { TUTORIAL_SIZE } from "../src/features/tutorials/tutorials";
+import { fullFfmpeg, speak, type Clip } from "./voice";
 
 /**
  * Records a "how to use it" video of the REAL app (see playwright.tutorials.config.ts).
@@ -14,6 +15,12 @@ import { TUTORIAL_SIZE } from "../src/features/tutorials/tutorials";
  * (`npx playwright install ffmpeg`). Recording starts only once the page is ready,
  * so the video has no loading screen. A drawn mouse pointer and captions are put
  * on the page itself (a screencast shows no real pointer).
+ *
+ * Voice (tutorials/voice.ts): every caption may come with a spoken sentence. The
+ * sentences are made BEFORE recording (`prepare`), the next caption waits until the
+ * previous sentence has ended, and each sentence is placed at the moment its caption
+ * appeared — so the voice always matches what is happening. A full ffmpeg (with
+ * audio) then adds the sound track (Opus, 48 kHz, evened-out loudness).
  */
 
 export type Language = "ka" | "en";
@@ -29,13 +36,50 @@ function findFfmpeg(): string {
   return join(cache, folder, binary);
 }
 
-/** Everything a tutorial script can do: point, click, type, show captions. */
+/** Everything a tutorial script can do: point, click, type, show captions, speak. */
 export class Director {
   private frames: { data: Buffer; time: number }[] = [];
   private cdp: CDPSession | null = null;
   private stoppedAt = 0;
+  private startedAt = 0;
+  private chapters: { title: string; start: number }[] = [];
+  /** A chapter that starts with the next caption (after the sentence being spoken has ended). */
+  private nextChapter: string | null = null;
+  /** The sentences spoken, with when they start in the video (seconds). */
+  private spoken: { clip: Clip; at: number }[] = [];
+  /** When (clock seconds) the sentence being spoken ends. */
+  private speechEndsAt = 0;
 
   constructor(readonly page: Page, readonly language: Language) {}
+
+  /** Makes all the sentences of the video first (a few at a time), so recording never waits for them. */
+  async prepare(sentences: string[]) {
+    const queue = [...new Set(sentences.filter(Boolean))];
+    await Promise.all(Array.from({ length: 3 }, async () => {
+      for (let next = queue.shift(); next !== undefined; next = queue.shift()) await speak(next, this.language);
+    }));
+  }
+
+  /** Seconds since the video began. */
+  private now(): number {
+    return Date.now() / 1000 - (this.frames[0]?.time ?? this.startedAt);
+  }
+
+  /** Waits until the sentence being spoken has ended (plus a short breath). */
+  async waitForSpeech(breath = 0.35) {
+    const left = this.speechEndsAt + breath - Date.now() / 1000;
+    if (left > 0) await this.pause(Math.ceil(left * 1000));
+  }
+
+  /** Says a sentence now (after the previous one has ended); the video goes on while it is spoken. */
+  async say(sentence: string | undefined) {
+    if (!sentence) return;
+    await this.waitForSpeech();
+    const clip = await speak(sentence, this.language);
+    if (!clip) return;
+    this.spoken.push({ clip, at: this.now() });
+    this.speechEndsAt = Date.now() / 1000 + clip.seconds;
+  }
 
   /** Starts recording (call when the page is ready). */
   async start() {
@@ -46,16 +90,38 @@ export class Director {
       this.frames.push({ data: Buffer.from(frame.data, "base64"), time: frame.metadata.timestamp ?? Date.now() / 1000 });
       void this.cdp?.send("Page.screencastFrameAck", { sessionId: frame.sessionId }).catch(() => undefined);
     });
+    this.startedAt = Date.now() / 1000;
     await this.cdp.send("Page.startScreencast", { format: "jpeg", quality: 92, maxWidth: WIDTH, maxHeight: HEIGHT, everyNthFrame: 1 });
   }
 
-  /** Stops recording and writes the video. */
+  /**
+   * A new part of the video starts with the next caption: its title goes into the chapter list
+   * (`<video>.json`, read by the app's video window to let teachers jump to it).
+   */
+  chapter(title: string) {
+    this.nextChapter = title;
+  }
+
+  /** Stops recording and writes the video (+ its chapters, if any, as <same name>.json). */
   async finish(file: string) {
+    await this.waitForSpeech(0.8); // the last sentence ends before the video does
     this.stoppedAt = Date.now() / 1000;
     await this.cdp?.send("Page.stopScreencast");
     if (this.frames.length === 0) throw new Error("Nothing was recorded");
     mkdirSync(dirname(file), { recursive: true });
-    await encode(this.frames, this.stoppedAt, file);
+    if (this.spoken.length === 0) await encode(this.frames, this.stoppedAt, file);
+    else {
+      const silent = file.replace(/\.webm$/, ".silent.webm");
+      try {
+        await encode(this.frames, this.stoppedAt, silent);
+        await addVoice(silent, this.spoken, this.stoppedAt - this.frames[0].time, file);
+      } finally {
+        rmSync(silent, { force: true }); // on failure the old video stays as it was
+      }
+    }
+    const chaptersFile = file.replace(/\.webm$/, ".json");
+    if (this.chapters.length > 0) writeFileSync(chaptersFile, `${JSON.stringify({ chapters: this.chapters }, null, 2)}\n`);
+    else rmSync(chaptersFile, { force: true });
   }
 
   /** Waits (lets the viewer read / see what happened). */
@@ -63,8 +129,17 @@ export class Director {
     return this.page.waitForTimeout(ms);
   }
 
-  /** A caption at the bottom: "2  Write the question". `null` hides it. */
-  async caption(step: number | null, text: string | null) {
+  /**
+   * A caption at the bottom: "2  Write the question". `null` hides it. With `speech`,
+   * that sentence is spoken (it waits for the previous sentence to end first).
+   */
+  async caption(step: number | null, text: string | null, speech?: string) {
+    await this.waitForSpeech();
+    if (this.nextChapter !== null) {
+      // Half a second early, so a jump shows the part's first caption appearing (and hears all of it).
+      this.chapters.push({ title: this.nextChapter, start: Math.max(0, Math.round((this.now() - 0.5) * 10) / 10) });
+      this.nextChapter = null;
+    }
     await this.page.evaluate(
       ([step, text]) => {
         const box = document.getElementById("tut-caption")!;
@@ -78,6 +153,7 @@ export class Director {
       },
       [step, text] as const,
     );
+    await this.say(speech);
     await this.pause(350);
   }
 
@@ -115,8 +191,14 @@ export class Director {
 
   /** Moves the pointer to the middle of `target` (or a point inside it, 0–1). */
   async pointAt(target: Locator, at: { x: number; y: number } = { x: 0.5, y: 0.5 }) {
-    const box = await target.boundingBox();
+    let box = await target.boundingBox();
     if (!box) throw new Error("Can't point at something that isn't on the screen");
+    // Off-screen (in the page or a window that scrolls)? Scroll there gently first.
+    if (box.y < 0 || box.y + box.height > this.page.viewportSize()!.height) {
+      await target.evaluate((el) => el.scrollIntoView({ behavior: "smooth", block: "center" }));
+      await this.pause(700);
+      box = (await target.boundingBox())!;
+    }
     const x = box.x + box.width * at.x;
     const y = box.y + box.height * at.y;
     const from = await this.page.evaluate(() => ({ x: Number(document.getElementById("tut-cursor")!.dataset.x), y: Number(document.getElementById("tut-cursor")!.dataset.y) }));
@@ -218,6 +300,35 @@ function encode(frames: { data: Buffer; time: number }[], end: number, file: str
   }
   ffmpeg.stdin.end();
   return done;
+}
+
+/**
+ * Adds the spoken sentences to a silent video: each one starts at its moment
+ * (adelay), they are put together (amix), the loudness is evened out to what
+ * videos usually have (loudnorm, -16 LUFS), and stored as Opus (the WebM sound format).
+ */
+function addVoice(video: string, spoken: { clip: Clip; at: number }[], seconds: number, file: string): Promise<void> {
+  const inputs = spoken.flatMap(({ clip }) => ["-i", clip.file]);
+  const delays = spoken.map(({ at }, i) => `[${i + 1}:a]adelay=${Math.max(0, Math.round(at * 1000))}:all=1[v${i}]`);
+  const mix = `${spoken.map((_, i) => `[v${i}]`).join("")}amix=inputs=${spoken.length}:normalize=0:dropout_transition=0,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,apad[voice]`;
+  const temporary = file.replace(/\.webm$/, ".mixing.webm");
+  const ffmpeg = spawn(fullFfmpeg(), [
+    "-y", "-loglevel", "error",
+    "-i", video, ...inputs,
+    "-filter_complex", [...delays, mix].join(";"),
+    "-map", "0:v", "-map", "[voice]", "-c:v", "copy",
+    "-c:a", "libopus", "-b:a", "96k", "-ac", "1", "-ar", "48000",
+    // Exactly as long as the video (silence padded to the end; -shortest can't stop an endless pad).
+    "-t", seconds.toFixed(3), temporary,
+  ], { stdio: ["ignore", "inherit", "inherit"] });
+  return new Promise((resolve, reject) => {
+    ffmpeg.on("error", reject);
+    ffmpeg.on("close", (code) => {
+      if (code !== 0) return reject(new Error(`ffmpeg (voice) stopped with code ${code}`));
+      renameSync(temporary, file);
+      resolve();
+    });
+  });
 }
 
 /** A fresh browser window in `language`, light theme, with `localStorage` filled in before the app starts. */

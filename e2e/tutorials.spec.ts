@@ -1,29 +1,43 @@
 import { expect, test } from "@playwright/test";
 import { cards, editor, openSampleCopy } from "./helpers";
 
-// "▶ How to use it?" on a math multiple-choice card: a window with the short video.
-test("a multiple-choice card opens its how-to video, in the interface language", async ({ page }) => {
+// Math has ONE guide video for every question type (below), no small video per card.
+test("math question cards have no per-type video button", async ({ page }) => {
   await openSampleCopy(page, "math");
-  const card = cards(page).filter({ has: page.locator('select:has(option[value="multiple-choice"]:checked)') }).first();
-  await card.locator('[data-tutorial-open="math-multiple-choice"]').click();
+  await expect(cards(page).first()).toBeVisible();
+  await expect(editor(page).locator("[data-tutorial-open]")).toHaveCount(0);
+});
 
-  const dialog = page.locator('[data-tutorial-dialog="math-multiple-choice"]');
+// "▶ Video" in the editor's top bar (and the "add a question" panel): every math
+// question type in one video, with chapters to jump to.
+test("the math editor offers the all-types guide with chapters", async ({ page }) => {
+  await openSampleCopy(page, "math");
+  await editor(page).locator('[data-guide-open="math-all-types"]').first().click();
+
+  const dialog = page.locator('[data-tutorial-dialog="math-all-types"]');
   await expect(dialog).toBeVisible();
-  const video = dialog.locator("[data-tutorial-video]");
-  await expect(video).toHaveAttribute("src", "/tutorials/math-multiple-choice.ka.webm");
-  // It really loads and starts by itself (silent, so the browser allows autoplay).
-  await page.waitForFunction(() => {
-    const v = document.querySelector<HTMLVideoElement>("[data-tutorial-video]");
-    return v !== null && v.readyState >= 2 && v.currentTime > 0.2 && v.duration > 10;
-  });
-  await expect(dialog.getByRole("alert")).toHaveCount(0);
+  await expect(dialog.locator("[data-tutorial-video]")).toHaveAttribute("src", "/tutorials/math-all-types.ka.webm");
+  const chapters = dialog.locator("[data-tutorial-chapters] button");
+  await expect(chapters.first()).toContainText("არჩევითი პასუხით");
+  expect(await chapters.count()).toBeGreaterThanOrEqual(6);
 
-  // Closing it leaves the editor as it was.
+  // A chapter jumps there (and is marked as the one playing).
+  const matching = chapters.filter({ hasText: "შესაბამისობა" });
+  await matching.click();
+  await page.waitForFunction(() => {
+    const v = document.querySelector<HTMLVideoElement>('[data-tutorial-dialog="math-all-types"] video');
+    return v !== null && v.currentTime > 30 && !v.paused;
+  });
+  await expect(matching).toHaveAttribute("aria-current", "step");
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
-  await expect(editor(page)).toBeVisible();
 
-  // Other types have no video yet: no button.
-  const open = cards(page).filter({ has: page.locator('select:has(option[value="open-answer"]:checked)') }).first();
-  await expect(open.locator("[data-tutorial-open]")).toHaveCount(0);
+  // The same guide from the "add a question" panel.
+  await editor(page).locator('[data-guide-open="math-all-types"]').last().click();
+  await expect(dialog).toBeVisible();
+});
+
+test("subjects without a guide video don't show the button", async ({ page }) => {
+  await openSampleCopy(page, "history");
+  await expect(editor(page).locator("[data-guide-open]")).toHaveCount(0);
 });

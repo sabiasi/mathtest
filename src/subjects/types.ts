@@ -140,6 +140,12 @@ export interface SubjectToolkit {
    * A question card of such a type shows a "▶ How to use it?" button.
    */
   tutorials?: Partial<Record<QuestionType, string>>;
+  /**
+   * The subject's guide video: every question type of the toolkit in one video,
+   * with chapters (`<name>.<ka|en>.webm` + `.json` in public/tutorials/). Shown
+   * from the editor's top bar and the "add a question" panel.
+   */
+  guideVideo?: string;
   /** Ready-made column headings for matching questions (e.g. Person ↔ Date). */
   matchingTemplates?: { id: string; left: { ka: string; en: string }; right: { ka: string; en: string } }[];
   /**

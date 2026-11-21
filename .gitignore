@@ -45,3 +45,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# tutorial videos: spoken sentences made by Azure (made again from the scripts when needed)
+/tutorials/.voice-cache/
+/tutorials/.venv/
