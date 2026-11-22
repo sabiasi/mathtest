@@ -275,8 +275,8 @@ Visitors can try everything without an account (guest mode).
   top bar and a card above "add a question" (`GuideButton`). Chapters
   (`<name>.<lang>.json`, written by the recorder's `d.chapter(title)`) are
   buttons under the video (`TutorialDialog`: jump, the playing one highlighted).
-- [x] **Promo video + corner card (2026-11-22)**: a silent 4:07 "How Rapido works" video (calm pace: `PACE` in promo-scenes.mjs, `PROMO_SPEED` 1.1)
-  (no captions; the owner adds subtitles / voice later), made in `video/` like the physics tour
+- [x] **Promo video + corner card (2026-11-22)**: a 4:07 "How Rapido works" video (calm pace: `PACE` in promo-scenes.mjs, `PROMO_SPEED` 1.1)
+  (no captions; the OWNER'S OWN Georgian voice: one recording cut per scene by `npm run voice:promo`, see video/README.md → Voice), made in `video/` like the physics tour
   (`npm run capture:promo` → `render:promo`, see video/README.md + video/promo-storyboard.md):
   Google sign-up (made-up teacher + our own plain account picker, `video/capture/account.mjs`,
   nothing reaches Supabase), subject choice, My tests, math formulas + symbol tabs, geometry,

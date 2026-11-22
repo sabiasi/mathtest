@@ -1,7 +1,7 @@
 # Promo video: "How Rapido works" (storyboard, as built)
 
-Status: **built** (2026-11-22). Silent, **no captions** (subtitles and a voice are added later
-by the owner). 4:07, 1920×1080, 30 fps, H.264.
+Status: **built** (2026-11-22). **The owner's own Georgian voice** (script: [promo-voiceover.ka.md](promo-voiceover.ka.md),
+added 2026-11-22, see README → Voice), no captions yet. 4:07, 1920×1080, 30 fps, H.264.
 
 - Master: `output/rapido-promo.mp4` (not committed)
 - Website copy: `public/promo/rapido-promo.mp4` (≈ 14 MB) + poster `public/promo/rapido-promo.jpg`,

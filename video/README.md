@@ -75,8 +75,8 @@ src/index.ts` prints the length without rendering. If a change makes it too long
 
 ## Promo video
 
-A second, silent video in the same project: **"How Rapido works"** (4:07, calm pace, no captions, no
-sound; subtitles and a voice are added later). Plan and scenes: [promo-storyboard.md](promo-storyboard.md).
+A second video in the same project: **"How Rapido works"** (4:07, calm pace, the owner's Georgian voice,
+no captions yet). Plan and scenes: [promo-storyboard.md](promo-storyboard.md).
 The landing page shows it in a small corner card (`src/features/promo/` in the app).
 
 It shows a made-up signed-in teacher (`capture/account.mjs`): everything the page asks
@@ -112,3 +112,20 @@ npm run render:promo               # → ../output/rapido-promo.mp4, then the we
 
 The "My tests" scene uses tests made from the samples; they are kept in `out/promo-seed.json`
 (delete it to make them again). The frames go to `public/promo/` (not committed).
+
+### Voice
+
+The owner read [promo-voiceover.ka.md](promo-voiceover.ka.md) in ONE recording, saying each scene's label
+("zero intro", "one signup"…) before its words: `voice/promo-recording.ka.m4a`.
+[promo-voice.json](promo-voice.json) says where each scene's words are in it (labels, retakes and false
+starts are left out). `npm run voice:promo` (`scripts/promo-voice.ts`) cuts them, shortens pauses longer
+than 0.7 s, puts each scene's words 0.4 s after its title card (a little earlier, or at most 8 % faster,
+only when they don't fit), evens the loudness (−16 LUFS) → `out/promo-voice.wav`. `npm run finish:promo`
+adds it to the video (and the website copy keeps it). `render:promo` runs both.
+
+- New recording: replace the file, find the new times (listen, or the speech-to-text in
+  `tutorials/.venv`: faster-whisper in English mode hears the labels), fix `promo-voice.json`, then
+  `npm run voice:promo && npm run finish:promo` (no new render needed).
+- If the scenes change length (new capture, `timeline.ts`), just run `voice:promo` again: the places
+  come from the timeline. It stops with an error if a scene's words no longer fit.
+- Needs a FULL ffmpeg (Remotion's own lacks the compressor): the app's `ffmpeg-static` or FFMPEG_PATH.

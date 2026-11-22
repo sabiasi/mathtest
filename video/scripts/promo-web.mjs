@@ -17,8 +17,9 @@ fs.mkdirSync(out, { recursive: true });
 
 const ffmpeg = (...args) => execFileSync("npx", ["remotion", "ffmpeg", "-v", "error", "-y", ...args], { cwd: ROOT, stdio: "inherit" });
 
-// Full HD stays sharp (small text on screen); a higher CRF keeps the file small. No sound track.
-ffmpeg("-i", master, "-c:v", "libx264", "-preset", "slow", "-crf", "27", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", path.join(out, "rapido-promo.mp4"));
+// Full HD stays sharp (small text on screen); a higher CRF keeps the file small. The voice (if the
+// master has one) as 128 kbit/s AAC: plenty for speech.
+ffmpeg("-i", master, "-map", "0:v", "-map", "0:a?", "-c:v", "libx264", "-preset", "slow", "-crf", "27", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", path.join(out, "rapido-promo.mp4"));
 // Poster: the intro with the logo and the subjects (3.6 s in), 960 px wide.
 ffmpeg("-ss", "3.6", "-i", master, "-frames:v", "1", "-vf", "scale=960:-2", "-q:v", "3", path.join(out, "rapido-promo.jpg"));
 

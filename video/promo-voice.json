@@ -1,0 +1,18 @@
+{
+  "_about": "Where each scene's words are in the owner's recording (seconds from its start). Spoken labels ('zero intro', 'one signup'…) and retakes are left out. A scene may take several pieces (print starts with 'we have reached the last step…', said before the 'ten' label). Used by scripts/promo-voice.ts.",
+  "recording": "voice/promo-recording.ka.m4a",
+  "scenes": {
+    "intro": [[3.2, 7.9]],
+    "signup": [[11.9, 21.9]],
+    "subjects": [[25.8, 36.7]],
+    "mytests": [[41.9, 57.0]],
+    "math": [[60.9, 99.9]],
+    "geometry": [[103.8, 135.6]],
+    "physics": [[139.8, 170.8]],
+    "chemistry": [[176.5, 195.9]],
+    "english": [[209.2, 221.9]],
+    "paper": [[230.4, 243.9]],
+    "print": [[245.8, 248.9], [260.6, 279.4]],
+    "outro": [[283.7, 292.3]]
+  }
+}
