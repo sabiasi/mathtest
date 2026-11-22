@@ -121,7 +121,7 @@ The owner read [promo-voiceover.ka.md](promo-voiceover.ka.md) in ONE recording, 
 starts are left out). `npm run voice:promo` (`scripts/promo-voice.ts`) cuts them, shortens pauses longer
 than 0.7 s, puts each scene's words 0.4 s after its title card (a little earlier, or at most 8 % faster,
 only when they don't fit), evens the loudness (−16 LUFS) → `out/promo-voice.wav`. `npm run finish:promo`
-adds it to the video (and the website copy keeps it). `render:promo` runs both.
+adds it to the video (and the website copy keeps it). `render:promo` runs voice, music and finish.
 
 - New recording: replace the file, find the new times (listen, or the speech-to-text in
   `tutorials/.venv`: faster-whisper in English mode hears the labels), fix `promo-voice.json`, then
@@ -132,3 +132,14 @@ adds it to the video (and the website copy keeps it). `render:promo` runs both.
 - If the scenes change length (new capture, `timeline.ts`), just run `voice:promo` again: the places
   come from the timeline. It stops with an error if a scene's words no longer fit.
 - Needs a FULL ffmpeg (Remotion's own lacks the compressor): the app's `ffmpeg-static` or FFMPEG_PATH.
+
+### Background music
+
+`npm run music:promo` (`scripts/promo-music.ts`, after `voice:promo`) COMPOSES the music in code, so it is
+original and needs no licence: calm lo-fi, 74 BPM, Fmaj7 → Em7 → Dm9 → Cmaj7 (warm pad, soft electric
+piano, round bass, very light shaker / kick; only the pad under the intro; ends on Fmaj7 and fades out).
+Seeded: the same every time. It is mixed under the voice with a sidechain compressor ("ducking"): about
+9 dB below the voice in pauses, about 17 dB below while someone speaks. → `out/promo-music.wav` (alone)
+and `out/promo-sound.wav` (voice + music), which `finish:promo` prefers over the voice alone.
+Louder / quieter: `MUSIC_LUFS`; dips more / less under the voice: `DUCK`. Another track (e.g. a licensed
+one) could replace `compose()` by reading a file instead.

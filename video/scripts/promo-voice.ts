@@ -4,7 +4,8 @@
  *   2. shorten long pauses inside a scene (a pause stays a pause, only shorter),
  *   3. put each scene's words where its title card starts (src/promo/timeline.ts),
  *   4. even out the loudness (−16 LUFS, like the tutorial videos).
- * → out/promo-voice.wav (as long as the video). `npm run finish:promo` adds it to the video.
+ * → out/promo-voice.wav (as long as the video). `npm run music:promo` then lays the background music
+ * under it (out/promo-sound.wav), and `npm run finish:promo` adds that to the video.
  *
  *   npm run voice:promo
  *
@@ -142,6 +143,8 @@ function main() {
     return;
   }
   fs.mkdirSync(OUT_DIR, { recursive: true });
+  // The voice + music mix is made from THIS track: an old one must not reach the video.
+  fs.rmSync(path.join(ROOT, "out", "promo-sound.wav"), { force: true });
   const quiet = silences(recording);
   const { placed, outroStart, total } = promoLayout();
 

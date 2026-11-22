@@ -1,22 +1,41 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * The promo video card on the landing page and My tests (features/promo): it comes up on EVERY visit,
+ * The promo video card on the landing page and My tests (features/promo): it comes up ONCE per visit,
  * × closes it, it leaves by itself after 10 s (not while the mouse is on it), and a click
  * opens the video. The countdown test fakes the page clock, so it doesn't wait 10 real seconds.
  */
 const card = "[data-promo-card]";
 
-test("comes up on every visit, and × closes it", async ({ page }) => {
+test("comes up once per visit, and × closes it", async ({ page, browser }) => {
   await page.goto("/");
   await expect(page.locator(card)).toBeVisible();
   await expect(page.locator(card)).toContainText("ნახეთ, როგორ მუშაობს Rapido");
   await page.locator("[data-promo-close]").click();
   await expect(page.locator(card)).toHaveCount(0);
 
-  // The next visit: there again.
+  // Same visit: not again (reload, or the other page that has it).
   await page.reload();
-  await expect(page.locator(card)).toBeVisible();
+  await page.locator("[data-promo-button]:visible").waitFor();
+  await page.waitForTimeout(2500); // longer than the card's 1.5 s delay
+  await expect(page.locator(card)).toHaveCount(0);
+  await page.goto("/tests");
+  await page.waitForTimeout(2500);
+  await expect(page.locator(card)).toHaveCount(0);
+
+  // A new visit (a fresh browser): there again.
+  const next = await browser.newPage();
+  await next.goto("/");
+  await expect(next.locator(card)).toBeVisible();
+  await next.close();
+});
+
+test("the landing page has a video button that opens the video", async ({ page }) => {
+  await page.goto("/");
+  const button = page.locator("main [data-promo-button]:visible");
+  await expect(button).toContainText("ვიდეო");
+  await button.click();
+  await expect(page.locator("[data-promo-dialog] video[data-promo-video]")).toHaveAttribute("src", "/promo/rapido-promo.mp4");
 });
 
 test("My tests shows it too, and its video plays there", async ({ page }) => {
@@ -62,4 +81,21 @@ test("a click opens the video in a window", async ({ page }) => {
   }
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
+});
+
+test("My tests has a video button under the heading that opens the video any time", async ({ page }) => {
+  await page.goto("/tests");
+  // Close the corner card first: the button must work without it.
+  await page.locator("[data-promo-close]").click();
+  await expect(page.locator(card)).toHaveCount(0);
+  const button = page.locator("main [data-promo-button]:visible");
+  await expect(button).toContainText("ვიდეო");
+  await button.click();
+  const dialog = page.locator("[data-promo-dialog]");
+  await expect(dialog.locator("video[data-promo-video]")).toHaveAttribute("src", "/promo/rapido-promo.mp4");
+  // Closed and opened again: still works.
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await button.click();
+  await expect(dialog).toBeVisible();
 });

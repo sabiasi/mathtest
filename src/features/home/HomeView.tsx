@@ -14,6 +14,7 @@ import { toast } from "sonner";
 import { EmptyState } from "@/components/EmptyState";
 import { GuestBanner } from "@/components/GuestBanner";
 import { PromoVideoCard } from "@/features/promo/PromoVideoCard";
+import { PromoVideoButton } from "@/features/promo/PromoVideoButton";
 import { PageTransition } from "@/components/PageTransition";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -137,6 +138,7 @@ export function HomeView() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("home.title")}</h1>
             <p className="mt-1.5 max-w-2xl text-[15px] text-muted-foreground">{t("home.subtitle")}</p>
+            <PromoVideoButton className="mt-4" />
           </div>
           <div className="flex flex-wrap gap-2">
             {READY.allTemplates && (

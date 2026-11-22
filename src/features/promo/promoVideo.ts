@@ -13,3 +13,26 @@ export const PROMO_POSTER_SRC = "/promo/rapido-promo.jpg";
 export const PROMO_VISIBLE_SECONDS = 10;
 /** Waits this long after the page opens, so the page itself is seen first. */
 export const PROMO_DELAY_MS = 1500;
+
+/**
+ * The corner card comes up ONCE per visit (= per browser tab: sessionStorage forgets it when the tab
+ * closes). Moving between pages or reloading doesn't bring it back; a new visit does. The video
+ * buttons (PromoVideoButton) open the video at any time.
+ */
+const PROMO_SHOWN_KEY = "mathtest:promo-card-shown";
+
+export function promoCardShownThisVisit(): boolean {
+  try {
+    return window.sessionStorage.getItem(PROMO_SHOWN_KEY) === "1";
+  } catch {
+    return false; // storage blocked: show it (nothing to remember with)
+  }
+}
+
+export function rememberPromoCardShown() {
+  try {
+    window.sessionStorage.setItem(PROMO_SHOWN_KEY, "1");
+  } catch {
+    // storage blocked: nothing to do
+  }
+}

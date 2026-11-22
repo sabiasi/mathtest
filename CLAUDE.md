@@ -276,16 +276,19 @@ Visitors can try everything without an account (guest mode).
   (`<name>.<lang>.json`, written by the recorder's `d.chapter(title)`) are
   buttons under the video (`TutorialDialog`: jump, the playing one highlighted).
 - [x] **Promo video + corner card (2026-11-22)**: a 4:07 "How Rapido works" video (calm pace: `PACE` in promo-scenes.mjs, `PROMO_SPEED` 1.1)
-  (no captions; the OWNER'S OWN Georgian voice: one recording cut per scene by `npm run voice:promo`, see video/README.md → Voice), made in `video/` like the physics tour
+  (no captions; the OWNER'S OWN Georgian voice: one recording cut per scene by `npm run voice:promo`, see video/README.md → Voice; plus original background music composed in code by `npm run music:promo`, ducked under the voice), made in `video/` like the physics tour
   (`npm run capture:promo` → `render:promo`, see video/README.md + video/promo-storyboard.md):
   Google sign-up (made-up teacher + our own plain account picker, `video/capture/account.mjs`,
   nothing reaches Supabase), subject choice, My tests, math formulas + symbol tabs, geometry,
   circuit + forces, chemistry + periodic table, English crossword, paper view, variants / key /
   PDF. Website copy `public/promo/rapido-promo.mp4` + `.jpg`. Landing page AND My tests (outside
   HomeView's PageTransition, whose transform would move a fixed card): `PromoVideoCard`
-  (`src/features/promo/`): bottom-right card 1.5 s after the page opens, on EVERY visit (owner's
-  choice; nothing is remembered), leaves after 10 s (paused on hover / focus; a progress line
-  shows the time), × closes it, click → video window. Compact row on phones. The video
+  (`src/features/promo/`): bottom-right card 1.5 s after the page opens, ONCE per visit (owner's
+  choice: sessionStorage `mathtest:promo-card-shown`, so not again on reload or the other page; a
+  new tab / visit shows it again), leaves after 10 s (paused on hover / focus; a progress line
+  shows the time), × closes it, click → video window. Compact row on phones. `PromoVideoButton`
+  (thumbnail + ▶ + „ვიდეო“ tag) opens the same window any time: under the My tests heading and
+  under the landing page's start buttons. The video
   recorder hides it with CSS (`noPromoCard`). `e2e/promo-video.spec.ts`. vitest excludes `video/**`.
 - [ ] **Biology toolkit** (in phases; stop for review after each):
   - [x] **B1 — subject + "Label the diagram"**: subject id `biology` (Dna

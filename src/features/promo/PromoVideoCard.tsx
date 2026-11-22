@@ -5,14 +5,20 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { useT } from "@/i18n/language";
-import { PROMO_DELAY_MS, PROMO_POSTER_SRC, PROMO_VIDEO_SRC, PROMO_VISIBLE_SECONDS } from "./promoVideo";
+import {
+  PROMO_DELAY_MS,
+  PROMO_POSTER_SRC,
+  PROMO_VIDEO_SRC,
+  PROMO_VISIBLE_SECONDS,
+  promoCardShownThisVisit,
+  rememberPromoCardShown,
+} from "./promoVideo";
 
 /**
- * A small card in the bottom corner of the landing page: "See how Rapido works · 2 min".
- * It slides in every time the page opens and leaves by itself after 10 seconds (the
- * countdown waits while the mouse or keyboard focus is on it). × closes it at once; a click
- * opens the video in a window. Nothing is remembered: the next visit shows it again.
- * Never a blocking popup.
+ * A small card in the bottom corner of the landing page and My tests: "See how Rapido works · 4 min".
+ * It slides in ONCE per visit (the first of those pages opened in this tab; see promoVideo.ts) and
+ * leaves by itself after 10 seconds (the countdown waits while the mouse or keyboard focus is on
+ * it). × closes it at once; a click opens the video in a window. Never a blocking popup.
  */
 export function PromoVideoCard() {
   const t = useT();
@@ -25,10 +31,14 @@ export function PromoVideoCard() {
    */
   const [ticks, setTicks] = useState(0);
 
-  // Every time the page is shown (also when coming back to it inside the site): in again after a moment.
+  // Once per visit: after a moment, unless it already came up in this tab (on this page or the other one).
+  // Counted when it really appears, so leaving the page within the first moment doesn't use it up.
   // In the browser only: the server renders nothing, so there is no hydration mismatch.
   useEffect(() => {
+    if (promoCardShownThisVisit()) return;
     const timer = window.setTimeout(() => {
+      if (promoCardShownThisVisit()) return;
+      rememberPromoCardShown();
       setTicks(0);
       setPaused(false);
       setVisible(true);
@@ -122,8 +132,8 @@ export function PromoVideoCard() {
   );
 }
 
-/** The video in a window. It starts by itself (muted if the browser insists). */
-function PromoVideoDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+/** The video in a window. It starts by itself (muted if the browser insists). Also used by PromoVideoButton. */
+export function PromoVideoDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const t = useT();
   const video = useRef<HTMLVideoElement>(null);
   const [failed, setFailed] = useState(false);

@@ -23,6 +23,7 @@ import { LogoMark } from "@/components/Logo";
 import { buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/AuthProvider";
 import { PromoVideoCard } from "@/features/promo/PromoVideoCard";
+import { PromoVideoButton } from "@/features/promo/PromoVideoButton";
 import { SubjectIcon } from "@/features/subjects/SubjectPicker";
 import { useLanguage, useT } from "@/i18n/language";
 import { formatGel, monthlyEquivalent } from "@/lib/plans/pricing";
@@ -97,6 +98,7 @@ export function LandingView() {
             {startButton}
             {!signedIn && accounts && tryButton}
           </div>
+          <PromoVideoButton className="mt-6" />
           <Link href="/print/sample-math" className="mt-5 inline-flex items-center gap-1.5 text-[15px] font-medium text-brand hover:underline" data-see-sample="">
             <FileText className="size-4" aria-hidden="true" />
             {t("landing.seeSample")}

@@ -7,13 +7,14 @@
     "capture:promo": "node capture/capture.mjs --video promo",
     "studio": "remotion studio src/index.ts",
     "render": "remotion render src/index.ts Tour out/tour-raw.mp4 --codec=h264 --muted --crf=16 && npm run finish",
-    "render:promo": "remotion render src/index.ts Promo out/promo-raw.mp4 --codec=h264 --muted --crf=16 --concurrency=100% && npm run voice:promo && npm run finish:promo",
+    "render:promo": "remotion render src/index.ts Promo out/promo-raw.mp4 --codec=h264 --muted --crf=16 --concurrency=100% && npm run voice:promo && npm run music:promo && npm run finish:promo",
     "draft:promo": "node -e \"require('fs').mkdirSync('../output',{recursive:true})\" && remotion render src/index.ts Promo ../output/rapido-promo-draft.mp4 --scale=0.5 --codec=h264 --muted --crf=30 --jpeg-quality=70 --concurrency=100%",
     "stills": "node scripts/stills.mjs",
     "stills:promo": "tsx scripts/promo-stills.ts",
     "finish": "remotion ffmpeg -v error -y -i out/tour-raw.mp4 -vf scale=in_range=full:out_range=tv,format=yuv420p -c:v libx264 -preset slow -crf 18 -movflags +faststart -an ../output/teacher-tour.mp4",
     "finish:promo": "node scripts/promo-finish.mjs && npm run web:promo",
     "voice:promo": "tsx scripts/promo-voice.ts",
+    "music:promo": "tsx scripts/promo-music.ts",
     "web:promo": "node scripts/promo-web.mjs"
   },
   "dependencies": {
