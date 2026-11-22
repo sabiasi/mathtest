@@ -1,5 +1,5 @@
 {
-  "_about": "Where each scene's words are in the owner's recording (seconds from its start). Spoken labels ('zero intro', 'one signup'…) and retakes are left out. A scene may take several pieces (print starts with 'we have reached the last step…', said before the 'ten' label). Used by scripts/promo-voice.ts.",
+  "_about": "Where each scene's words are in the owner's recording (seconds from its start). Spoken labels ('zero intro', 'one signup'…) and retakes are left out. A scene may take several pieces (print starts with 'we have reached the last step…', said before the 'ten' label). A piece written as { range, afterClick, delay } waits for that click of the scene's footage (0 = first click) + delay seconds, so the words match the screen (physics: the force diagram opens with click 7). Used by scripts/promo-voice.ts.",
   "recording": "voice/promo-recording.ka.m4a",
   "scenes": {
     "intro": [[3.2, 7.9]],
@@ -8,7 +8,7 @@
     "mytests": [[41.9, 57.0]],
     "math": [[60.9, 99.9]],
     "geometry": [[103.8, 135.6]],
-    "physics": [[139.8, 170.8]],
+    "physics": [[139.8, 152.0], { "range": [152.0, 170.8], "afterClick": 7, "delay": 0.6 }],
     "chemistry": [[176.5, 195.9]],
     "english": [[209.2, 221.9]],
     "paper": [[230.4, 243.9]],

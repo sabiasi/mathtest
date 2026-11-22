@@ -15,7 +15,8 @@ import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import fs from "node:fs";
 import path from "node:path";
-import { promoLayout } from "../src/promo/timeline";
+import { type Placed, promoLayout } from "../src/promo/timeline";
+import { toSource } from "../src/timeline";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const OUT_DIR = path.join(ROOT, "out", "promo-voice");
@@ -30,7 +31,8 @@ const MAX_TEMPO = 1.08;
 /** Quiet enough to count as a pause (the recording's silence is about −75 dB, speech −31 dB). */
 const SILENCE_DB = -45;
 
-type Cuts = { recording: string; scenes: Record<string, [number, number][]> };
+type Cue = { range: [number, number]; afterClick: number; delay?: number };
+type Cuts = { recording: string; scenes: Record<string, ([number, number] | Cue)[]> };
 type Span = [number, number];
 
 function ffmpegPath(): string {
@@ -102,6 +104,33 @@ function pieces(ranges: Span[], quiet: Span[], maxPause: number): Span[] {
   return out;
 }
 
+/** Video time (seconds from the footage start) at which the footage reaches source second `src`. */
+function outAt(place: Placed, src: number): number {
+  let lo = 0;
+  let hi = place.footage;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (toSource(place.scene, mid) < src) lo = mid;
+    else hi = mid;
+  }
+  return hi;
+}
+
+/** A scene's words as groups: plain pieces join the group before; a cue starts a new group at its click. */
+function groupsOf(entry: ([number, number] | Cue)[], id: string, place: Placed | undefined): { ranges: Span[]; cue?: number }[] {
+  const groups: { ranges: Span[]; cue?: number }[] = [{ ranges: [] }];
+  for (const item of entry) {
+    if (Array.isArray(item)) {
+      groups.at(-1)!.ranges.push(item);
+      continue;
+    }
+    const click = place?.scene.clicks[item.afterClick];
+    if (!place || !click) throw new Error(`${id}: there is no click ${item.afterClick} in this scene's footage`);
+    groups.push({ ranges: [item.range], cue: place.footageStart + outAt(place, click.t) + (item.delay ?? 0.5) });
+  }
+  return groups.filter((g) => g.ranges.length > 0);
+}
+
 const length = (ps: Span[]) => ps.reduce((sum, [s, e]) => sum + (e - s), 0);
 
 function main() {
@@ -118,46 +147,55 @@ function main() {
 
   // When each scene's voice may start / must end (title card start → just before the next one).
   const slots = [
-    { id: "intro", start: 0, next: placed[0].start },
-    ...placed.map((p, i) => ({ id: p.scene.id, start: p.start, next: i + 1 < placed.length ? placed[i + 1].start : outroStart })),
-    { id: "outro", start: outroStart, next: total - 0.3 },
+    { id: "intro", start: 0, next: placed[0].start, place: undefined as Placed | undefined },
+    ...placed.map((p, i) => ({ id: p.scene.id, start: p.start, next: i + 1 < placed.length ? placed[i + 1].start : outroStart, place: p })),
+    { id: "outro", start: outroStart, next: total - 0.3, place: undefined as Placed | undefined },
   ];
 
   const clips: { file: string; at: number }[] = [];
+  const clock = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
   let prevEnd = 0;
-  console.log("scene        starts   length  pause  tempo");
+  console.log("scene          starts   length  pause  tempo");
   for (const slot of slots) {
-    const ranges = cuts.scenes[slot.id];
-    if (!ranges) {
-      console.log(`${slot.id.padEnd(12)} (no words)`);
+    const entry = cuts.scenes[slot.id];
+    if (!entry) {
+      console.log(`${slot.id.padEnd(14)} (no words)`);
       continue;
     }
-    const limit = slot.next - 0.15;
-    const earliest = slot.id === "intro" ? 0.2 : Math.max(prevEnd + 0.5, slot.start - 1.5);
-    let maxPause = PAUSES[0];
-    let ps = pieces(ranges, quiet, maxPause);
-    for (const p of PAUSES) {
-      maxPause = p;
-      ps = pieces(ranges, quiet, p);
-      if (slot.start + LEAD + length(ps) <= limit) break;
-    }
-    const len = length(ps);
-    let at = slot.start + LEAD;
-    if (at + len > limit) at = Math.max(earliest, limit - len);
-    const tempo = Math.max(1, len / (limit - at));
-    if (tempo > MAX_TEMPO) throw new Error(`${slot.id}: ${len.toFixed(1)} s of words don't fit in ${(limit - at).toFixed(1)} s`);
+    const groups = groupsOf(entry, slot.id, slot.place);
+    groups.forEach((group, g) => {
+      const name = groups.length > 1 ? `${slot.id}·${g + 1}` : slot.id;
+      const following = groups[g + 1]?.cue;
+      // Words that waited for the screen may run a moment into the next title card (its voice then starts later).
+      const limit = following !== undefined ? following - 0.2 : group.cue !== undefined ? slot.next + 0.3 : slot.next - 0.15;
+      const wanted = group.cue ?? slot.start + LEAD;
+      // Only a scene's first words may start a little early (in the previous scene's last hold).
+      const earliest = group.cue !== undefined ? wanted : slot.id === "intro" ? 0.2 : Math.max(prevEnd + 0.5, slot.start - 1.5);
+      let maxPause = PAUSES[0];
+      let ps = pieces(group.ranges, quiet, maxPause);
+      for (const p of PAUSES) {
+        maxPause = p;
+        ps = pieces(group.ranges, quiet, p);
+        if (Math.max(wanted, prevEnd + 0.4) + length(ps) <= limit) break;
+      }
+      const len = length(ps);
+      let at = Math.max(wanted, prevEnd + 0.4);
+      if (at + len > limit) at = Math.max(earliest, limit - len);
+      const tempo = Math.max(1, len / (limit - at));
+      if (tempo > MAX_TEMPO) throw new Error(`${name}: ${len.toFixed(1)} s of words don't fit in ${(limit - at).toFixed(1)} s`);
 
-    const file = path.join(OUT_DIR, `${String(clips.length).padStart(2, "0")}-${slot.id}.wav`);
-    const parts = ps.map(([s, e], i) => `[0:a]atrim=${s.toFixed(3)}:${e.toFixed(3)},asetpts=PTS-STARTPTS[p${i}]`);
-    const joined = `${ps.map((_, i) => `[p${i}]`).join("")}concat=n=${ps.length}:v=0:a=1`;
-    const finish = `${tempo > 1.001 ? `,atempo=${tempo.toFixed(4)}` : ""},afade=t=in:d=0.02,areverse,afade=t=in:d=0.06,areverse[out]`;
-    stderrOf(["-y", "-i", recording, "-filter_complex", `${parts.join(";")};${joined},aformat=sample_rates=48000:channel_layouts=mono${finish}`, "-map", "[out]", file]);
+      const file = path.join(OUT_DIR, `${String(clips.length).padStart(2, "0")}-${slot.id}.wav`);
+      const parts = ps.map(([s, e], i) => `[0:a]atrim=${s.toFixed(3)}:${e.toFixed(3)},asetpts=PTS-STARTPTS[p${i}]`);
+      const joined = `${ps.map((_, i) => `[p${i}]`).join("")}concat=n=${ps.length}:v=0:a=1`;
+      const finish = `${tempo > 1.001 ? `,atempo=${tempo.toFixed(4)}` : ""},afade=t=in:d=0.02,areverse,afade=t=in:d=0.06,areverse[out]`;
+      stderrOf(["-y", "-i", recording, "-filter_complex", `${parts.join(";")};${joined},aformat=sample_rates=48000:channel_layouts=mono${finish}`, "-map", "[out]", file]);
 
-    const played = len / tempo;
-    clips.push({ file, at });
-    prevEnd = at + played;
-    const clock = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
-    console.log(`${slot.id.padEnd(12)} ${clock(at).padStart(6)}  ${played.toFixed(1).padStart(5)} s  ${maxPause.toFixed(2)}  ${tempo.toFixed(2)}`);
+      const played = len / tempo;
+      clips.push({ file, at });
+      prevEnd = at + played;
+      const cueNote = group.cue !== undefined ? `  (waits for the screen: ${clock(group.cue)})` : "";
+      console.log(`${name.padEnd(14)} ${clock(at).padStart(6)}  ${played.toFixed(1).padStart(5)} s  ${maxPause.toFixed(2)}  ${tempo.toFixed(2)}${cueNote}`);
+    });
   }
 
   // One track: every clip at its moment, then a gentle clean-up and two-pass loudness (linear).

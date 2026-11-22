@@ -126,6 +126,9 @@ adds it to the video (and the website copy keeps it). `render:promo` runs both.
 - New recording: replace the file, find the new times (listen, or the speech-to-text in
   `tutorials/.venv`: faster-whisper in English mode hears the labels), fix `promo-voice.json`, then
   `npm run voice:promo && npm run finish:promo` (no new render needed).
+- Words that must wait for something on screen: write that piece as
+  `{ "range": [from, to], "afterClick": n, "delay": 0.6 }` (n = the scene's nth click, from 0). Physics
+  does this: "ახლა ვნახოთ ძალების ნახაზი" starts when the force diagram window has opened (click 7).
 - If the scenes change length (new capture, `timeline.ts`), just run `voice:promo` again: the places
   come from the timeline. It stops with an error if a scene's words no longer fit.
 - Needs a FULL ffmpeg (Remotion's own lacks the compressor): the app's `ffmpeg-static` or FFMPEG_PATH.
