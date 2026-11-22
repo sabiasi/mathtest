@@ -39,7 +39,7 @@ export function richTextRuns(value: RichText, fix: (text: string) => string = (t
   for (const segment of value) {
     if (segment.type === "text") {
       const marks = segment.marks ?? [];
-      runs.push({ text: fix(segment.text), bold: marks.includes("bold") || extra.bold, italic: marks.includes("italic"), underline: marks.includes("underline"), box: marks.includes("box") });
+      runs.push({ text: fix(segment.text), bold: marks.includes("bold") || extra.bold, italic: marks.includes("italic") || extra.italic, underline: marks.includes("underline"), box: marks.includes("box") });
     } else if (segment.latex.trim().startsWith("\\ce{")) {
       const pieces = chemPieces(segment.latex);
       if (!pieces) return null;
@@ -136,7 +136,11 @@ function variantBlocks(variant: Variant, input: DocxInput): Block[] {
       ? p([{ text: t("print.total", { points: total }), bold: true }], { before: 6, after: 8 })
       : p([{ text: `${t("print.studentName")}: ${blank(34)}${GAP}${t("print.class")}: ${blank(6)}${GAP}${t("print.score")}: ${blank(4)} / ${total}` }], { before: 6, after: 8 }),
   );
-  if (test.instructions) blocks.push(p([{ text: fix(test.instructions), italic: true }], { after: 8 }));
+  if (!isRichTextEmpty(test.instructions)) {
+    // A formula Word can't show (rare) → the instructions as plain text, formulas as typed.
+    const plain = test.instructions.map((segment) => (segment.type === "text" ? fix(segment.text) : segment.latex)).join("");
+    blocks.push(p(richTextRuns(test.instructions, fix, { italic: true }) ?? [{ text: plain, italic: true }], { after: 8 }));
+  }
 
   // ---- The questions ----
   const numbers = questionNumbers(test.questions);

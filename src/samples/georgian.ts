@@ -1,6 +1,6 @@
 /**
  * Georgian language & literature sample (9th grade): an original reading
- * text and an original poem (both written for MathTest), questions about
+ * text and an original poem (both written for Rapido), questions about
  * them, and every grammar tool — mark the words, grammar table (cases),
  * find the mistake, sentence analysis, fill in the blanks, an essay.
  */

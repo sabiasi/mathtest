@@ -9,7 +9,7 @@ import {
 
 const ME = "me";
 const shape = (id: string, title = "", subjectId: Test["subjectId"] = "math"): Test => ({
-  id, schoolName: "", title, subjectId, subject: "", grade: "", level: "", date: "", timeLimitMinutes: null, instructions: "", labelStyle: "georgian",
+  id, schoolName: "", title, subjectId, subject: "", grade: "", level: "", date: "", timeLimitMinutes: null, instructions: [], labelStyle: "georgian",
   questions: [], printOptions: { ...DEFAULT_PRINT_OPTIONS }, variants: { ...DEFAULT_VARIANTS, seed: 1 }, folder: "",
   createdAt: "2026-11-12T09:00:00.000Z", updatedAt: "2026-11-12T09:00:00.000Z",
 });

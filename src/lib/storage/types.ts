@@ -1,5 +1,5 @@
 /**
- * The shapes of MathTest's data.
+ * The shapes of Rapido's data.
  *
  * A "type" in TypeScript is a description of what an object looks like.
  * It doesn't exist when the app runs — it only helps the editor and the
@@ -846,7 +846,8 @@ export interface Test {
   date: string;
   /** Time allowed in minutes, or null when not set. */
   timeLimitMinutes: number | null;
-  instructions: string;
+  /** Instructions for students: text + formulas, like question text (old tests: a plain string, see migrate.ts). */
+  instructions: RichText;
   labelStyle: LabelStyle;
   questions: Question[];
   printOptions: PrintOptions;

@@ -24,7 +24,7 @@ export function refuseError(error: unknown, what: string): Response {
   if (code === "42501") return refuse("forbidden");
   if (code === "22023" || code === "22P02" || code === "22007" || code === "22008") return refuse("invalid");
   if (code === "54000") return refuse("full");
-  console.error(`MathTest: ${what} failed`, error);
+  console.error(`Rapido: ${what} failed`, error);
   return refuse("failed");
 }
 

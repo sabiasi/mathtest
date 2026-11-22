@@ -22,3 +22,18 @@ export const colors = {
   card: "#ffffff",
   border: "#e2e8f0",
 };
+
+/** Subject colours (--subject-<id> in the app's globals.css, light theme). */
+export const subjectColors: Record<string, string> = {
+  math: "oklch(0.5 0.2 277)",
+  physics: "oklch(0.52 0.15 240)",
+  chemistry: "oklch(0.5 0.11 170)",
+  biology: "oklch(0.5 0.14 140)",
+  geography: "oklch(0.52 0.12 105)",
+  history: "oklch(0.52 0.13 55)",
+  georgian: "oklch(0.52 0.19 15)",
+  english: "oklch(0.5 0.16 300)",
+};
+
+/** The same colour, see-through (for soft chip backgrounds). */
+export const soft = (color: string, alpha = 0.12) => `color-mix(in oklab, ${color} ${Math.round(alpha * 100)}%, transparent)`;

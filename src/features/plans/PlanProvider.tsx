@@ -61,7 +61,7 @@ export function PlanProvider({ children }: { children: ReactNode }) {
         if (!cancelled) setLoaded({ forUser: userId, subscription, seat });
       })
       .catch((error) => {
-        console.error("MathTest: could not load the plan", error);
+        console.error("Rapido: could not load the plan", error);
         // Show Free rather than "loading" forever; the next focus tries again.
         if (!cancelled) setLoaded((previous) => (previous?.forUser === userId ? previous : { forUser: userId, subscription: null, seat: null }));
       });

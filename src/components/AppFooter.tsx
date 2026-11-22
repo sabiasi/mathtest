@@ -13,7 +13,7 @@ export function AppFooter() {
         <span className="flex items-center gap-2.5">
           <LogoMark className="size-5" />
           <span>
-            <b className="font-semibold text-soft-foreground">MathTest</b> — {t("footer.tagline")}
+            <b className="font-semibold text-soft-foreground">Rapido</b> — {t("footer.tagline")}
           </span>
         </span>
         <div className="flex flex-wrap gap-x-5 gap-y-1">
@@ -30,9 +30,6 @@ export function AppFooter() {
           </Link>
           <Link href="/terms" className="rounded font-medium hover:text-foreground">
             {t("footer.terms")}
-          </Link>
-          <Link href="/refund" className="rounded font-medium hover:text-foreground">
-            {t("footer.refund")}
           </Link>
         </div>
       </div>

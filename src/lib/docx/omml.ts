@@ -4,7 +4,7 @@
  *
  *   LaTeX  →  MathML (MathLive already knows how)  →  OMML (this file)
  *
- * So a fraction typed in MathTest opens in Word as a real, editable Word
+ * So a fraction typed in Rapido opens in Word as a real, editable Word
  * equation. Anything this converter doesn't know returns null, and the
  * caller then uses a picture of the question instead — never a broken formula.
  */

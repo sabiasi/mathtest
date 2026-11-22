@@ -1,6 +1,6 @@
 /**
  * THE TEMPLATE LIBRARY — the questions. Original content written for
- * MathTest (no textbook or exam was copied). Read on the SERVER only
+ * Rapido (no textbook or exam was copied). Read on the SERVER only
  * (see catalog.ts and /api/templates/[id]).
  *
  * Built with the same helpers as the sample tests (src/samples/build.ts),

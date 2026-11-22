@@ -30,7 +30,7 @@ async function deliver(email: OutgoingEmail): Promise<void> {
     if (outbox.length > 200) outbox.shift();
     // In development, show it; in production without a key, say only that nothing was sent.
     if (process.env.NODE_ENV === "development") console.info(`\n[email → ${email.to}] ${email.subject}\n${email.text}\n`);
-    else console.info(`MathTest: email "${email.kind}" not sent (no RESEND_API_KEY / EMAIL_FROM)`);
+    else console.info(`Rapido: email "${email.kind}" not sent (no RESEND_API_KEY / EMAIL_FROM)`);
     return;
   }
   const response = await fetch("https://api.resend.com/emails", {
@@ -69,12 +69,12 @@ export async function notify(db: ServerDb, notice: Notice): Promise<"sent" | "sk
       await deliver({ ...renderEmail(notice.kind, notice.language, notice.data), to, kind: notice.kind });
       return "sent";
     } catch (error) {
-      console.error(`MathTest: could not send the "${notice.kind}" email`, error);
+      console.error(`Rapido: could not send the "${notice.kind}" email`, error);
       await db.rpc("email_release", { secret: billingSecret(), dedupe_key: notice.dedupeKey }).catch(() => undefined);
       return "failed";
     }
   } catch (error) {
-    console.error("MathTest: email skipped (database)", error);
+    console.error("Rapido: email skipped (database)", error);
     return "failed";
   }
 }

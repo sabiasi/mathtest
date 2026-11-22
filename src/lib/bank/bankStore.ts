@@ -46,7 +46,7 @@ export async function loadBank(userId: string): Promise<void> {
     set({ status: "ready", items });
   } catch (error) {
     if (state.userId !== userId) return;
-    console.error("MathTest: could not load the question bank", error);
+    console.error("Rapido: could not load the question bank", error);
     set({ status: "error" });
   }
 }

@@ -31,7 +31,7 @@ export function refuse(error: BillingError, retryAfterSeconds?: number): Respons
 /** Turns a thrown error into an answer: "the SQL isn't installed yet" is not a crash. */
 export function refuseError(error: unknown, what: string): Response {
   if (isMissingSql(error)) return refuse("notReady");
-  console.error(`MathTest: ${what} failed`, error);
+  console.error(`Rapido: ${what} failed`, error);
   return refuse("failed");
 }
 

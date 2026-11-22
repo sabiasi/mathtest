@@ -67,7 +67,7 @@ export async function startCheckout(db: ServerDb, origin: string, period: Billin
       orderId,
       amountTetri,
       period,
-      description: `MathTest Premium (${PERIOD_MONTHS[period]} mo.)`,
+      description: `Rapido Premium (${PERIOD_MONTHS[period]} mo.)`,
       email: db.user.email,
       language,
       callbackUrl: `${origin}/api/billing/webhook/${provider.id}`,
@@ -75,7 +75,7 @@ export async function startCheckout(db: ServerDb, origin: string, period: Billin
     });
     return { url: session.url };
   } catch (error) {
-    console.error("MathTest: the payment provider refused the checkout", error);
+    console.error("Rapido: the payment provider refused the checkout", error);
     // Close the order, so it doesn't wait for an answer that will never come.
     await applyEvent(db, origin, provider, failedEvent(orderId, "provider error", "checkout-error")).catch(() => undefined);
     return { error: "provider" };
@@ -132,7 +132,7 @@ export async function applyEvent(db: ServerDb, origin: string, provider: Payment
     payload: { event: visible, raw: redact(rawBody) },
   });
   if (result.result === "amountMismatch" || result.result === "unknownOrder") {
-    console.error(`MathTest: payment message for order ${event.orderId} needs a look: ${result.result}`);
+    console.error(`Rapido: payment message for order ${event.orderId} needs a look: ${result.result}`);
   }
 
   const language = asLanguage(result.language);
@@ -200,12 +200,12 @@ export async function runBillingJob(db: ServerDb, origin: string, onlyUser: stri
       event = await provider.chargeRenewal({
         orderId,
         amountTetri,
-        description: `MathTest Premium (${PERIOD_MONTHS[charge.period]} mo.)`,
+        description: `Rapido Premium (${PERIOD_MONTHS[charge.period]} mo.)`,
         cardToken: started.card_token,
         callbackUrl: `${origin}/api/billing/webhook/${provider.id}`,
       });
     } catch (error) {
-      console.error("MathTest: a renewal could not be charged", error);
+      console.error("Rapido: a renewal could not be charged", error);
       event = failedEvent(orderId, "provider error", "charge-error");
     }
     if (!event) {
@@ -297,7 +297,7 @@ export async function loadSummary(db: ServerDb | null, origin: string): Promise<
     return { ...empty, subscription: row.subscription ?? null, method: row.method ?? null, payments: row.payments ?? [], pending: row.pending ?? [], profile: row.profile ?? null, school };
   } catch (error) {
     // The payments SQL isn't in the database yet: payments are simply not available.
-    if (!isMissingSql(error)) console.error("MathTest: could not load the billing summary", error);
+    if (!isMissingSql(error)) console.error("Rapido: could not load the billing summary", error);
     return { ...empty, enabled: false };
   }
 }

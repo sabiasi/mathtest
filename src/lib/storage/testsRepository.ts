@@ -198,7 +198,7 @@ export async function startSync(cloud: TestsBackend): Promise<void> {
     status = "ready";
   } catch (error) {
     if (myGeneration !== generation) return;
-    console.error("MathTest: could not load tests", error);
+    console.error("Rapido: could not load tests", error);
     status = "error";
   }
   notify();
@@ -244,7 +244,7 @@ export async function startShared(source: SharedBackend): Promise<void> {
     sharedStatus = "ready";
   } catch (error) {
     if (myGeneration !== generation) return;
-    console.error("MathTest: could not load shared tests", error);
+    console.error("Rapido: could not load shared tests", error);
     if (sharedStatus !== "ready") sharedStatus = "error";
   }
   notify();
@@ -331,7 +331,7 @@ export function createTest(defaults: Partial<Omit<Test, "id">> = {}): Test {
     level: "",
     date: "",
     timeLimitMinutes: null,
-    instructions: "",
+    instructions: [],
     labelStyle: "georgian",
     questions: [],
     printOptions: { ...DEFAULT_PRINT_OPTIONS },
@@ -507,7 +507,7 @@ async function flush(): Promise<void> {
         notify();
         continue;
       }
-      console.error("MathTest: could not save to the cloud", error);
+      console.error("Rapido: could not save to the cloud", error);
       failed.add(id);
       // Put it back, unless an even newer change arrived meanwhile.
       if (!queue.has(id)) queue.set(id, write);
@@ -679,7 +679,7 @@ export function registerDraft(saveNow: () => void): () => void {
 /** Hands every open editor's unsaved typing to the repository now. */
 export function flushDrafts(): void {
   for (const saveNow of [...drafts]) {
-    try { saveNow(); } catch (error) { console.error("MathTest: could not save a draft", error); }
+    try { saveNow(); } catch (error) { console.error("Rapido: could not save a draft", error); }
   }
 }
 

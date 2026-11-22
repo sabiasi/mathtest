@@ -7,6 +7,7 @@ import { cross, genotypeRatio } from "@/lib/genetics";
 import { readSequence, translate, transcribe } from "@/lib/molecular";
 import { buildCrossword, buildWordSearch } from "@/lib/puzzles";
 import { totalPoints } from "@/lib/questions";
+import { isRichTextEmpty } from "@/lib/richText";
 import { normalizeTest } from "@/lib/storage/migrate";
 import { buildVariants } from "@/lib/variants";
 import { SUBJECT_IDS } from "@/subjects/ids";
@@ -23,7 +24,8 @@ describe.each(SUBJECT_IDS)("the %s sample", (subjectId) => {
     expect(isSampleId(sample.id)).toBe(true);
     expect(getSample(sample.id)).toBe(sampleFor(subjectId));
     expect(sample.subjectId).toBe(subjectId);
-    for (const field of ["schoolName", "title", "subject", "grade", "date", "instructions"] as const) expect(sample[field], field).not.toBe("");
+    for (const field of ["schoolName", "title", "subject", "grade", "date"] as const) expect(sample[field], field).not.toBe("");
+    expect(isRichTextEmpty(sample.instructions), "instructions").toBe(false);
     expect(sample.timeLimitMinutes).toBeGreaterThan(0);
     expect(totalPoints(sample.questions)).toBeGreaterThan(10);
   });

@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/EmptyState";
 import { GuestBanner } from "@/components/GuestBanner";
+import { PromoVideoCard } from "@/features/promo/PromoVideoCard";
 import { PageTransition } from "@/components/PageTransition";
 import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -127,117 +128,121 @@ export function HomeView() {
   const counts = useMemo(() => (tests ? countBySubject(tests) : null), [tests]);
 
   return (
-    <PageTransition className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
-      <PageBackdrop className="h-72 opacity-60" />
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("home.title")}</h1>
-          <p className="mt-1.5 max-w-2xl text-[15px] text-muted-foreground">{t("home.subtitle")}</p>
+    <>
+      {/* Outside PageTransition: its slide-in would carry a "fixed" card along with it. */}
+      <PromoVideoCard />
+      <PageTransition className="relative mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
+        <PageBackdrop className="h-72 opacity-60" />
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{t("home.title")}</h1>
+            <p className="mt-1.5 max-w-2xl text-[15px] text-muted-foreground">{t("home.subtitle")}</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {READY.allTemplates && (
+              <Link href="/templates" className={buttonVariants({ variant: "outline" })} data-templates-link="">
+                <LayoutTemplate className="size-5" aria-hidden="true" />
+                {t("templates.nav")}
+              </Link>
+            )}
+            {READY.questionBank && !guest && (
+              <Link href="/bank" className={buttonVariants({ variant: "outline" })} data-bank-link="">
+                <Library className="size-5" aria-hidden="true" />
+                {t("bank.nav")}
+              </Link>
+            )}
+            {tests && tests.length > 0 && view === "all" && (
+              <Button onClick={() => void openNewTest()}>
+                <Plus className="size-5" aria-hidden="true" />
+                {t("home.createNew")}
+              </Button>
+            )}
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {READY.allTemplates && (
-            <Link href="/templates" className={buttonVariants({ variant: "outline" })} data-templates-link="">
-              <LayoutTemplate className="size-5" aria-hidden="true" />
-              {t("templates.nav")}
-            </Link>
-          )}
-          {READY.questionBank && !guest && (
-            <Link href="/bank" className={buttonVariants({ variant: "outline" })} data-bank-link="">
-              <Library className="size-5" aria-hidden="true" />
-              {t("bank.nav")}
-            </Link>
-          )}
-          {tests && tests.length > 0 && view === "all" && (
-            <Button onClick={() => void openNewTest()}>
-              <Plus className="size-5" aria-hidden="true" />
-              {t("home.createNew")}
-            </Button>
-          )}
-        </div>
-      </div>
 
-      <GuestBanner className="mt-6" />
-      <PlanPreviewBar className="mt-6" />
-      {!guest && (access.needsSelection || access.error) && <div className="mt-6 rounded-xl border bg-card p-4"><TeachingSubjectsSummary /></div>}
-      <RetainedGuestTests />
-      <SharedWithMe className="mt-8" />
+        <GuestBanner className="mt-6" />
+        <PlanPreviewBar className="mt-6" />
+        {!guest && (access.needsSelection || access.error) && <div className="mt-6 rounded-xl border bg-card p-4"><TeachingSubjectsSummary /></div>}
+        <RetainedGuestTests />
+        <SharedWithMe className="mt-8" />
 
-      {/* A short guide while the teacher is just starting out. */}
-      {tests && tests.length <= 1 && <HowItWorks />}
+        {/* A short guide while the teacher is just starting out. */}
+        {tests && tests.length <= 1 && <HowItWorks />}
 
-      <div className="mt-8">
-        {loadStatus === "error" && damaged ? (
-          // A guest's browser storage holds something we can't read: say so, and never call it "no tests".
-          <EmptyState
-            Icon={TriangleAlert}
-            title={t("home.damagedTitle")}
-            text={t("home.damagedText")}
-            actions={
-              <>
+        <div className="mt-8">
+          {loadStatus === "error" && damaged ? (
+            // A guest's browser storage holds something we can't read: say so, and never call it "no tests".
+            <EmptyState
+              Icon={TriangleAlert}
+              title={t("home.damagedTitle")}
+              text={t("home.damagedText")}
+              actions={
+                <>
+                  <Button variant="outline" onClick={retryLoad}>
+                    <RotateCw className="size-4" aria-hidden="true" />
+                    {t("home.retry")}
+                  </Button>
+                  <Button variant="outline" onClick={startEmpty} data-start-empty="">
+                    {t("home.damagedStartEmpty")}
+                  </Button>
+                </>
+              }
+            />
+          ) : loadStatus === "error" ? (
+            <EmptyState
+              Icon={CloudOff}
+              title={t("home.loadError")}
+              text={t("authError.network")}
+              actions={
                 <Button variant="outline" onClick={retryLoad}>
                   <RotateCw className="size-4" aria-hidden="true" />
                   {t("home.retry")}
                 </Button>
-                <Button variant="outline" onClick={startEmpty} data-start-empty="">
-                  {t("home.damagedStartEmpty")}
-                </Button>
-              </>
-            }
-          />
-        ) : loadStatus === "error" ? (
-          <EmptyState
-            Icon={CloudOff}
-            title={t("home.loadError")}
-            text={t("authError.network")}
-            actions={
-              <Button variant="outline" onClick={retryLoad}>
-                <RotateCw className="size-4" aria-hidden="true" />
-                {t("home.retry")}
-              </Button>
-            }
-          />
-        ) : tests === null || counts === null ? (
-          <CardsSkeleton />
-        ) : (
-          <div className="lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
-            <SubjectNav
-              view={view}
-              counts={counts}
-              total={tests.length}
-              showAll={showAllSubjects}
-              onShowAll={toggleShowAll}
-              onSelect={setView}
-              order={access.ordered}
+              }
             />
-            <div className="min-w-0 max-lg:mt-6">
-              {view === "all" ? (
-                <AllTests
-                  tests={tests}
-                  onOpenSubject={setView}
-                  onCreate={() => void openNewTest()}
-                  onOpenSample={() => router.push(`/editor/sample-${defaultSubject ?? "math"}`)}
-                />
-              ) : (
-                <SubjectSection key={view} subjectId={view} tests={tests.filter((test) => test.subjectId === view)} onCreate={() => void handleCreate(view)} />
-              )}
+          ) : tests === null || counts === null ? (
+            <CardsSkeleton />
+          ) : (
+            <div className="lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-8">
+              <SubjectNav
+                view={view}
+                counts={counts}
+                total={tests.length}
+                showAll={showAllSubjects}
+                onShowAll={toggleShowAll}
+                onSelect={setView}
+                order={access.ordered}
+              />
+              <div className="min-w-0 max-lg:mt-6">
+                {view === "all" ? (
+                  <AllTests
+                    tests={tests}
+                    onOpenSubject={setView}
+                    onCreate={() => void openNewTest()}
+                    onOpenSample={() => router.push(`/editor/sample-${defaultSubject ?? "math"}`)}
+                  />
+                ) : (
+                  <SubjectSection key={view} subjectId={view} tests={tests.filter((test) => test.subjectId === view)} onCreate={() => void handleCreate(view)} />
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
-      <p className="mt-10 flex items-start gap-2 text-sm text-muted-foreground">
-        <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-        {t(guest ? "guest.storageNote" : "home.storageNote")}
-      </p>
+        <p className="mt-10 flex items-start gap-2 text-sm text-muted-foreground">
+          <Info className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          {t(guest ? "guest.storageNote" : "home.storageNote")}
+        </p>
 
-      <NewTestDialog
-        open={choosingSubject}
-        onOpenChange={setChoosingSubject}
-        defaultSubject={defaultSubject}
-        order={access.ordered}
-        onPick={(id) => void handleCreate(id)}
-      />
-    </PageTransition>
+        <NewTestDialog
+          open={choosingSubject}
+          onOpenChange={setChoosingSubject}
+          defaultSubject={defaultSubject}
+          order={access.ordered}
+          onPick={(id) => void handleCreate(id)}
+        />
+      </PageTransition>
+    </>
   );
 }
 

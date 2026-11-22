@@ -17,7 +17,7 @@ export async function serverEntitlements(supabase: SupabaseClient | null, userId
     const [subscription, seat] = await Promise.all([loadSubscription(supabase, userId), loadSchoolSeat(supabase)]);
     return freeWhilePremiumHidden(entitlementsFor(subscription, new Date(), seat)); // HIDDEN_FOR_TESTING
   } catch (error) {
-    console.error("MathTest: could not load the subscription", error);
+    console.error("Rapido: could not load the subscription", error);
     return freeWhilePremiumHidden(entitlementsFor(null)); // HIDDEN_FOR_TESTING
   }
 }

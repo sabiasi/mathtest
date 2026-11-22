@@ -49,7 +49,7 @@ export async function POST(request: Request, context: RouteContext<"/api/billing
     return answer(200, { ok: true, result: result.result });
   } catch (error) {
     // 5xx: the provider will send the message again later.
-    console.error("MathTest: could not process a payment message", error);
+    console.error("Rapido: could not process a payment message", error);
     return answer(isMissingSql(error) ? 503 : 500, { error: "failed" });
   }
 }

@@ -1,5 +1,5 @@
 /**
- * Guests → accounts. Someone who tried MathTest without an account has
+ * Guests → accounts. Someone who tried Rapido without an account has
  * tests (and pictures) saved only in this browser. When they sign up or
  * sign in, those move into their account automatically: added to the
  * account, then removed from the browser once the account has them.

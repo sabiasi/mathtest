@@ -354,7 +354,7 @@ function createTestShape(id: string): Test {
     level: "",
     date: "",
     timeLimitMinutes: null,
-    instructions: "",
+    instructions: [],
     labelStyle: "georgian",
     questions: [],
     printOptions: { fontSize: "normal", showPoints: true, columns: 1, bilingual: false },

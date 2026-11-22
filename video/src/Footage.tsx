@@ -28,7 +28,7 @@ export function frameAt(scene: SceneData, src: number): string {
     if (f[mid].t <= src) lo = mid;
     else hi = mid - 1;
   }
-  return staticFile(`capture/${scene.id}/${f[lo].file}`);
+  return staticFile(`${scene.dir ?? "capture"}/${scene.id}/${f[lo].file}`);
 }
 
 /* ---------- camera ---------- */

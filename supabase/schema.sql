@@ -1,5 +1,5 @@
 -- =====================================================================
--- MathTest database setup.
+-- Rapido database setup.
 -- Paste ALL of this into Supabase → SQL Editor → "New query" → Run.
 -- Then do the same with supabase/plans.sql (the plans' limits).
 -- Running them twice is safe (they skip what already exists).

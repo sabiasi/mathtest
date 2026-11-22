@@ -594,7 +594,7 @@ math-field::part(virtual-keyboard-toggle) {
   transition: outline-color 0.2s;
 }
 
-/* Free plan: "Made with MathTest", quieter than the rest of the footer. */
+/* Free plan: "Made with Rapido", quieter than the rest of the footer. */
 .sheet-footer .sheet-brand {
   color: #888;
   white-space: nowrap;
@@ -1638,9 +1638,17 @@ math-field::part(virtual-keyboard-toggle) {
 }
 
 /* Answer table for all variants */
+/*
+ * Fixed layout: the table is exactly as wide as the page, whatever the
+ * answers are. Long text wraps inside its cell (even inside a long word),
+ * a long formula is made smaller (RichTextView), and when formulas still
+ * can't fit, the table is split into groups of variants (AnswerTable.tsx).
+ * The sizes here must match ANSWER_TABLE in AnswerTable.tsx.
+ */
 .answer-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 .answer-table th,
 .answer-table td {
@@ -1648,12 +1656,13 @@ math-field::part(virtual-keyboard-toggle) {
   padding: 1mm 2mm;
   text-align: center;
   vertical-align: middle;
+  overflow-wrap: anywhere;
 }
 .answer-table th {
   background: #eee;
   font-weight: 700;
 }
-.answer-table td:first-child {
+.answer-table :is(th, td):first-child {
   font-weight: 700;
   width: 14mm;
 }

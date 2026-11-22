@@ -10,7 +10,7 @@ const checkout: CheckoutRequest = {
   orderId: "mt-c-11111111-2222-3333-4444-555555555555",
   amountTetri: 1500,
   period: "month",
-  description: "MathTest Premium (1 mo.)",
+  description: "Rapido Premium (1 mo.)",
   email: "teacher@example.test",
   language: "ka",
   callbackUrl: "https://mathtest.example/api/billing/webhook/x",

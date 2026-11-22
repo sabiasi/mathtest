@@ -36,7 +36,7 @@ async function run(request: Request): Promise<Response> {
   try {
     return answer(200, { ok: true, ...(await runBillingJob(db, siteOrigin(request))) });
   } catch (error) {
-    console.error("MathTest: the billing job failed", error);
+    console.error("Rapido: the billing job failed", error);
     return answer(isMissingSql(error) ? 503 : 500, { error: "failed" });
   }
 }

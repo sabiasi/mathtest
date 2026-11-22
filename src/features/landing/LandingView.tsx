@@ -22,6 +22,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { LogoMark } from "@/components/Logo";
 import { buttonVariants } from "@/components/ui/button";
 import { useAuth } from "@/features/auth/AuthProvider";
+import { PromoVideoCard } from "@/features/promo/PromoVideoCard";
 import { SubjectIcon } from "@/features/subjects/SubjectPicker";
 import { useLanguage, useT } from "@/i18n/language";
 import { formatGel, monthlyEquivalent } from "@/lib/plans/pricing";
@@ -32,7 +33,7 @@ import { SUBJECTS } from "@/subjects/registry";
 import { HeroDemo } from "./HeroDemo";
 
 /**
- * The landing page: what MathTest does, "Get started" (sign up) and
+ * The landing page: what Rapido does, "Get started" (sign up) and
  * "Try without signing up" (guest mode: tests stay in the browser).
  */
 export function LandingView() {
@@ -71,6 +72,7 @@ export function LandingView() {
 
   return (
     <div className="relative overflow-x-clip">
+      <PromoVideoCard />
       {/* Behind the top of the page: a faint grid and two soft lights */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[52rem]">
         <div className="bg-grid absolute inset-0" />

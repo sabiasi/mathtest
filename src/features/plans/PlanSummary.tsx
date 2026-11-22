@@ -110,7 +110,7 @@ function usePlanPreviewSwitch() {
       subjects.refresh();
       toast.success(t(free ? "plan.previewStarted" : "plan.previewEnded"));
     } catch (error) {
-      console.error("MathTest: could not change the plan preview", error);
+      console.error("Rapido: could not change the plan preview", error);
       toast.error(t("plan.previewError"));
     } finally {
       setBusy(false);

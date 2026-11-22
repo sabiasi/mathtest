@@ -81,6 +81,6 @@ export function waitForImages(): Promise<unknown> {
 
 /** A file name that's safe on Windows and Mac: "ალგებრა — მოსწავლე.pdf". */
 export function pdfFileName(title: string, suffix: string, extension: "pdf" | "docx" = "pdf") {
-  const safe = title.replace(/[\\/:*?"<>|]+/g, " ").trim() || "MathTest";
+  const safe = title.replace(/[\\/:*?"<>|]+/g, " ").trim() || "Rapido";
   return `${safe} — ${suffix}.${extension}`;
 }

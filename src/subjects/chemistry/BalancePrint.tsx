@@ -1,13 +1,13 @@
 "use client";
 
-import { convertLatexToMarkup } from "mathlive";
+import { mathMarkup } from "@/features/math/RichTextView";
 import { Fragment } from "react";
 import { chemLatex, parseEquation, type Term } from "@/lib/chem";
 import type { BalanceQuestion } from "@/lib/storage/types";
 
 /** Drawn chemistry (mhchem through MathLive, as everywhere else). */
 function Chem({ code }: { code: string }) {
-  return <span className="math-static" dangerouslySetInnerHTML={{ __html: convertLatexToMarkup(chemLatex(code)) }} />;
+  return <span className="math-static" dangerouslySetInnerHTML={{ __html: mathMarkup(chemLatex(code)) }} />;
 }
 
 /** [ ] H2 + [ ] O2 → [ ] H2O — a box before every substance (filled on the key). */

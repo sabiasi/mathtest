@@ -499,7 +499,7 @@ export function PrintedVariant({
   label: string | null;
   version: PrintVersion;
   blankAfter: boolean;
-  /** Free plan: "Made with MathTest" in the footer of every page. */
+  /** Free plan: "Made with Rapido" in the footer of every page. */
   brandFooter: boolean;
   onReady: (key: string, ready: boolean) => void;
   /** Live paper view: the sheets drawn smaller (the invisible measuring copy keeps the real size). */

@@ -128,7 +128,7 @@ export async function newBrowserPage(): Promise<Page> {
     return await open();
   } catch (error) {
     if (error instanceof Error && error.message === "CHROME_NOT_FOUND") throw error;
-    console.error("MathTest: Chrome did not answer, starting it again", error);
+    console.error("Rapido: Chrome did not answer, starting it again", error);
     await dropBrowser();
     return open();
   }

@@ -1,5 +1,5 @@
 /**
- * The school subjects MathTest supports, as short ids ("math", "physics"…).
+ * The school subjects Rapido supports, as short ids ("math", "physics"…).
  *
  * This file is plain data (no React), so saved-data code like migrate.ts can
  * use it. The toolkits themselves (icons, toolbars…) are in registry.ts.

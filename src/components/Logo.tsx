@@ -1,4 +1,4 @@
-/** The MathTest mark: a square-root sign on an indigo tile. */
+/** The Rapido mark: a lightning bolt (= fast) on an indigo tile. */
 export function LogoMark({ className = "size-8" }: { className?: string }) {
   return (
     <svg viewBox="0 0 32 32" className={className} aria-hidden="true">
@@ -10,11 +10,10 @@ export function LogoMark({ className = "size-8" }: { className?: string }) {
       </defs>
       <rect width="32" height="32" rx="8" fill="url(#logo-tile)" />
       <path
-        d="M6 17.5l3-1.5 4 7.5 6-15.5h7"
-        fill="none"
+        d="M18.5 4.5 8 18h7l-2 9.5L24 14h-7l1.5-9.5z"
+        fill="#fff"
         stroke="#fff"
-        strokeWidth="2.6"
-        strokeLinecap="round"
+        strokeWidth="1.2"
         strokeLinejoin="round"
       />
     </svg>

@@ -24,7 +24,7 @@ export function RichTextView({ value, className = "" }: { value: RichText; class
         className="math-static"
         // convertLatexToMarkup turns LaTeX into HTML. It's our own saved
         // data and MathLive escapes text, so inserting it is safe here.
-        dangerouslySetInnerHTML={{ __html: convertLatexToMarkup(segment.latex) }}
+        dangerouslySetInnerHTML={{ __html: mathMarkup(segment.latex) }}
       />
     );
   // On paper a formula can't wrap: one that is wider than its question is made smaller until it fits.
@@ -56,22 +56,44 @@ export function RichTextView({ value, className = "" }: { value: RichText; class
   );
 }
 
+/**
+ * LaTeX → HTML, remembered. Converting is slow (chemistry formulas most of
+ * all), and the print page draws the same formulas many times: every
+ * variant, its invisible measuring copy, the answer table — and again on
+ * every re-render. The same LaTeX always gives the same HTML, so each one is
+ * converted once. Kept small: the oldest entries are forgotten first.
+ */
+const markupCache = new Map<string, string>();
+const MARKUP_CACHE_SIZE = 2000;
+export function mathMarkup(latex: string): string {
+  let markup = markupCache.get(latex);
+  if (markup === undefined) {
+    markup = convertLatexToMarkup(latex);
+    if (markupCache.size >= MARKUP_CACHE_SIZE) markupCache.delete(markupCache.keys().next().value!);
+    markupCache.set(latex, markup);
+  }
+  return markup;
+}
+
 /** A formula is never made smaller than this share of its normal size (it must stay readable). */
-const SMALLEST_FORMULA = 0.55;
+export const SMALLEST_FORMULA = 0.55;
 
 /**
- * Printed questions only (inside `.print-question`): a formula that sticks
- * out past the right edge of its question — a long answer on the key, or any
- * long formula on a two-column paper — gets a smaller font so that it ends at
+ * Printed questions (inside `.print-question`) and cells of the answer table
+ * (`.answer-table td`): a formula that sticks out past the right edge — a
+ * long answer on the key, any long formula on a two-column paper, a long
+ * answer in a narrow variant column — gets a smaller font so that it ends at
  * the edge instead of running into the next column or off the page.
  * (Text wraps by itself; a formula is one unbreakable piece.)
  */
 function fitFormulas(root: HTMLElement) {
-  const question = root.closest(".print-question");
-  if (!question) return;
+  const container = root.closest<HTMLElement>(".print-question, .answer-table td");
+  if (!container) return;
+  // A table cell has padding: the formula must end where the cell's text ends.
+  const padding = container.tagName === "TD" ? parseFloat(getComputedStyle(container).paddingRight) || 0 : 0;
   for (const formula of root.querySelectorAll<HTMLElement>(":scope > .math-static, :scope > .rt-box > .math-static")) {
     formula.style.fontSize = ""; // measure at the normal size
-    const edge = question.getBoundingClientRect().right;
+    const edge = container.getBoundingClientRect().right - padding;
     const box = formula.getBoundingClientRect();
     if (box.width === 0 || box.right <= edge + 0.5) continue;
     const share = Math.max(SMALLEST_FORMULA, (edge - box.left) / box.width);

@@ -45,7 +45,7 @@ export async function loadShares(userId: string, email: string): Promise<void> {
     });
   } catch (error) {
     if (state.userId !== userId) return;
-    console.error("MathTest: could not load the shares", error);
+    console.error("Rapido: could not load the shares", error);
     set({ status: "error" });
   }
 }

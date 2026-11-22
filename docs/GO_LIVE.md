@@ -75,7 +75,7 @@ in `.env`, never with a `NEXT_PUBLIC_` name.
 | `BOG_TEST_MODE` | `1` while the BoG credentials are test ones |
 | `ANTHROPIC_API_KEY` | console.anthropic.com → API keys. Empty = mock mode (sample questions only) |
 | `RESEND_API_KEY` | Resend → API Keys |
-| `EMAIL_FROM` | e.g. `MathTest <hello@mathtest.ge>` (the domain must be verified in Resend: add the DNS records Resend shows — SPF, DKIM — at your domain registrar) |
+| `EMAIL_FROM` | e.g. `Rapido <hello@mathtest.ge>` (the domain must be verified in Resend: add the DNS records Resend shows — SPF, DKIM — at your domain registrar) |
 
 Do **not** set `MATHTEST_SANDBOX` / `NEXT_PUBLIC_MATHTEST_SANDBOX` on the real site.
 

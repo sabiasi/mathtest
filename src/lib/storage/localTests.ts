@@ -1,6 +1,6 @@
 /**
  * Tests saved in THIS browser (localStorage), for guests: visitors who try
- * MathTest without an account. When they sign up or sign in, these tests
+ * Rapido without an account. When they sign up or sign in, these tests
  * are moved into the account (see lib/onboarding.ts) and removed from here.
  *
  * It's a "backend" like the cloud one (supabaseTests.ts), so the repository

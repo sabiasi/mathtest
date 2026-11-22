@@ -3,7 +3,7 @@
  * "runs" (pieces of text, formulas, pictures) and tables.
  *
  * A .docx is a ZIP of XML files; the main one is word/document.xml. Only
- * what MathTest needs is supported: A4, a Georgian-capable font, bold /
+ * what Rapido needs is supported: A4, a Georgian-capable font, bold /
  * italic / underline / boxed text, sub- and superscript, Word equations,
  * pictures, writing lines, simple tables and page breaks.
  */
@@ -165,7 +165,7 @@ export function buildDocx({ title, blocks, language = "ka-GE" }: { title: string
     `</Relationships>`;
   const core =
     `${XML}<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/">` +
-    `<dc:title>${escapeXml(title)}</dc:title><dc:creator>MathTest</dc:creator></cp:coreProperties>`;
+    `<dc:title>${escapeXml(title)}</dc:title><dc:creator>Rapido</dc:creator></cp:coreProperties>`;
 
   const text = (name: string, content: string): ZipFile => ({ name, data: new TextEncoder().encode(content) });
   return zip([

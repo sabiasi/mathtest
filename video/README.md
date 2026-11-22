@@ -72,3 +72,43 @@ src/index.ts` prints the length without rendering. If a change makes it too long
   needs a Remotion company licence.
 - A voiceover can be added later in any video editor, without re-editing. Every scene
   starts with a title card and holds on each result.
+
+## Promo video
+
+A second, silent video in the same project: **"How Rapido works"** (4:07, calm pace, no captions, no
+sound; subtitles and a voice are added later). Plan and scenes: [promo-storyboard.md](promo-storyboard.md).
+The landing page shows it in a small corner card (`src/features/promo/` in the app).
+
+It shows a made-up signed-in teacher (`capture/account.mjs`): everything the page asks
+Supabase is answered inside the recording browser, so no real account or data is used.
+
+```bash
+# 1. Build and start the site (project root). Production, not `npm run dev`.
+npm run build
+GUEST_TRIALS_PER_IP_PER_DAY=100000 npx next start -p 3210
+
+# 2. In video/
+npm run capture:promo              # all 10 scenes (about 4 minutes)
+npm run capture:promo -- chemistry # or only some scenes
+npm run stills:promo               # check pictures → out/promo-stills/
+npm run render:promo               # → ../output/rapido-promo.mp4, then the website copy:
+                                   #   ../public/promo/rapido-promo.mp4 + .jpg (npm run web:promo)
+```
+
+**Checking changes quickly** (no need to wait for the full render):
+
+- `npm run studio` opens the video in the browser: drag along the timeline and play it. Changes to the
+  title cards, intro / outro, speed or highlights show up within seconds. Nothing is rendered.
+- `npm run draft:promo` renders a quick, smaller copy (960×540, lower quality, all processor cores) to
+  `../output/rapido-promo-draft.mp4`. For checking only: it does NOT update the website copy.
+- `npm run render:promo` only for the final version (full quality + the website copy).
+
+| What | File |
+| --- | --- |
+| Scene steps, title texts, subject colour of a title card | `capture/promo-scenes.mjs` |
+| The made-up teacher, the "choose an account" card | `capture/account.mjs` |
+| Speed, intro / title / outro lengths | `src/promo/timeline.ts` |
+| Intro, title cards, outro | `src/promo/PromoCards.tsx` |
+
+The "My tests" scene uses tests made from the samples; they are kept in `out/promo-seed.json`
+(delete it to make them again). The frames go to `public/promo/` (not committed).

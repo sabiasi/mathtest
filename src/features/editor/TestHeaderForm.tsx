@@ -4,7 +4,7 @@ import { Sparkles } from "lucide-react";
 import { DateField } from "@/components/DateField";
 import { Field, FieldLabel, SegmentedControl } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { RichTextInput } from "@/features/math/RichTextInput";
 import { SubjectIcon } from "@/features/subjects/SubjectPicker";
 import { useT } from "@/i18n/language";
 import { CEFR_LEVELS, type LabelStyle, type Test } from "@/lib/storage/types";
@@ -106,14 +106,16 @@ export function TestHeaderForm({
           />
         </Field>
 
-        <Field label={t("header.instructions")} className="sm:col-span-2">
-          <Textarea
-            rows={3}
+        {/* A rich-text box like a question's: formulas and the subject's symbol toolbar work here too. */}
+        <div className="sm:col-span-2">
+          <FieldLabel>{t("header.instructions")}</FieldLabel>
+          <RichTextInput
             value={test.instructions}
+            ariaLabel={t("header.instructions")}
             placeholder={t("header.instructionsPlaceholder")}
-            onChange={(e) => onChange({ instructions: e.target.value })}
+            onChange={(instructions) => onChange({ instructions })}
           />
-        </Field>
+        </div>
 
         <div className="sm:col-span-2">
           <FieldLabel>{t("header.labelStyle")}</FieldLabel>

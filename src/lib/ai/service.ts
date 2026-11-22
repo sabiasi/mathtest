@@ -53,7 +53,7 @@ export async function usageResponse(request: Request): Promise<Response> {
     const row = await who.db.rpc<Record<string, unknown>>("ai_status", { secret: who.secret, uid: who.db.user.id });
     return Response.json({ ...usageOf(row), mock: !aiConfigured() }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    if (!isMissingSql(error)) console.error("MathTest: could not read the AI usage", error);
+    if (!isMissingSql(error)) console.error("Rapido: could not read the AI usage", error);
     return refuse("notReady");
   }
 }
@@ -127,19 +127,19 @@ export async function generateResponse(request: Request): Promise<Response> {
     } catch (error) {
       const { code, retryAfter } = errorCode(error);
       // Never log the request or the answer: only what kind of problem it was.
-      console.error(`MathTest: the AI generator failed (${code})`, error instanceof Error ? error.name : "");
+      console.error(`Rapido: the AI generator failed (${code})`, error instanceof Error ? error.name : "");
       return refuse(code, { usage: await finish(false) }, retryAfter);
     }
 
     const { questions, dropped } = convertItems(made.items, { subject: wanted.subject, language: wanted.language, allowed: wanted.types, limit: wanted.count });
-    if (dropped.length > 0) console.info(`MathTest: AI generator left out ${dropped.length} item(s): ${dropped.join("; ")}`);
+    if (dropped.length > 0) console.info(`Rapido: AI generator left out ${dropped.length} item(s): ${dropped.join("; ")}`);
     if (questions.length === 0) return refuse("empty", { usage: await finish(false, made.inputTokens, made.outputTokens, 0) });
     usage = await finish(true, made.inputTokens, made.outputTokens, questions.length);
     const answer: GenerateAnswer = { questions, usage, usageId: usageId!, mock, leftOut: dropped.length };
     return Response.json(answer);
   } catch (error) {
     if (isMissingSql(error)) return refuse("notReady");
-    console.error("MathTest: the AI generator failed", error instanceof Error ? error.name : "");
+    console.error("Rapido: the AI generator failed", error instanceof Error ? error.name : "");
     return refuse("failed");
   }
 }

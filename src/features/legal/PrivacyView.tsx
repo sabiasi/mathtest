@@ -17,7 +17,7 @@ const SECTIONS: [MessageKey, MessageKey][] = [
   ["privacy.aiTitle", "privacy.ai"],
 ];
 
-/** /privacy: a short, plain description of what MathTest stores, including the free-trial cookie. */
+/** /privacy: a short, plain description of what Rapido stores, including the free-trial cookie. */
 export function PrivacyView() {
   const t = useT();
   return (

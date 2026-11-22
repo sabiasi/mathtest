@@ -124,7 +124,7 @@ export async function POST(request: Request) {
     return new Response(Buffer.from(file), {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(`${test.title || "MathTest"}.docx`)}`,
+        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(`${test.title || "Rapido"}.docx`)}`,
         "Cache-Control": "private, no-store",
         // The page tells the teacher when some questions couldn't be turned into pictures.
         "X-Docx-Complete": complete ? "1" : "0",

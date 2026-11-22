@@ -97,7 +97,11 @@ export function PrintHeader({
         )}
       </div>
 
-      {test.instructions && <p className="print-instructions">{fix(test.instructions)}</p>}
+      {!isRichTextEmpty(test.instructions) && (
+        <p className="print-instructions">
+          <RichTextView value={test.instructions} />
+        </p>
+      )}
     </header>
   );
 }

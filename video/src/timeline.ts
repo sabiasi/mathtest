@@ -28,6 +28,12 @@ export type Segment = { t0: number; t1: number; rate: number };
 export type SceneData = {
   id: string;
   title: string;
+  /** Folder of the frames under public/ ("capture" = the tour, "promo" = the promo video). */
+  dir?: string;
+  /** Promo video: the subject whose colour the title card takes. */
+  accent?: string;
+  /** Playback speed of this scene's footage (default FOOTAGE_SPEED). */
+  speed?: number;
   duration: number;
   frames: { t: number; file: string }[];
   viewport: { width: number; height: number };
@@ -50,6 +56,8 @@ export const SCENES: SceneData[] = capture.order.map((id) => capture.scenes[id])
 
 type Piece = { src0: number; src1: number; out0: number; rate: number };
 
+const speedOf = (scene: SceneData) => scene.speed ?? FOOTAGE_SPEED;
+
 /** The recording cut into pieces with their playback rate (0 = cut out). */
 function pieces(scene: SceneData): Piece[] {
   const marks = [...scene.skips].sort((a, b) => a.t0 - b.t0);
@@ -59,7 +67,7 @@ function pieces(scene: SceneData): Piece[] {
   const push = (src1: number, rate: number) => {
     if (src1 <= src) return;
     result.push({ src0: src, src1, out0: out, rate });
-    out += rate === 0 ? 0 : (src1 - src) / (rate * FOOTAGE_SPEED);
+    out += rate === 0 ? 0 : (src1 - src) / (rate * speedOf(scene));
     src = src1;
   };
   for (const m of marks) {
@@ -70,24 +78,25 @@ function pieces(scene: SceneData): Piece[] {
   return result;
 }
 
-const cache = new Map<string, Piece[]>();
+// Keyed by the scene object: the tour and the promo video both have scenes called "print".
+const cache = new WeakMap<SceneData, Piece[]>();
 const piecesOf = (scene: SceneData) => {
-  if (!cache.has(scene.id)) cache.set(scene.id, pieces(scene));
-  return cache.get(scene.id)!;
+  if (!cache.has(scene)) cache.set(scene, pieces(scene));
+  return cache.get(scene)!;
 };
 
 /** How long a scene's footage lasts in the video (seconds). */
 export function footageLength(scene: SceneData): number {
   const last = piecesOf(scene).at(-1)!;
-  return last.out0 + (last.rate === 0 ? 0 : (last.src1 - last.src0) / (last.rate * FOOTAGE_SPEED));
+  return last.out0 + (last.rate === 0 ? 0 : (last.src1 - last.src0) / (last.rate * speedOf(scene)));
 }
 
 /** Video time (seconds from the footage start) → source time. */
 export function toSource(scene: SceneData, out: number): number {
   const ps = piecesOf(scene).filter((p) => p.rate !== 0);
   for (const p of ps) {
-    const len = (p.src1 - p.src0) / (p.rate * FOOTAGE_SPEED);
-    if (out <= p.out0 + len) return p.src0 + Math.max(0, out - p.out0) * p.rate * FOOTAGE_SPEED;
+    const len = (p.src1 - p.src0) / (p.rate * speedOf(scene));
+    if (out <= p.out0 + len) return p.src0 + Math.max(0, out - p.out0) * p.rate * speedOf(scene);
   }
   return scene.duration;
 }
@@ -95,7 +104,7 @@ export function toSource(scene: SceneData, out: number): number {
 /** How many video seconds one source second lasts at this moment (for speed-independent effects). */
 export function rateAt(scene: SceneData, src: number): number {
   const p = piecesOf(scene).find((x) => src >= x.src0 && src < x.src1);
-  return (p && p.rate ? p.rate : 1) * FOOTAGE_SPEED;
+  return (p && p.rate ? p.rate : 1) * speedOf(scene);
 }
 
 /* ---------- the whole video ---------- */

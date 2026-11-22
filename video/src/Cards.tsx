@@ -5,7 +5,7 @@ import { CameraView } from "./Footage";
 import { colors, font } from "./theme";
 import { FADE, FPS, HEIGHT, RECAP, SCENES, TITLE, WIDTH } from "./timeline";
 
-/** The MathTest mark (copied from the app's src/components/Logo.tsx). */
+/** The Rapido mark (copied from the app's src/components/Logo.tsx). */
 export function Logo({ size }: { size: number }) {
   return (
     <svg viewBox="0 0 32 32" width={size} height={size}>
@@ -16,13 +16,13 @@ export function Logo({ size }: { size: number }) {
         </linearGradient>
       </defs>
       <rect width="32" height="32" rx="8" fill="url(#logo-tile)" />
-      <path d="M6 17.5l3-1.5 4 7.5 6-15.5h7" fill="none" stroke="#fff" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M18.5 4.5 8 18h7l-2 9.5L24 14h-7l1.5-9.5z" fill="#fff" stroke="#fff" strokeWidth="1.2" strokeLinejoin="round" />
     </svg>
   );
 }
 
 /** The site's soft backdrop: grey page with an indigo glow at the top. */
-function Backdrop() {
+export function Backdrop() {
   return (
     <AbsoluteFill
       style={{
@@ -50,7 +50,7 @@ export function Intro() {
           <Logo size={190} />
         </div>
         <div style={{ fontSize: 120, fontWeight: 700, color: colors.text, letterSpacing: -2, opacity: line(10), transform: `translateY(${(1 - line(10)) * 20}px)` }}>
-          MathTest
+          Rapido
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 20, opacity: line(22), transform: `translateY(${(1 - line(22)) * 20}px)` }}>
           <span style={{ fontSize: 50, fontWeight: 600, color: colors.physics, backgroundColor: colors.physicsSoft, padding: "8px 28px", borderRadius: 999 }}>

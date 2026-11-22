@@ -15,7 +15,7 @@ export function AppHeader() {
           className="flex items-center gap-2.5 rounded-lg text-[17px] font-bold tracking-tight text-foreground"
         >
           <LogoMark className="size-7" />
-          MathTest
+          Rapido
         </Link>
         {/* The nav reads the current address, which Next.js only knows in the browser. */}
         <Suspense fallback={<HeaderNavFallback />}>

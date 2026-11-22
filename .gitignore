@@ -50,6 +50,7 @@ next-env.d.ts
 /output
 /video/node_modules
 /video/public/capture
+/video/public/promo
 /video/out
 
 # tutorial videos: spoken sentences made by Azure (made again from the scripts when needed)

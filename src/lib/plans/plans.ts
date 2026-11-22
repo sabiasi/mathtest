@@ -18,9 +18,9 @@
 
 import { HIDDEN_FOR_TESTING as HIDDEN } from "@/lib/hiddenForTesting";
 
-/** Shown in the small footer on Free PDFs: "Made with MathTest". */
+/** Shown in the small footer on Free PDFs: "Made with Rapido". */
 export const BRAND = {
-  name: "MathTest",
+  name: "Rapido",
   /** The site's address for the footer, e.g. "mathtest.ge" — empty until there is a domain. */
   website: "",
 };
@@ -31,7 +31,7 @@ export type PlanId = (typeof PLAN_IDS)[number];
 /** On/off features. Limits (numbers) are in PlanLimits below. */
 export const FEATURES = [
   "multipleSubjects", // more than one active teaching subject
-  "noPdfFooter", // PDFs without "Made with MathTest"
+  "noPdfFooter", // PDFs without "Made with Rapido"
   "customHeader", // school logo and own header on the paper
   "allTemplates",
   "questionBank", // personal question bank

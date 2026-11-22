@@ -26,6 +26,15 @@ describe("normalizeTest", () => {
     });
   });
 
+  it("turns old plain-text instructions into rich text (line breaks kept) and keeps formulas", () => {
+    expect(normalizeTest({ id: "t", instructions: "წაიკითხეთ.\nკალკულატორი არ შეიძლება." })?.instructions).toEqual([
+      { type: "text", text: "წაიკითხეთ.\nკალკულატორი არ შეიძლება." },
+    ]);
+    const rich = [{ type: "text", text: "აიღეთ " }, { type: "math", latex: "g=9{,}8" }];
+    expect(normalizeTest({ id: "t", instructions: rich })?.instructions).toEqual(rich);
+    expect(normalizeTest({ id: "t" })?.instructions).toEqual([]);
+  });
+
   it("keeps Given / Find / Solution problems and repairs their lines", () => {
     const test = normalizeTest({ id: "t", questions: [{ id: "q", type: "given-find", text: "?", lines: 1, given: "m = 2" }] });
     expect(test?.questions[0]).toMatchObject({ type: "given-find", lines: 4, given: [{ type: "text", text: "m = 2" }], find: [], solution: [], answer: [] });

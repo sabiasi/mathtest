@@ -14,7 +14,7 @@ function mc(id: string, lock = false): MultipleChoiceQuestion {
 function makeTest(questions: Question[], variants: Partial<Test["variants"]> = {}): Test {
   return {
     id: "t", schoolName: "", title: "", subjectId: "math", subject: "", grade: "", level: "", date: "", timeLimitMinutes: null,
-    instructions: "", labelStyle: "latin", questions,
+    instructions: [], labelStyle: "latin", questions,
     printOptions: { fontSize: "normal", showPoints: true, columns: 1, bilingual: false },
     variants: { count: 4, shuffleQuestions: true, shuffleOptions: true, seed: 42, duplex: false, ...variants },
     folder: "", createdAt: "", updatedAt: "",

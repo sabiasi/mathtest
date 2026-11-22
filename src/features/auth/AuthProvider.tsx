@@ -90,7 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       stopSync(); // forget the guest tests in memory (they're moved below)
       setImageUser(next.id);
       const profileLoad = loadProfile(supabase, next.id, displayName(next, null)).catch((error) => {
-        console.error("MathTest: could not load the profile", error);
+        console.error("Rapido: could not load the profile", error);
         return null;
       });
       setPictureFinder((imageId) => findSharedPicture(supabase, next.id, imageId));
@@ -179,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfile((p) => (p ? { ...p, ...changes } : p));
         return true;
       } catch (error) {
-        console.error("MathTest: could not save the profile", error);
+        console.error("Rapido: could not save the profile", error);
         return false;
       }
     },

@@ -24,6 +24,8 @@ export class Director {
     this.writes = [];
     this.mouse = { x: VIEWPORT.width * 0.62, y: VIEWPORT.height * 0.55 };
     this.events = { mouse: [], clicks: [], highlights: [], captions: [], camera: [], skips: [], marks: {} };
+    /** How long the cursor takes to travel to the next thing (seconds). */
+    this.moveSeconds = 0.45;
   }
 
   now() {
@@ -74,7 +76,7 @@ export class Director {
   }
 
   /** Moves the visible cursor smoothly (and the real mouse, so hover effects happen). */
-  async moveTo(x, y, seconds = 0.45) {
+  async moveTo(x, y, seconds = this.moveSeconds) {
     // Clock-based: each step takes as long as Chrome needs, the move still lasts `seconds`.
     const from = { ...this.mouse };
     const start = this.now();

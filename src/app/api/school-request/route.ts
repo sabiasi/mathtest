@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       await sandboxSchoolRequest(schoolRequest, db?.user?.id ?? null);
       return reply(200, { ok: true });
     } catch (error) {
-      console.error("MathTest: could not save a school request (sandbox)", error);
+      console.error("Rapido: could not save a school request (sandbox)", error);
       return reply(500, { error: "failed" });
     }
   }
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
   const supabase = await createSupabaseServer();
   const { error } = await supabase.from("school_requests").insert(schoolRequest);
   if (error) {
-    console.error("MathTest: could not save a school request", error);
+    console.error("Rapido: could not save a school request", error);
     return reply(500, { error: "failed" });
   }
   return reply(200, { ok: true });

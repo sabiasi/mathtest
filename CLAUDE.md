@@ -1,12 +1,12 @@
 @AGENTS.md
 
-# MathTest
+# Rapido
 
 A web app for school teachers in Georgia (the country) to create tests,
 quizzes and exams in **any subject** (Mathematics, Physics, Chemistry, Biology,
 History, Georgian Language & Literature, English as a foreign language; more later), then print them or export them as
 PDF to hand out in class. Today teachers use Microsoft Word, where typing math
-(and other special content) is painful. MathTest must make it fast and easy.
+(and other special content) is painful. Rapido must make it fast and easy.
 Visitors can try everything without an account (guest mode).
 
 ## Users
@@ -258,6 +258,12 @@ Visitors can try everything without an account (guest mode).
   tests unchanged). `withoutHiddenTypes(test)` shows samples (`sampleFor`; the
   whole file = `fullSampleFor`, used by the unit tests) and templates without
   them: short → open "on one line", a hidden listening takes its questions along.
+- **Rapido + rich instructions (2026-11-22)**: the site is called Rapido (logo:
+  lightning bolt; internal keys like `mathtest:*` / `__MATHTEST_*` keep their old
+  names so saved work isn't lost). `test.instructions` is `RichText` (was a string;
+  `normalizeTest` converts old ones): edited with `RichTextInput` in the header
+  form (the subject toolbar works there), printed with `RichTextView`, Word export
+  via `richTextRuns`. The footer no longer links to /refund (the page still exists).
 - [x] **How-to videos (2026-11-21, first one)**: "▶ როგორ გამოვიყენო?" on a
   question card opens a short silent video of that type being made
   (`features/tutorials/TutorialButton`, window with `<video>` autoplay muted).
@@ -269,6 +275,18 @@ Visitors can try everything without an account (guest mode).
   top bar and a card above "add a question" (`GuideButton`). Chapters
   (`<name>.<lang>.json`, written by the recorder's `d.chapter(title)`) are
   buttons under the video (`TutorialDialog`: jump, the playing one highlighted).
+- [x] **Promo video + corner card (2026-11-22)**: a silent 4:07 "How Rapido works" video (calm pace: `PACE` in promo-scenes.mjs, `PROMO_SPEED` 1.1)
+  (no captions; the owner adds subtitles / voice later), made in `video/` like the physics tour
+  (`npm run capture:promo` → `render:promo`, see video/README.md + video/promo-storyboard.md):
+  Google sign-up (made-up teacher + our own plain account picker, `video/capture/account.mjs`,
+  nothing reaches Supabase), subject choice, My tests, math formulas + symbol tabs, geometry,
+  circuit + forces, chemistry + periodic table, English crossword, paper view, variants / key /
+  PDF. Website copy `public/promo/rapido-promo.mp4` + `.jpg`. Landing page AND My tests (outside
+  HomeView's PageTransition, whose transform would move a fixed card): `PromoVideoCard`
+  (`src/features/promo/`): bottom-right card 1.5 s after the page opens, on EVERY visit (owner's
+  choice; nothing is remembered), leaves after 10 s (paused on hover / focus; a progress line
+  shows the time), × closes it, click → video window. Compact row on phones. The video
+  recorder hides it with CSS (`noPromoCard`). `e2e/promo-video.spec.ts`. vitest excludes `video/**`.
 - [ ] **Biology toolkit** (in phases; stop for review after each):
   - [x] **B1 — subject + "Label the diagram"**: subject id `biology` (Dna
     icon, green `--subject-biology`, Georgian typography, `chemistry: true`).
@@ -329,7 +347,7 @@ Visitors can try everything without an account (guest mode).
     `subscriptions` table (read-only for teachers), trial on sign-up and
     for accounts that existed before; `plan_limits` / `plan_settings`
     filled from the generated `supabase/plans.sql`; picture space checked by
-    the database; PDF route caps variants and adds "Made with MathTest" on
+    the database; PDF route caps variants and adds "Made with Rapido" on
     Free; `/pricing` (monthly / yearly / school year, cards, comparison,
     FAQ, School request form → `school_requests`); `usePlan()`,
     `PremiumBadge`, `useUpgrade()` dialog; Settings → "My plan"; account
@@ -818,6 +836,13 @@ src/
   is inside it.
 - `.answer-table` and print blocks also exist as invisible measuring copies:
   browser tests select `.sheet …`.
+- Formulas on screen go through `mathMarkup(latex)` (RichTextView.tsx), a
+  cache around `convertLatexToMarkup`: the print page draws the same formulas
+  many times (variants, measuring copies, answer table, every re-render);
+  without it "all variants" took 10–28 s to appear (chemistry worst).
+- The "all variants" answer table has `table-layout: fixed` (never wider than
+  the page); formulas shrink in its cells (`fitFormulas`), and when the widest
+  one still can't fit, `variantsPerTable` splits it into groups (A–C, D–F).
 - A `display: none` input can't take focus: show it first (chemistry chips
   add `.is-editing` in `openChem` before `focus()`).
 - TipTap's `chain().focus()` focuses a frame LATER when the editor isn't

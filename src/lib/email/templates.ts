@@ -1,5 +1,5 @@
 /**
- * The emails MathTest sends, in Georgian and English.
+ * The emails Rapido sends, in Georgian and English.
  *
  * Email text lives here (not in i18n/dictionaries.ts): it is used only on the
  * server and would otherwise be downloaded by every visitor's browser.
@@ -43,7 +43,7 @@ type EmailTexts = Record<EmailKind, Text>;
 
 const ka: EmailTexts = {
   welcome: {
-    subject: "კეთილი იყოს თქვენი მობრძანება MathTest-ში",
+    subject: "კეთილი იყოს თქვენი მობრძანება Rapido-ში",
     heading: "გამარჯობა!",
     body: [
       "თქვენი ანგარიში მზადაა. შეგიძლიათ შექმნათ ტესტები, დაბეჭდოთ ან PDF-ად გადმოწეროთ.",
@@ -109,16 +109,16 @@ const ka: EmailTexts = {
     button: "ჩემი გეგმა",
   },
   schoolInvite: {
-    subject: "{school} გიწვევთ MathTest-ში",
+    subject: "{school} გიწვევთ Rapido-ში",
     heading: "მოწვევა სკოლის გეგმაში",
-    body: ["{inviter} გიწვევთ, შეუერთდეთ სკოლას „{school}“ MathTest-ში. სკოლის გეგმით ყველა Premium შესაძლებლობა თქვენთვის უფასოა.", "მოწვევის მისაღებად გახსენით ბმული და შედით ამ ელფოსტით."],
+    body: ["{inviter} გიწვევთ, შეუერთდეთ სკოლას „{school}“ Rapido-ში. სკოლის გეგმით ყველა Premium შესაძლებლობა თქვენთვის უფასოა.", "მოწვევის მისაღებად გახსენით ბმული და შედით ამ ელფოსტით."],
     button: "მოწვევის მიღება",
   },
 };
 
 const en: EmailTexts = {
   welcome: {
-    subject: "Welcome to MathTest",
+    subject: "Welcome to Rapido",
     heading: "Hello!",
     body: [
       "Your account is ready. You can create tests, print them or download them as PDF.",
@@ -172,17 +172,17 @@ const en: EmailTexts = {
     button: "My plan",
   },
   schoolInvite: {
-    subject: "{school} invites you to MathTest",
+    subject: "{school} invites you to Rapido",
     heading: "An invitation to a School plan",
-    body: ["{inviter} invites you to join “{school}” on MathTest. With the School plan every Premium feature is free for you.", "To accept, open the link and sign in with this email address."],
+    body: ["{inviter} invites you to join “{school}” on Rapido. With the School plan every Premium feature is free for you.", "To accept, open the link and sign in with this email address."],
     button: "Accept the invitation",
   },
 };
 
 const TEXTS: Record<Language, EmailTexts> = { ka, en };
 const FOOTER: Record<Language, string> = {
-  ka: "ეს წერილი გამოგზავნილია ავტომატურად თქვენი MathTest ანგარიშის გამო.",
-  en: "This email was sent automatically because of your MathTest account.",
+  ka: "ეს წერილი გამოგზავნილია ავტომატურად თქვენი Rapido ანგარიშის გამო.",
+  en: "This email was sent automatically because of your Rapido account.",
 };
 
 /** Where each email's button leads when no special link is given. */

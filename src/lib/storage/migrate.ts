@@ -1,7 +1,7 @@
 /**
  * "Migration": upgrading saved data to the current shape.
  *
- * Tests saved by an older version of MathTest may be missing fields that
+ * Tests saved by an older version of Rapido may be missing fields that
  * were added later (e.g. `schoolName`). Instead of crashing, every test we
  * read from storage passes through `normalizeTest`, which fills in safe
  * defaults. Unknown or broken questions are dropped rather than crashing.
@@ -612,7 +612,7 @@ export function normalizeTest(raw: unknown): Test | null {
       typeof raw.timeLimitMinutes === "number" && raw.timeLimitMinutes > 0
         ? raw.timeLimitMinutes
         : null,
-    instructions: str(raw.instructions),
+    instructions: normalizeRichText(raw.instructions),
     labelStyle,
     questions,
     printOptions: normalizePrintOptions(raw.printOptions),

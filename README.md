@@ -1,4 +1,4 @@
-# MathTest
+# Rapido
 
 A Georgian-first test and exam builder for school teachers, with English UI
 support. Eight subject toolkits include rich text, formulas, diagrams, images,

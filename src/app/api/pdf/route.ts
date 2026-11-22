@@ -13,7 +13,7 @@
  * gets the test handed over, so no sign-in cookie ever leaves the browser.
  *
  * Plans: what the teacher's plan allows (number of variants, the "Made with
- * MathTest" footer on Free) is worked out HERE from the database and handed
+ * Rapido" footer on Free) is worked out HERE from the database and handed
  * to that Chrome too, so it can't be changed from the browser.
  */
 import { LANGUAGES, type Language } from "@/i18n/dictionaries";
@@ -171,7 +171,7 @@ async function makePdf(
     return new Response(Buffer.from(pdf), {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(`${test.title || "MathTest"}.pdf`)}`,
+        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(`${test.title || "Rapido"}.pdf`)}`,
       },
     });
   } catch (error) {
