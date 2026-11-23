@@ -9,30 +9,35 @@
 export const PROMO_VIDEO_SRC = "/promo/rapido-promo.mp4";
 export const PROMO_POSTER_SRC = "/promo/rapido-promo.jpg";
 
-/** How long the card stays in the corner (seconds; paused while the mouse is on it). */
+/** How long a corner card stays in the corner (seconds; paused while the mouse is on it). */
 export const PROMO_VISIBLE_SECONDS = 10;
-/** Waits this long after the page opens, so the page itself is seen first. */
+/** A corner card waits this long after the page opens, so the page itself is seen first. */
 export const PROMO_DELAY_MS = 1500;
 
 /**
- * The corner card comes up ONCE per visit (= per browser tab: sessionStorage forgets it when the tab
- * closes). Moving between pages or reloading doesn't bring it back; a new visit does. The video
- * buttons (PromoVideoButton) open the video at any time.
+ * A corner card (CornerVideoCard) comes up ONCE per visit (= per browser tab: sessionStorage forgets it
+ * when the tab closes). Moving between pages or reloading doesn't bring it back; a new visit does. The
+ * video buttons (PromoVideoButton, the editor's guide button) open the video at any time.
  */
-const PROMO_SHOWN_KEY = "mathtest:promo-card-shown";
+export const promoCardShownKey = "mathtest:promo-card-shown";
+/** Set by the video recorders (tutorials/recorder.ts): no corner card in a recording. */
+export const VIDEO_CARDS_OFF_KEY = "mathtest:video-cards-off";
 
-export function promoCardShownThisVisit(): boolean {
+export function cardShownThisVisit(key: string): boolean {
   try {
-    return window.sessionStorage.getItem(PROMO_SHOWN_KEY) === "1";
+    return window.sessionStorage.getItem(key) === "1" || window.sessionStorage.getItem(VIDEO_CARDS_OFF_KEY) === "1";
   } catch {
     return false; // storage blocked: show it (nothing to remember with)
   }
 }
 
-export function rememberPromoCardShown() {
+export function rememberCardShown(key: string) {
   try {
-    window.sessionStorage.setItem(PROMO_SHOWN_KEY, "1");
+    window.sessionStorage.setItem(key, "1");
   } catch {
     // storage blocked: nothing to do
   }
 }
+
+export const promoCardShownThisVisit = () => cardShownThisVisit(promoCardShownKey);
+export const rememberPromoCardShown = () => rememberCardShown(promoCardShownKey);

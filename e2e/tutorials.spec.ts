@@ -29,6 +29,23 @@ test("the math editor offers the all-types guide with chapters", async ({ page }
     return v !== null && v.currentTime > 30 && !v.paused;
   });
   await expect(matching).toHaveAttribute("aria-current", "step");
+
+  // Our own control bar is always there: pause, +5 s / −5 s, ← / → keys, the timeline.
+  const time = () => dialog.locator("video").evaluate((v: HTMLVideoElement) => v.currentTime);
+  await dialog.locator("[data-tutorial-play]").click();
+  await page.waitForFunction(() => document.querySelector<HTMLVideoElement>('[data-tutorial-dialog="math-all-types"] video')?.paused === true);
+  let before = await time();
+  await dialog.locator("[data-tutorial-forward]").click();
+  expect(await time()).toBeCloseTo(before + 5, 0);
+  before = await time();
+  await dialog.locator("[data-tutorial-back]").click();
+  expect(await time()).toBeCloseTo(before - 5, 0);
+  before = await time();
+  await page.keyboard.press("ArrowRight");
+  expect(await time()).toBeCloseTo(before + 5, 0);
+  await dialog.locator("[data-tutorial-seek]").fill("90");
+  expect(await time()).toBeCloseTo(90, 0);
+  await expect(dialog.locator("[data-tutorial-time]")).toContainText("1:30");
   await page.keyboard.press("Escape");
   await expect(dialog).toHaveCount(0);
 
@@ -37,7 +54,42 @@ test("the math editor offers the all-types guide with chapters", async ({ page }
   await expect(dialog).toBeVisible();
 });
 
-test("subjects without a guide video don't show the button", async ({ page }) => {
+// History has its own guide (paper view + variants); chemistry has none yet.
+test("the history editor offers its own guide", async ({ page }) => {
   await openSampleCopy(page, "history");
+  await editor(page).locator('[data-guide-open="history-all-types"]').first().click();
+  const dialog = page.locator('[data-tutorial-dialog="history-all-types"]');
+  await expect(dialog.locator("[data-tutorial-video]")).toHaveAttribute("src", "/tutorials/history-all-types.ka.webm");
+  await expect(dialog.locator("[data-tutorial-chapters] button").first()).toContainText("ტესტი ქაღალდზე");
+});
+
+// History's guide also comes up as a corner card in the editor, once per visit (math's doesn't).
+test("the history editor invites to its guide once per visit", async ({ page }) => {
+  await openSampleCopy(page, "history");
+  const card = page.locator('[data-video-card="history-all-types"]');
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("ნახეთ, როგორ იქმნება ტესტი");
+  await card.locator("[data-promo-watch]").click();
+  await expect(card).toHaveCount(0);
+  const dialog = page.locator('[data-tutorial-dialog="history-all-types"]');
+  await expect(dialog.locator("[data-tutorial-video]")).toHaveAttribute("src", "/tutorials/history-all-types.ka.webm");
+  await page.keyboard.press("Escape");
+
+  // Same visit: not again.
+  await page.reload();
+  await editor(page).locator("[data-guide-open]").first().waitFor();
+  await page.waitForTimeout(2500); // longer than the card's 1.5 s delay
+  await expect(page.locator("[data-video-card]")).toHaveCount(0);
+});
+
+test("the math editor has no corner card", async ({ page }) => {
+  await openSampleCopy(page, "math");
+  await editor(page).locator("[data-guide-open]").first().waitFor();
+  await page.waitForTimeout(2500);
+  await expect(page.locator("[data-video-card]")).toHaveCount(0);
+});
+
+test("subjects without a guide video don't show the button", async ({ page }) => {
+  await openSampleCopy(page, "chemistry");
   await expect(editor(page).locator("[data-guide-open]")).toHaveCount(0);
 });

@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type { Browser, CDPSession, Locator, Page } from "@playwright/test";
 import { TUTORIAL_SIZE } from "../src/features/tutorials/tutorials";
 import { fullFfmpeg, speak, type Clip } from "./voice";
@@ -21,7 +21,13 @@ import { fullFfmpeg, speak, type Clip } from "./voice";
  * previous sentence has ended, and each sentence is placed at the moment its caption
  * appeared — so the voice always matches what is happening. A full ffmpeg (with
  * audio) then adds the sound track (Opus, 48 kHz, evened-out loudness).
+ *
+ * TUTORIAL_PLAIN=1: a video for the owner to narrate over in a video editor. Same pace (every
+ * step still waits as long as its sentence takes), but no captions on screen and no sound.
+ * Goes to output/<name>.plain.webm + .mp4 (the app's own video in public/ is left alone),
+ * with <name>.plain.timing.json: when each sentence would start.
  */
+const PLAIN = process.env.TUTORIAL_PLAIN === "1";
 
 export type Language = "ka" | "en";
 const FPS = 25;
@@ -46,7 +52,7 @@ export class Director {
   /** A chapter that starts with the next caption (after the sentence being spoken has ended). */
   private nextChapter: string | null = null;
   /** The sentences spoken, with when they start in the video (seconds). */
-  private spoken: { clip: Clip; at: number }[] = [];
+  private spoken: { clip: Clip; at: number; text: string }[] = [];
   /** When (clock seconds) the sentence being spoken ends. */
   private speechEndsAt = 0;
 
@@ -77,7 +83,7 @@ export class Director {
     await this.waitForSpeech();
     const clip = await speak(sentence, this.language);
     if (!clip) return;
-    this.spoken.push({ clip, at: this.now() });
+    this.spoken.push({ clip, at: this.now(), text: sentence });
     this.speechEndsAt = Date.now() / 1000 + clip.seconds;
   }
 
@@ -108,6 +114,7 @@ export class Director {
     this.stoppedAt = Date.now() / 1000;
     await this.cdp?.send("Page.stopScreencast");
     if (this.frames.length === 0) throw new Error("Nothing was recorded");
+    if (PLAIN) return this.finishPlain(file);
     mkdirSync(dirname(file), { recursive: true });
     if (this.spoken.length === 0) await encode(this.frames, this.stoppedAt, file);
     else {
@@ -122,6 +129,24 @@ export class Director {
     const chaptersFile = file.replace(/\.webm$/, ".json");
     if (this.chapters.length > 0) writeFileSync(chaptersFile, `${JSON.stringify({ chapters: this.chapters }, null, 2)}\n`);
     else rmSync(chaptersFile, { force: true });
+  }
+
+  /** TUTORIAL_PLAIN: no sound, no captions → output/<name>.plain.webm + .mp4 + .timing.json. */
+  private async finishPlain(file: string) {
+    const name = join("output", basename(file).replace(/\.webm$/, ".plain"));
+    mkdirSync("output", { recursive: true });
+    await encode(this.frames, this.stoppedAt, `${name}.webm`);
+    await toMp4(`${name}.webm`, `${name}.mp4`);
+    const seconds = Math.round((this.stoppedAt - this.frames[0].time) * 10) / 10;
+    const round = (n: number) => Math.round(n * 10) / 10;
+    const sentences = this.spoken.map(({ at, clip, text }, i) => ({
+      at: round(at),
+      // Room until the next sentence starts (or the video ends).
+      room: round((this.spoken[i + 1]?.at ?? seconds) - at),
+      computerVoiceSeconds: round(clip.seconds),
+      text,
+    }));
+    writeFileSync(`${name}.timing.json`, `${JSON.stringify({ seconds, chapters: this.chapters, sentences }, null, 2)}\n`);
   }
 
   /** Waits (lets the viewer read / see what happened). */
@@ -242,6 +267,7 @@ export class Director {
           transform: translateY(16px); opacity: 0; transition: opacity .3s, transform .3s; }
         #tut-caption[data-show="true"] { opacity: 1; transform: none; }
         #tut-caption b { display: grid; place-items: center; min-width: 34px; height: 34px; border-radius: 50%; background: #4f46e5; font-size: 18px; }
+        ${PLAIN ? "#tut-caption { display: none !important; }" : ""}
         #tut-title { position: fixed; inset: 0; z-index: 2147483645; display: grid; place-content: center; gap: 10px; text-align: center;
           background: linear-gradient(160deg, #eef2ff, #ffffff 60%); color: #111827; font-family: var(--font-sans, sans-serif);
           opacity: 0; transition: opacity .4s; pointer-events: none; }
@@ -302,6 +328,17 @@ function encode(frames: { data: Buffer; time: number }[], end: number, file: str
   return done;
 }
 
+/** The same video as an MP4 (H.264), which every video editor opens (iMovie, CapCut, Premiere…). */
+function toMp4(webm: string, mp4: string): Promise<void> {
+  const ffmpeg = spawn(fullFfmpeg(), ["-y", "-loglevel", "error", "-i", webm, "-c:v", "libx264", "-crf", "18", "-preset", "slow", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", mp4], {
+    stdio: ["ignore", "inherit", "inherit"],
+  });
+  return new Promise((resolve, reject) => {
+    ffmpeg.on("error", reject);
+    ffmpeg.on("close", (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg (mp4) stopped with code ${code}`))));
+  });
+}
+
 /**
  * Adds the spoken sentences to a silent video: each one starts at its moment
  * (adelay), they are put together (amix), the loudness is evened out to what
@@ -345,6 +382,7 @@ export async function openWindow(browser: Browser, language: Language, storage: 
     sessionStorage.setItem("tut:ready", "1");
     for (const [key, value] of Object.entries(storage)) localStorage.setItem(key, value);
     sessionStorage.setItem("mathtest:guest-banner-hidden", "1"); // the "sign up" banner is not part of the lesson
+    sessionStorage.setItem("mathtest:video-cards-off", "1"); // nor the corner card inviting to watch a video
   }, { "mathtest:language": language, "mathtest:theme": "light", ...storage });
   const page = await context.newPage();
   return { context, page, director: new Director(page, language) };

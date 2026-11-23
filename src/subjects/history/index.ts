@@ -17,6 +17,9 @@ export const historyToolkit: SubjectToolkit = {
   toolbar: HISTORY_TOOLBAR,
   questionTypes: [...QUESTION_TYPES, "order", "timeline", "source", "map"],
   diagrams: [],
+  // The video guide (every history type, the paper view, variants): tutorials/history-all-types.spec.ts.
+  guideVideo: "history-all-types",
+  guideCard: true,
   matchingTemplates: [
     { id: "person-event", left: { ka: "პიროვნება", en: "Person" }, right: { ka: "მოვლენა", en: "Event" } },
     { id: "person-date", left: { ka: "პიროვნება", en: "Person" }, right: { ka: "თარიღი", en: "Date" } },

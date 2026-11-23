@@ -2,7 +2,7 @@ import { existsSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SUBJECTS } from "@/subjects/registry";
-import { TUTORIAL_LANGUAGES, chapterIndexAt, formatClock, readChapters, tutorialChaptersSrc, tutorialSrc } from "./tutorials";
+import { TUTORIAL_LANGUAGES, chapterIndexAt, formatClock, readChapters, tutorialChaptersSrc, tutorialPosterSrc, tutorialSrc } from "./tutorials";
 
 const file = (src: string) => join(process.cwd(), "public", src);
 /** The video has a voice: a WebM file names its sound format ("A_OPUS") in its header. */
@@ -42,6 +42,23 @@ describe("tutorial videos", () => {
       const chapters = readChapters(JSON.parse(readFileSync(file(tutorialChaptersSrc(name, language)), "utf8")));
       expect(chapters.length).toBeGreaterThanOrEqual(3);
       expect(chapters.every((c) => c.title.trim() !== "")).toBe(true);
+    }
+  });
+});
+
+describe("guide corner cards", () => {
+  const withCard = SUBJECTS.filter((toolkit) => toolkit.guideCard);
+
+  it("history invites to its guide from the editor's corner", () => {
+    expect(withCard.map((toolkit) => toolkit.id)).toContain("history");
+  });
+
+  it.each(withCard.map((toolkit) => ({ subject: toolkit.id, name: toolkit.guideVideo })))("$subject: has a guide video and its picture", ({ name }) => {
+    expect(name).toBeTruthy();
+    for (const language of TUTORIAL_LANGUAGES) {
+      const poster = file(tutorialPosterSrc(name!, language));
+      expect(existsSync(poster), poster).toBe(true);
+      expect(statSync(poster).size).toBeLessThan(200 * 1024);
     }
   });
 });

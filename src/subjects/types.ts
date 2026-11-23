@@ -146,6 +146,11 @@ export interface SubjectToolkit {
    * from the editor's top bar and the "add a question" panel.
    */
   guideVideo?: string;
+  /**
+   * The guide video also comes up as a small card in the editor's corner, once per visit
+   * (GuideVideoCard; needs `<guideVideo>.<lang>.jpg` next to the video).
+   */
+  guideCard?: boolean;
   /** Ready-made column headings for matching questions (e.g. Person ↔ Date). */
   matchingTemplates?: { id: string; left: { ka: string; en: string }; right: { ka: string; en: string } }[];
   /**

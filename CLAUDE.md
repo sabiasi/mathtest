@@ -275,6 +275,18 @@ Visitors can try everything without an account (guest mode).
   top bar and a card above "add a question" (`GuideButton`). Chapters
   (`<name>.<lang>.json`, written by the recorder's `d.chapter(title)`) are
   buttons under the video (`TutorialDialog`: jump, the playing one highlighted).
+  History guide (2026-11-23): `history-all-types` (~2 min): paper view switched on FIRST (every
+  question appears on the A4 page while typed), multiple choice + century tool, matching
+  template, order, source, map (built-in Georgia), answer key, print page → 2 variants (labels
+  are I / II, not A / B) → "all" + key = answer table. Owner's own voice, recorded in ONE take
+  (`tutorials/recorded/history-all-types/ka/take.m4a`: the line's number, then the sentence of
+  SENTENCES.md) and put on the silent recording (`TUTORIAL_PLAIN=1` → output/*.plain.webm +
+  .timing.json) by `python3 -I tutorials/voiceover-take.py history-all-types ka` (drops the spoken
+  numbers, places each sentence at its moment). Toolkit `guideCard: true` (history only): the guide
+  also comes up as a corner card in the editor, ONCE per visit (`GuideVideoCard`; picture
+  `<name>.<lang>.jpg`; sessionStorage `mathtest:guide-card-shown:<name>`). Promo and guide cards share
+  `features/promo/CornerVideoCard` (portal into <body>; `data-promo-card` + `data-video-card`);
+  recorders set `mathtest:video-cards-off`.
 - [x] **Promo video + corner card (2026-11-22)**: a 4:07 "How Rapido works" video (calm pace: `PACE` in promo-scenes.mjs, `PROMO_SPEED` 1.1)
   (no captions; the OWNER'S OWN Georgian voice: one recording cut per scene by `npm run voice:promo`, see video/README.md → Voice; plus original background music composed in code by `npm run music:promo`, ducked under the voice), made in `video/` like the physics tour
   (`npm run capture:promo` → `render:promo`, see video/README.md + video/promo-storyboard.md):

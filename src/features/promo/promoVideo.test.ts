@@ -1,31 +1,29 @@
-import { describe, expect, it } from "vitest";
-import { PROMO_SNOOZE_DAYS, promoSeenValue, shouldShowPromo } from "./promoVideo";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { promoCardShownThisVisit, rememberPromoCardShown } from "./promoVideo";
 
-const DAY = 24 * 60 * 60 * 1000;
-const now = Date.UTC(2026, 10, 22, 12);
-
-describe("shouldShowPromo", () => {
-  it("shows to a first-time visitor", () => {
-    expect(shouldShowPromo(null, false, now)).toBe(true);
+describe("the promo card, once per visit", () => {
+  beforeEach(() => {
+    window.sessionStorage.clear();
+    vi.restoreAllMocks();
   });
 
-  it("shows only once per visit", () => {
-    expect(shouldShowPromo(null, true, now)).toBe(false);
+  it("shows on a new visit", () => {
+    expect(promoCardShownThisVisit()).toBe(false);
   });
 
-  it("stays away for a week after it was closed or watched", () => {
-    expect(shouldShowPromo(promoSeenValue(now - DAY), false, now)).toBe(false);
-    expect(shouldShowPromo(promoSeenValue(now - (PROMO_SNOOZE_DAYS * DAY - 1)), false, now)).toBe(false);
-    expect(shouldShowPromo(promoSeenValue(now - PROMO_SNOOZE_DAYS * DAY), false, now)).toBe(true);
+  it("stays away for the rest of the visit once shown", () => {
+    rememberPromoCardShown();
+    expect(promoCardShownThisVisit()).toBe(true);
   });
 
-  it("treats broken or strange saved values as never seen", () => {
-    for (const value of ["", "nonsense", "null", "{}", '{"seenAt":"yesterday"}', "[1]"]) {
-      expect(shouldShowPromo(value, false, now)).toBe(true);
-    }
-  });
-
-  it("is not hidden forever by a time in the future", () => {
-    expect(shouldShowPromo(promoSeenValue(now + 30 * DAY), false, now)).toBe(true);
+  it("still shows (and doesn't crash) when the browser blocks storage", () => {
+    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+      throw new Error("blocked");
+    });
+    expect(() => rememberPromoCardShown()).not.toThrow();
+    expect(promoCardShownThisVisit()).toBe(false);
   });
 });

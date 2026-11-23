@@ -77,6 +77,7 @@ import { initials } from "@/lib/sharing/sharing";
 import type { Question, QuestionType, Test } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
 import { GuideButton } from "@/features/tutorials/TutorialButton";
+import { GuideVideoCard } from "@/features/tutorials/GuideVideoCard";
 import { getToolkit, offeredQuestionTypes } from "@/subjects/registry";
 import type { SubjectToolkit } from "@/subjects/types";
 import { useUseAsTemplate } from "@/features/samples/useTemplate";
@@ -642,6 +643,7 @@ export function TestEditor({ initialTest }: { initialTest: Test }) {
           </SplitView>
         )}
       </div>
+      {toolkit.guideVideo && toolkit.guideCard && !readOnly && <GuideVideoCard name={toolkit.guideVideo} />}
       {bankOffered && !readOnly && !guest && <BankInsertDialog test={test} open={bankOpen} onClose={() => setBankOpen(false)} onInsert={insertFromBank} />}
       {aiOffered && !readOnly && !guest && <AiGenerateDialog test={test} open={aiOpen} onClose={() => setAiOpen(false)} onInsert={insertFromAi} />}
       </PreviewProvider>

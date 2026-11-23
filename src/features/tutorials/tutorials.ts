@@ -23,6 +23,14 @@ export function tutorialChaptersSrc(name: string, language: Language): string {
   return `/tutorials/${name}.${recorded(language)}.json`;
 }
 
+/** The guide's picture for its corner card (GuideVideoCard): a frame of the video, made with ffmpeg. */
+export function tutorialPosterSrc(name: string, language: Language): string {
+  return `/tutorials/${name}.${recorded(language)}.jpg`;
+}
+
+/** Remembers (sessionStorage) that this guide's corner card came up in this visit. */
+export const guideCardShownKey = (name: string) => `mathtest:guide-card-shown:${name}`;
+
 /** A part of a longer video: its title and where it starts (seconds). */
 export type Chapter = { title: string; start: number };
 
