@@ -72,15 +72,15 @@ describe("subject toolkits", () => {
     }
   });
 
-  it("English: sections, listening, puzzles, English paper, bilingual instructions", () => {
+  it("English: sections, listening, puzzles, English paper", () => {
     const english = getToolkit("english");
     for (const type of ["section", "passage", "listening", "fill-blank", "transformation", "word-formation", "crossword", "word-search", "speaking"]) {
       expect(english.questionTypes).toContain(type);
     }
     expect(english.print.language).toBe("en");
-    expect(english.bilingual && english.levels).toBe(true);
+    expect(english.levels).toBe(true);
     expect(english.labelStyle).toBe("latin");
-    // Every instruction template has both languages.
+    // Every instruction template has both languages (the Georgian one explains it in the menu).
     for (const template of english.instructionTemplates ?? []) expect(template.en && template.ka).toBeTruthy();
     // A preset prepares a question of an existing type.
     const verbForms = english.presets?.find((p) => p.id === "verb-forms");

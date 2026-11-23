@@ -15,7 +15,7 @@ function makeTest(questions: Question[], variants: Partial<Test["variants"]> = {
   return {
     id: "t", schoolName: "", title: "", subjectId: "math", subject: "", grade: "", level: "", date: "", timeLimitMinutes: null,
     instructions: [], labelStyle: "latin", questions,
-    printOptions: { fontSize: "normal", showPoints: true, columns: 1, bilingual: false },
+    printOptions: { fontSize: "normal", showPoints: true, columns: 1 },
     variants: { count: 4, shuffleQuestions: true, shuffleOptions: true, seed: 42, duplex: false, ...variants },
     folder: "", createdAt: "", updatedAt: "",
   };

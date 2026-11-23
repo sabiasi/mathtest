@@ -3,14 +3,13 @@ import type { FillBlankQuestion, Question, TrueFalseQuestion } from "@/lib/stora
 import type { SubjectToolkit } from "../types";
 import { ENGLISH_TOOLBAR } from "./toolbar";
 
-/** A question text from a template (English), with its Georgian version for bilingual printing. */
-const withInstruction = (en: string, ka: string) => (question: Question): Question => ({
+/** A question text from a template (English). */
+const withInstruction = (en: string) => (question: Question): Question => ({
   ...question,
   text: [{ type: "text", text: en }],
-  instructionKa: ka,
 });
 
-/** One-click instructions: English for the paper, Georgian for younger students (bilingual printing). */
+/** One-click instructions: English for the paper; the Georgian version explains it in the menu. */
 export const ENGLISH_INSTRUCTIONS = [
   { id: "choose", en: "Choose the correct answer.", ka: "აირჩიეთ სწორი პასუხი." },
   { id: "circle", en: "Circle the correct word.", ka: "შემოხაზეთ სწორი სიტყვა." },
@@ -54,8 +53,7 @@ const find = (id: string) => ENGLISH_INSTRUCTIONS.find((i) => i.id === id)!;
 
 /**
  * English (as a foreign language), levels A1–C1, exam styles like Cambridge
- * and the national exams. The paper is in English (labels and instructions),
- * optionally with Georgian instructions under them.
+ * and the national exams. The paper is in English (labels and instructions).
  */
 export const englishToolkit: SubjectToolkit = {
   id: "english",
@@ -88,7 +86,6 @@ export const englishToolkit: SubjectToolkit = {
   ],
   diagrams: [],
   levels: true,
-  bilingual: true,
   contentLanguage: "en",
   labelStyle: "latin",
   markersOnPicture: true,
@@ -109,7 +106,7 @@ export const englishToolkit: SubjectToolkit = {
       en: "Verb forms",
       hintKa: "She ____ (go) to school yesterday.",
       hintEn: "She ____ (go) to school yesterday.",
-      apply: (q) => ({ ...withInstruction(find("verbs").en, find("verbs").ka)(q), mode: "open", numbered: true }) as FillBlankQuestion,
+      apply: (q) => ({ ...withInstruction(find("verbs").en)(q), mode: "open", numbered: true }) as FillBlankQuestion,
     },
     {
       id: "true-false-not-given",
@@ -118,7 +115,7 @@ export const englishToolkit: SubjectToolkit = {
       en: "True / False / Not Given",
       hintKa: "სამი პასუხი წაკითხულის შესამოწმებლად",
       hintEn: "Three answers for reading tasks",
-      apply: (q) => ({ ...withInstruction(find("tfng").en, find("tfng").ka)(q), notGiven: true }) as TrueFalseQuestion,
+      apply: (q) => ({ ...withInstruction(find("tfng").en)(q), notGiven: true }) as TrueFalseQuestion,
     },
   ],
   matchingTemplates: [

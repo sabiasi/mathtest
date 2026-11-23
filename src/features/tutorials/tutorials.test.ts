@@ -49,8 +49,8 @@ describe("tutorial videos", () => {
 describe("guide corner cards", () => {
   const withCard = SUBJECTS.filter((toolkit) => toolkit.guideCard);
 
-  it("history invites to its guide from the editor's corner", () => {
-    expect(withCard.map((toolkit) => toolkit.id)).toContain("history");
+  it("history and math invite to their guides from the editor's corner", () => {
+    expect(withCard.map((toolkit) => toolkit.id)).toEqual(expect.arrayContaining(["history", "math"]));
   });
 
   it.each(withCard.map((toolkit) => ({ subject: toolkit.id, name: toolkit.guideVideo })))("$subject: has a guide video and its picture", ({ name }) => {

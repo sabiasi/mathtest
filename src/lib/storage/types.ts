@@ -174,8 +174,6 @@ interface QuestionBase {
   images: QuestionImage[];
   /** An optional grid answer area under the question. */
   grid: AnswerGrid | null;
-  /** The instruction in Georgian, printed under the (English) question text when "bilingual" is on. */
-  instructionKa?: string;
   /** A helper note for the teacher, shown in the editor only — never printed (sample tests use it). */
   tip?: string;
 }
@@ -802,11 +800,9 @@ export interface PrintOptions {
   fontSize: "normal" | "large";
   showPoints: boolean;
   columns: 1 | 2;
-  /** English tests: print the Georgian instructions too (under the English ones). */
-  bilingual: boolean;
 }
 
-export const DEFAULT_PRINT_OPTIONS: PrintOptions = { fontSize: "normal", showPoints: true, columns: 1, bilingual: false };
+export const DEFAULT_PRINT_OPTIONS: PrintOptions = { fontSize: "normal", showPoints: true, columns: 1 };
 
 /**
  * Variants A, B, C… of the same test with questions / options in a different

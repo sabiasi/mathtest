@@ -16,7 +16,7 @@ import { offeredQuestionTypes } from "@/subjects/registry";
 import { newId } from "@/lib/ids";
 import { addImage } from "@/lib/images/imageStore";
 import { useImageError } from "@/features/plans/useImageError";
-import { changeQuestionType, isTextBlock } from "@/lib/questions";
+import { LIMITS, changeQuestionType, isTextBlock } from "@/lib/questions";
 import type { Diagram, DiagramKind, LabelStyle, Question, QuestionImage, QuestionType } from "@/lib/storage/types";
 import { cn } from "@/lib/utils";
 import { MapEditor } from "@/subjects/history/editors/MapEditor";
@@ -38,7 +38,6 @@ import { MarkWordsEditor } from "@/subjects/georgian/editors/MarkWordsEditor";
 import { SentenceAnalysisEditor } from "@/subjects/georgian/editors/SentenceAnalysisEditor";
 import { TextBlockEditor } from "@/subjects/georgian/editors/TextBlockEditor";
 import { FillBlankEditor } from "./FillBlankEditor";
-import { Input } from "@/components/ui/input";
 import {
   CrosswordEditor,
   ListeningEditor,
@@ -98,14 +97,19 @@ const TEXT_PLACEHOLDERS: Partial<Record<QuestionType, MessageKey>> = {
   section: "questions.sectionPlaceholder",
   listening: "questions.listeningPlaceholder",
   speaking: "questions.speakingPlaceholder",
-  transformation: "questions.englishPlaceholder",
-  "word-formation": "questions.englishPlaceholder",
-  "picture-match": "questions.englishPlaceholder",
-  "odd-one-out": "questions.englishPlaceholder",
-  crossword: "questions.englishPlaceholder",
-  "word-search": "questions.englishPlaceholder",
   balance: "questions.balancePlaceholder",
 };
+
+/** Types whose text IS the question (not an instruction above a task). */
+const QUESTION_TEXT_TYPES = new Set<QuestionType>(["multiple-choice", "true-false", "short-answer", "open-answer"]);
+
+/** The hint shown in an empty question text box. */
+function textPlaceholder(type: QuestionType, toolkit: SubjectToolkit): MessageKey {
+  // English papers: the text above a task is an instruction in English (examples in Georgian would mislead).
+  if (toolkit.contentLanguage === "en" && !QUESTION_TEXT_TYPES.has(type)) return "questions.englishPlaceholder";
+  // Only subjects with the "Σ Formula" button mention it.
+  return TEXT_PLACEHOLDERS[type] ?? (toolkit.formulas ? "questions.textPlaceholder" : "questions.textPlaceholderPlain");
+}
 
 export function QuestionCard({
   question,
@@ -220,7 +224,13 @@ export function QuestionCard({
           position: "above",
           caption: "",
         };
-        onPatch((q) => ({ ...q, images: [...q.images, placement] }));
+        onPatch((q) => {
+          // Picture vocabulary: a pasted or dropped picture becomes one of its numbered pictures.
+          if (q.type === "picture-match") {
+            return q.pictures.length >= LIMITS.pictures ? q : { ...q, pictures: [...q.pictures, { id: newId(), imageId, width, height, answer: "" }] };
+          }
+          return { ...q, images: [...q.images, placement] };
+        });
       } catch (error) {
         setMediaError(imageError(error));
       }
@@ -426,9 +436,9 @@ export function QuestionCard({
                 templates={toolkit.instructionTemplates}
                 paperLanguage={paperLanguage}
                 onPick={(template) => {
-                  // The paper's language goes into the question; bilingual tests also keep the Georgian one.
+                  // The paper's language goes into the question.
                   const text = paperLanguage === "en" ? template.en : template.ka;
-                  onChange({ ...question, text: [{ type: "text", text }], ...(toolkit.bilingual ? { instructionKa: template.ka } : {}) });
+                  onChange({ ...question, text: [{ type: "text", text }] });
                   setTextVersion((v) => v + 1); // the text box shows the new text
                 }}
               />
@@ -439,22 +449,9 @@ export function QuestionCard({
               value={question.text}
               autoFocus={autoFocus}
               ariaLabel={t("questions.text")}
-              placeholder={t(TEXT_PLACEHOLDERS[question.type] ?? "questions.textPlaceholder")}
+              placeholder={t(textPlaceholder(question.type, toolkit))}
               onChange={(text) => onChange({ ...question, text })}
             />
-            {toolkit.bilingual && (
-              <Input
-                lang="ka"
-                className="h-9 text-sm"
-                value={question.instructionKa ?? ""}
-                maxLength={500}
-                placeholder={t("questions.instructionKa")}
-                aria-label={t("questions.instructionKa")}
-                onChange={(e) => onChange({ ...question, instructionKa: e.target.value })}
-                data-instruction-ka=""
-              />
-            )}
-
             <ImageStrip
               images={question.images}
               onChange={(images) => onChange({ ...question, images })}
@@ -510,9 +507,9 @@ export function QuestionCard({
               />
             )}
 
-            {question.type === "passage" && <TextBlockEditor question={question} onChange={onChange} />}
-            {question.type === "poem" && <TextBlockEditor question={question} onChange={onChange} />}
-            {question.type === "fill-blank" && <FillBlankEditor question={question} onChange={onChange} />}
+            {question.type === "passage" && <TextBlockEditor question={question} georgianTypography={toolkit.print.typography === "georgian"} onChange={onChange} />}
+            {question.type === "poem" && <TextBlockEditor question={question} georgianTypography={toolkit.print.typography === "georgian"} onChange={onChange} />}
+            {question.type === "fill-blank" && <FillBlankEditor question={question} english={toolkit.contentLanguage === "en"} onChange={onChange} />}
             {question.type === "mark-words" && <MarkWordsEditor question={question} onChange={onChange} />}
             {question.type === "grammar-table" && <GrammarTableEditor question={question} onChange={onChange} />}
             {question.type === "find-mistake" && <FindMistakeEditor question={question} onChange={onChange} />}
@@ -520,7 +517,9 @@ export function QuestionCard({
             {question.type === "essay" && <EssayEditor question={question} onChange={onChange} />}
             {question.type === "balance" && <BalanceEditor question={question} onChange={onChange} />}
 
-            {!textBlock && (
+            {/* Picture vocabulary has its own "add pictures" button: a second one would only confuse. */}
+            {question.type === "picture-match" && mediaError && <p className="text-sm text-destructive-text">{mediaError}</p>}
+            {!textBlock && question.type !== "picture-match" && (
             <MediaBar
               grid={question.grid}
               busy={mediaBusy}

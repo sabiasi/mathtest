@@ -190,7 +190,6 @@ function nativeQuestion(
   const head: Run[] = [...(number === null ? [] : [{ text: `${number}. `, bold: true } as Run]), ...runs(question.text)];
   if (test.printOptions.showPoints) head.push({ tab: true }, { text: `(${t(question.points === 1 ? "print.pointsOne" : "print.pointsMany", { points })})`, grey: true, size: 9.5 });
   blocks.push(p(head, { before: question.images.length ? 0 : 8, indent: INDENT, hanging: INDENT, keepNext: true, rightTab: true }));
-  if (question.instructionKa && test.printOptions.bilingual) blocks.push(p([{ text: question.instructionKa, italic: true, grey: true }], { indent: INDENT, keepNext: true }));
 
   switch (question.type) {
     case "multiple-choice":

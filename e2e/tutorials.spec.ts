@@ -63,31 +63,28 @@ test("the history editor offers its own guide", async ({ page }) => {
   await expect(dialog.locator("[data-tutorial-chapters] button").first()).toContainText("ტესტი ქაღალდზე");
 });
 
-// History's guide also comes up as a corner card in the editor, once per visit (math's doesn't).
-test("the history editor invites to its guide once per visit", async ({ page }) => {
-  await openSampleCopy(page, "history");
-  const card = page.locator('[data-video-card="history-all-types"]');
-  await expect(card).toBeVisible();
-  await expect(card).toContainText("ნახეთ, როგორ იქმნება ტესტი");
-  await card.locator("[data-promo-watch]").click();
-  await expect(card).toHaveCount(0);
-  const dialog = page.locator('[data-tutorial-dialog="history-all-types"]');
-  await expect(dialog.locator("[data-tutorial-video]")).toHaveAttribute("src", "/tutorials/history-all-types.ka.webm");
-  await page.keyboard.press("Escape");
+// History's and math's guides also come up as a corner card in the editor, once per visit.
+for (const subject of ["history", "math"] as const) {
+  test(`the ${subject} editor invites to its guide once per visit`, async ({ page }) => {
+    const name = `${subject}-all-types`;
+    await openSampleCopy(page, subject);
+    const card = page.locator(`[data-video-card="${name}"]`);
+    await expect(card).toBeVisible();
+    await expect(card).toContainText("ნახეთ, როგორ იქმნება ტესტი");
+    await expect(card.locator("img")).toHaveAttribute("src", `/tutorials/${name}.ka.jpg`);
+    await card.locator("[data-promo-watch]").click();
+    await expect(card).toHaveCount(0);
+    const dialog = page.locator(`[data-tutorial-dialog="${name}"]`);
+    await expect(dialog.locator("[data-tutorial-video]")).toHaveAttribute("src", `/tutorials/${name}.ka.webm`);
+    await page.keyboard.press("Escape");
 
-  // Same visit: not again.
-  await page.reload();
-  await editor(page).locator("[data-guide-open]").first().waitFor();
-  await page.waitForTimeout(2500); // longer than the card's 1.5 s delay
-  await expect(page.locator("[data-video-card]")).toHaveCount(0);
-});
-
-test("the math editor has no corner card", async ({ page }) => {
-  await openSampleCopy(page, "math");
-  await editor(page).locator("[data-guide-open]").first().waitFor();
-  await page.waitForTimeout(2500);
-  await expect(page.locator("[data-video-card]")).toHaveCount(0);
-});
+    // Same visit: not again.
+    await page.reload();
+    await editor(page).locator("[data-guide-open]").first().waitFor();
+    await page.waitForTimeout(2500); // longer than the card's 1.5 s delay
+    await expect(page.locator("[data-video-card]")).toHaveCount(0);
+  });
+}
 
 test("subjects without a guide video don't show the button", async ({ page }) => {
   await openSampleCopy(page, "chemistry");

@@ -136,8 +136,7 @@ Visitors can try everything without an account (guest mode).
   1/2/3 on gaps, templates methane … acetic acid). All five subjects ready.
 - [x] **English toolkit** (EFL, A1–C1): subject id `english`; paper in
   English (`print.language: "en"` → `LanguageOverride` around the sheets),
-  optional Georgian instructions (`instructionKa` on any question, print
-  option `bilingual`), CEFR `test.level`, `lang="en"` on the editor for
+  CEFR `test.level`, `lang="en"` on the editor for
   spellcheck, Latin letters by default. Non-question blocks: `section`
   (points = sum of following questions, `sectionPoints`), `listening` (public
   link → QR via qrcode-generator, plays 1–3×, transcript on the key only;
@@ -282,7 +281,7 @@ Visitors can try everything without an account (guest mode).
   (`tutorials/recorded/history-all-types/ka/take.m4a`: the line's number, then the sentence of
   SENTENCES.md) and put on the silent recording (`TUTORIAL_PLAIN=1` → output/*.plain.webm +
   .timing.json) by `python3 -I tutorials/voiceover-take.py history-all-types ka` (drops the spoken
-  numbers, places each sentence at its moment). Toolkit `guideCard: true` (history only): the guide
+  numbers, places each sentence at its moment). Toolkit `guideCard: true` (history; math since 2026-11-24, picture = a frame of the video at 2:05, cropped above the step caption): the guide
   also comes up as a corner card in the editor, ONCE per visit (`GuideVideoCard`; picture
   `<name>.<lang>.jpg`; sessionStorage `mathtest:guide-card-shown:<name>`). Promo and guide cards share
   `features/promo/CornerVideoCard` (portal into <body>; `data-promo-card` + `data-video-card`);
@@ -896,8 +895,10 @@ src/
 - Supabase functions in `public` are executable by anon/authenticated by
   default: helper functions that take a user id must `revoke execute`.
 - Instruction templates: the PAPER's language goes into the question
-  (`toolkit.print.language === "en"` → `en`, else `ka`); only bilingual
-  toolkits (English) also fill `instructionKa`.
+  (`toolkit.print.language === "en"` → `en`, else `ka`); the other language
+  is only shown in the menu. (The old Georgian-instruction field `instructionKa`
+  and print option `bilingual` were removed on 2026-11-24; `normalizeTest`
+  drops them from old tests.)
 - Toolbar widgets can insert formatted text: `insertText(text, caretBack,
   ["italic"])` adds a plain space after it, so typing continues unformatted.
 - SVG text (pedigree) must get the `font-sans` class: with only

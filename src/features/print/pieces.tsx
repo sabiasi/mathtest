@@ -1,11 +1,12 @@
 "use client";
 
 /** Draws one printed block (see blocks.ts for how questions are split into blocks). */
-import type { Test } from "@/lib/storage/types";
+import { useT } from "@/i18n/language";
+import type { EssayQuestion, Test } from "@/lib/storage/types";
 import { EssayLines, PassagePiece, PoemPiece } from "@/subjects/georgian/GeorgianPrint";
 import { ESSAY_CHUNK, ESSAY_FIRST } from "@/subjects/georgian/text";
 import { ListeningPrint, SectionPrint, SpeakingPage, TranscriptPiece } from "@/subjects/english/EnglishPrint";
-import { sectionPoints } from "@/lib/questions";
+import { formatPoints, sectionPoints } from "@/lib/questions";
 import { flowsOn, type PrintBlock } from "./blocks";
 import { BLOCK_GAP } from "./usePrintLayout";
 import { PrintQuestion, type OptionColumns, type PrintVersion } from "./PrintBlocks";
@@ -29,24 +30,22 @@ export type BlockContext = {
 export function renderBlock(block: PrintBlock, context: BlockContext, firstInColumn = true) {
   const { question, piece } = block;
   const pull = !firstInColumn && flowsOn(block) ? { marginTop: `-${BLOCK_GAP}mm` } : undefined;
-  const bilingual = context.test.printOptions.bilingual;
   const index = Number(piece.slice(1)) || 0;
   let content;
   if (question.type === "passage") {
-    content = <PassagePiece question={question} index={index} lineStart={context.lineStarts[block.key] ?? 1} bilingual={bilingual} />;
+    content = <PassagePiece question={question} index={index} lineStart={context.lineStarts[block.key] ?? 1} />;
   } else if (question.type === "poem") {
-    content = <PoemPiece question={question} index={index} bilingual={bilingual} />;
+    content = <PoemPiece question={question} index={index} />;
   } else if (question.type === "section") {
     content = (
       <SectionPrint
         question={question}
         points={sectionPoints(context.test.questions).get(question.id) ?? 0}
-        bilingual={bilingual}
         showPoints={context.test.printOptions.showPoints}
       />
     );
   } else if (question.type === "listening") {
-    content = piece ? <TranscriptPiece question={question} index={index} /> : <ListeningPrint question={question} bilingual={bilingual} />;
+    content = piece ? <TranscriptPiece question={question} index={index} /> : <ListeningPrint question={question} />;
   } else if (question.type === "codon-table") {
     // Reference material: no number, no points; an optional title above it.
     content = (
@@ -58,7 +57,14 @@ export function renderBlock(block: PrintBlock, context: BlockContext, firstInCol
   } else if (question.type === "speaking") {
     content = <SpeakingPage question={question} page={index} />;
   } else if (question.type === "essay" && piece) {
-    content = <EssayLines count={Math.min(ESSAY_CHUNK, question.lines - ESSAY_FIRST - index * ESSAY_CHUNK)} />;
+    content = (
+      <EssayMoreLines
+        question={question}
+        number={block.number ?? 0}
+        count={Math.min(ESSAY_CHUNK, question.lines - ESSAY_FIRST - index * ESSAY_CHUNK)}
+        showPoints={context.test.printOptions.showPoints}
+      />
+    );
   } else {
     content = (
       <PrintQuestion
@@ -73,6 +79,33 @@ export function renderBlock(block: PrintBlock, context: BlockContext, firstInCol
   return (
     <div key={block.key} style={pull} data-print-block={block.key}>
       {content}
+    </div>
+  );
+}
+
+/**
+ * More writing lines of an essay (after the first ones). They sit in the same
+ * columns as the question (the number and the points are there, invisible),
+ * so every line of the essay has the same width.
+ */
+function EssayMoreLines({ question, number, count, showPoints }: { question: EssayQuestion; number: number; count: number; showPoints: boolean }) {
+  const t = useT();
+  const points = formatPoints(question.points);
+  return (
+    <div className="print-question">
+      <div className="flex items-start gap-[2mm]">
+        <span className="print-number invisible" aria-hidden="true">
+          {number}.
+        </span>
+        <div className="min-w-0 flex-1">
+          <EssayLines count={count} />
+        </div>
+        {showPoints && (
+          <span className="print-points invisible" aria-hidden="true">
+            ({t(question.points === 1 ? "print.pointsOne" : "print.pointsMany", { points })})
+          </span>
+        )}
+      </div>
     </div>
   );
 }

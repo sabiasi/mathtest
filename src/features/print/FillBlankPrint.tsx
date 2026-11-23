@@ -38,6 +38,8 @@ export function FillBlankPrint({ question, labelStyle, answerKey }: { question: 
   const tokens = tokenize(fix(question.body));
   const refs = wordRefs(tokens);
   const bank = question.shownBank ?? [...question.blanks.map((b) => b.word), ...question.extras.filter((w) => w.trim())];
+  // Every gap is equally long (fits the longest answer, up to 45 mm), so its length gives nothing away.
+  const gapWidth = Math.min(45, Math.max(18, ...question.blanks.map((b) => b.word.length * 2.4 + 6)));
   let gapNumber = 0;
   const gaps: { number: number; index: number }[] = [];
   return (
@@ -53,10 +55,11 @@ export function FillBlankPrint({ question, labelStyle, answerKey }: { question: 
           return (
             <span key={i}>
               {question.numbered && <span className="print-gap-number">({gapNumber})</span>}
-              <span className="print-gap" style={{ minWidth: `${Math.max(18, token.text.length * 2.4 + 6)}mm` }}>
+              <span className="print-gap" style={{ minWidth: `${gapWidth}mm` }}>
                 {answerKey ? token.text : ""}
               </span>
-              {blank.hint && <span className="print-gap-hint"> ({fix(blank.hint)})</span>}
+              {/* Hints are for writing the word; with A/B/C choices the editor hides them, so does the paper. */}
+              {blank.hint && question.mode !== "choice" && <span className="print-gap-hint"> ({fix(blank.hint)})</span>}
             </span>
           );
         })}

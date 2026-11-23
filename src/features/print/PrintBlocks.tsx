@@ -29,7 +29,6 @@ import { KeyPrint, TaxonomyPrint } from "@/subjects/biology/ClassificationPrint"
 import { FillBlankPrint } from "./FillBlankPrint";
 import {
   CrosswordPrint,
-  GeorgianInstruction,
   OddOneOutPrint,
   PictureMatchPrint,
   TransformationPrint,
@@ -174,7 +173,6 @@ export function PrintQuestion({
           <div className="flex items-start gap-[3mm]">
             <div className="min-w-0 flex-1">
               <RichTextView value={question.text} className="print-text" />
-              <GeorgianInstruction text={question.instructionKa} show={test.printOptions.bilingual} />
               <div className="print-body">
                 <QuestionBody question={question} test={test} version={version} optionColumns={optionColumns} />
               </div>

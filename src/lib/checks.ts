@@ -31,7 +31,8 @@ export type ProblemKind =
   | "emptyText"
   | "noGaps"
   | "unbalanced"
-  | "puzzleUnplaced";
+  | "puzzleUnplaced"
+  | "noClue";
 
 export type Problem = {
   kind: ProblemKind;
@@ -93,11 +94,16 @@ export function findProblems(test: Test): Problem[] {
     }
     if (q.type === "word-formation" && q.items.some((i) => i.sentence.trim() && (!i.gap || !i.root.trim()))) problems.push({ kind: "noGaps", number, keyOnly: false });
     if (q.type === "picture-match" && q.pictures.length === 0) problems.push({ kind: "fewItems", number, keyOnly: false });
+    // A picture without its word: blank on the key (and missing from the word box).
+    else if (q.type === "picture-match" && q.pictures.some((p) => !p.answer.trim())) problems.push({ kind: "noAnswer", number, keyOnly: !q.wordBank });
+    if (q.type === "odd-one-out" && !q.rows.some((r) => r.words.some((w) => w.trim()))) problems.push({ kind: "fewItems", number, keyOnly: false });
     if (q.type === "odd-one-out" && q.rows.some((r) => r.words.some((w) => w.trim()) && r.odd === null)) problems.push({ kind: "noCorrect", number, keyOnly: true });
     if (q.type === "crossword") {
       const words = q.entries.filter((e) => e.word.trim());
       if (words.length < 2) problems.push({ kind: "fewItems", number, keyOnly: false });
       else if (buildCrossword(q.entries, q.seed).unplaced.length > 0) problems.push({ kind: "puzzleUnplaced", number, keyOnly: false });
+      // A word without a clue: students get a number and nothing to go on.
+      if (words.some((e) => !e.clue.trim())) problems.push({ kind: "noClue", number, keyOnly: false });
     }
     if (q.type === "word-search") {
       if (q.words.filter((w) => w.trim()).length < 2) problems.push({ kind: "fewItems", number, keyOnly: false });

@@ -359,10 +359,6 @@ function PrintDocument({
                 ]}
               />
             </Option>
-            {/* English tests: Georgian instructions under the English ones (younger students). */}
-            {toolkit.bilingual && (
-              <Checkbox checked={options.bilingual} onChange={(bilingual) => setOptions({ bilingual })} label={t("print.bilingual")} />
-            )}
           </div>
 
           {/* Variants */}

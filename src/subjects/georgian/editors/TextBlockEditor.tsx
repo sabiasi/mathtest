@@ -14,7 +14,16 @@ import { paragraphs, stanzas } from "../text";
  * pre-filled). Prose: one paragraph per line. Poem: one verse per line, an
  * empty line between stanzas. Line numbers help questions like "lines 5–8".
  */
-export function TextBlockEditor<Q extends PassageQuestion | PoemQuestion>({ question, onChange }: { question: Q; onChange: (question: Q) => void }) {
+export function TextBlockEditor<Q extends PassageQuestion | PoemQuestion>({
+  question,
+  georgianTypography,
+  onChange,
+}: {
+  question: Q;
+  /** The paper prints Georgian quotes and dashes (the note below says so). */
+  georgianTypography: boolean;
+  onChange: (question: Q) => void;
+}) {
   const t = useT();
   const poem = question.type === "poem";
   const count = poem
@@ -68,7 +77,7 @@ export function TextBlockEditor<Q extends PassageQuestion | PoemQuestion>({ ques
           {count}
         </span>
       </div>
-      <p className="text-sm text-muted-foreground">{t("text.ownTextNote")}</p>
+      <p className="text-sm text-muted-foreground">{t(georgianTypography ? "text.ownTextNote" : "text.ownTextNotePlain")}</p>
     </div>
   );
 }

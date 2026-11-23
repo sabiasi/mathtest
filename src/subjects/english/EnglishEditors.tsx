@@ -5,7 +5,7 @@
  * own content; everything here is plain text (English), checked by the
  * browser's English spellcheck (the editor sets lang="en" for English tests).
  */
-import { ImagePlus, LoaderCircle, Music, Plus, RefreshCw, TriangleAlert, X } from "lucide-react";
+import { CircleSlash, ImagePlus, LoaderCircle, Music, Plus, RefreshCw, TriangleAlert, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { QuestionImageView } from "@/components/QuestionImageView";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -393,28 +393,33 @@ export function OddOneOutEditor({ question, onChange }: { question: OddOneOutQue
       <p className="text-sm text-muted-foreground">{t("odd.hint")}</p>
       <ol className="space-y-2">
         {rows.map((row, index) => (
-          <li key={row.id} className="flex flex-wrap items-center gap-2" data-odd-row="">
-            <span className="w-6 text-right font-semibold text-soft-foreground">{index + 1}</span>
-            {row.words.map((word, j) => (
-              <span key={j} className="flex items-center">
-                <Input
-                  className={cn("h-9 w-28", row.odd === j && "border-destructive ring-1 ring-destructive")}
-                  value={word}
-                  maxLength={100}
-                  aria-label={t("odd.word", { number: j + 1 })}
-                  onChange={(e) => setRow(row.id, { words: row.words.map((w, k) => (k === j ? e.target.value : w)) })}
-                />
-                <button
-                  type="button"
-                  aria-pressed={row.odd === j}
-                  title={t("odd.markOdd")}
-                  onClick={() => setRow(row.id, { odd: row.odd === j ? null : j })}
-                  className="ml-0.5 rounded-md px-1.5 py-1 text-xs text-muted-foreground hover:bg-accent aria-pressed:bg-destructive-soft aria-pressed:text-destructive-text"
-                >
-                  ✕
-                </button>
-              </span>
-            ))}
+          <li key={row.id} className="flex items-center gap-2" data-odd-row="">
+            <span className="w-6 shrink-0 text-right font-semibold text-soft-foreground">{index + 1}</span>
+            <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
+              {row.words.map((word, j) => (
+                <span key={j} className="flex min-w-0 items-center gap-0.5">
+                  <Input
+                    className={cn("h-9 min-w-0 flex-1", row.odd === j && "border-destructive ring-1 ring-destructive")}
+                    value={word}
+                    maxLength={100}
+                    aria-label={t("odd.word", { number: j + 1 })}
+                    onChange={(e) => setRow(row.id, { words: row.words.map((w, k) => (k === j ? e.target.value : w)) })}
+                  />
+                  {/* Marks the odd word (⊘) — not the ✕ that deletes the row. */}
+                  <button
+                    type="button"
+                    aria-pressed={row.odd === j}
+                    title={t("odd.markOdd")}
+                    aria-label={`${t("odd.markOdd")}: ${t("odd.word", { number: j + 1 })}`}
+                    onClick={() => setRow(row.id, { odd: row.odd === j ? null : j })}
+                    className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-accent aria-pressed:bg-destructive-soft aria-pressed:text-destructive-text pointer-coarse:p-2.5"
+                    data-mark-odd=""
+                  >
+                    <CircleSlash className="size-4" aria-hidden="true" />
+                  </button>
+                </span>
+              ))}
+            </div>
             <RowControls index={index} count={rows.length} min={1} onMove={(by) => onChange({ ...question, rows: move(rows, index, by) })} onRemove={() => onChange({ ...question, rows: rows.filter((r) => r.id !== row.id) })} />
           </li>
         ))}

@@ -128,7 +128,6 @@ function normalizeQuestion(raw: unknown): Question | null {
     points: Math.max(0, num(raw.points, 1)),
     images: normalizeImages(raw.images),
     grid: normalizeGrid(raw.grid),
-    ...(typeof raw.instructionKa === "string" && raw.instructionKa.trim() ? { instructionKa: raw.instructionKa.slice(0, 500) } : {}),
     ...(typeof raw.tip === "string" && raw.tip.trim() ? { tip: raw.tip.slice(0, 1000) } : {}),
   };
 
@@ -566,7 +565,6 @@ function normalizePrintOptions(raw: unknown): PrintOptions {
     fontSize: o.fontSize === "large" ? "large" : DEFAULT_PRINT_OPTIONS.fontSize,
     showPoints: typeof o.showPoints === "boolean" ? o.showPoints : DEFAULT_PRINT_OPTIONS.showPoints,
     columns: o.columns === 2 ? 2 : DEFAULT_PRINT_OPTIONS.columns,
-    bilingual: o.bilingual === true,
   };
 }
 

@@ -53,4 +53,25 @@ describe("findProblems", () => {
       "noMap",
     ]);
   });
+
+  it("checks the English vocabulary tasks: words under pictures, odd-one-out rows, crossword clues", () => {
+    const picture = { id: "p", imageId: "i", width: 1, height: 1 };
+    const pictures = { ...createQuestion("picture-match"), text: text("Write the words."), pictures: [{ ...picture, answer: "cup" }, { ...picture, id: "q", answer: "" }] };
+    const noBank = { ...pictures, wordBank: false };
+    const odd = { ...createQuestion("odd-one-out"), text: text("Circle the odd one.") };
+    const crossword = {
+      ...createQuestion("crossword"),
+      text: text("Solve it."),
+      entries: [
+        { id: "a", word: "TENT", clue: "You sleep in it." },
+        { id: "b", word: "TEACHER", clue: "" },
+      ],
+    };
+    expect(findProblems(testOf([pictures, noBank, odd, crossword] as Question[]))).toEqual([
+      { kind: "noAnswer", number: 1, keyOnly: false }, // the word box misses it too
+      { kind: "noAnswer", number: 2, keyOnly: true },
+      { kind: "fewItems", number: 3, keyOnly: false },
+      { kind: "noClue", number: 4, keyOnly: false },
+    ]);
+  });
 });

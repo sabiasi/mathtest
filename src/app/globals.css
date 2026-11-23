@@ -1213,12 +1213,6 @@ math-field::part(virtual-keyboard-toggle) {
   margin-bottom: 1mm;
   font-style: normal;
 }
-.print-essay-lines {
-  padding-left: 7mm;
-}
-.print-question .print-essay-lines {
-  padding-left: 0;
-}
 
 /* Grammar */
 .print-table {
@@ -1280,14 +1274,6 @@ math-field::part(virtual-keyboard-toggle) {
   height: 7mm;
 }
 
-/* English: Georgian instructions under the English ones (bilingual) */
-.print-text-ka {
-  margin-top: 0.5mm;
-  font-size: 0.88em;
-  font-style: normal;
-  font-weight: 400;
-  color: #333;
-}
 /* Section headings: "READING — 20 points" */
 .print-section-bar {
   display: flex;
@@ -1299,10 +1285,6 @@ math-field::part(virtual-keyboard-toggle) {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-}
-.print-section-ka {
-  font-weight: 400;
-  text-transform: none;
 }
 /* Word boxes */
 .print-word-box {
@@ -1384,11 +1366,12 @@ math-field::part(virtual-keyboard-toggle) {
   line-height: 1;
 }
 /* True/False/Not given, odd one out */
+/* The answer key's circle: drawn around the word without moving it (same place as on the student's paper). */
 .print-circled {
+  margin: 0 calc(-1.2mm - 0.35mm);
   padding: 0 1.2mm;
   border: 0.35mm solid #000;
   border-radius: 999px;
-  font-weight: 700;
 }
 .print-odd-row {
   display: flex;

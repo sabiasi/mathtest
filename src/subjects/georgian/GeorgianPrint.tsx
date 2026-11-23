@@ -8,7 +8,6 @@
 import { RichTextView } from "@/features/math/RichTextView";
 import { useTypography } from "@/features/print/Typography";
 import { useT } from "@/i18n/language";
-import { GeorgianInstruction } from "@/subjects/english/EnglishPrint";
 import { isRichTextEmpty } from "@/lib/richText";
 import { optionLabel } from "@/lib/questions";
 import type {
@@ -32,12 +31,11 @@ import { ESSAY_FIRST, paragraphs, stanzas } from "./text";
 const PASSAGE_LINE_HEIGHT = 1.65;
 
 /** Title, author and the instruction above a text (only on its first block). */
-function TextHeading({ question, bilingual }: { question: PassageQuestion | PoemQuestion; bilingual: boolean }) {
+function TextHeading({ question }: { question: PassageQuestion | PoemQuestion }) {
   const fix = useTypography();
   return (
     <>
       {!isRichTextEmpty(question.text) && <RichTextView value={question.text} className="print-text mb-[2mm] block" />}
-      <GeorgianInstruction text={question.instructionKa} show={bilingual} />
       {question.title && <p className="print-passage-title">{fix(question.title)}</p>}
       {question.author && <p className="print-passage-author">{fix(question.author)}</p>}
     </>
@@ -54,12 +52,10 @@ export function PassagePiece({
   question,
   index,
   lineStart,
-  bilingual = false,
 }: {
   question: PassageQuestion;
   index: number;
   lineStart: number;
-  bilingual?: boolean;
 }) {
   const fix = useTypography();
   const text = paragraphs(question.body)[index] ?? "";
@@ -69,7 +65,7 @@ export function PassagePiece({
   }
   return (
     <div className="print-passage">
-      {index === 0 && <TextHeading question={question} bilingual={bilingual} />}
+      {index === 0 && <TextHeading question={question} />}
       <div className="print-passage-text" data-passage-lines="">
         {question.lineNumbers && (
           <div className="print-line-numbers" aria-hidden="true">
@@ -93,7 +89,7 @@ export function PassagePiece({
 }
 
 /** One stanza of a poem; verses keep their line breaks and leading spaces. Every 5th verse is numbered. */
-export function PoemPiece({ question, index, bilingual = false }: { question: PoemQuestion; index: number; bilingual?: boolean }) {
+export function PoemPiece({ question, index }: { question: PoemQuestion; index: number }) {
   const fix = useTypography();
   const all = stanzas(question.body);
   const verses = all[index] ?? [];
@@ -101,7 +97,7 @@ export function PoemPiece({ question, index, bilingual = false }: { question: Po
   const before = all.slice(0, index).reduce((sum, stanza) => sum + stanza.length, 0);
   return (
     <div className="print-poem">
-      {index === 0 && <TextHeading question={question} bilingual={bilingual} />}
+      {index === 0 && <TextHeading question={question} />}
       <div className="print-poem-stanza">
         {verses.map((verse, i) => {
           const n = before + i + 1;

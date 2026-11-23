@@ -22,7 +22,7 @@ export const bold = marked(["bold"]);
 /** Text and formulas → RichText: rt("გამოთვალეთ: ", m("\\frac{1}{2}")). */
 export const rt = (...parts: Part[]): RichText => parts.map((p) => (typeof p === "string" ? { type: "text", text: p } : p));
 
-type Extra = Partial<Pick<Question, "tip" | "images" | "grid" | "instructionKa">>;
+type Extra = Partial<Pick<Question, "tip" | "images" | "grid">>;
 
 /** The fields every question has. */
 export const base = (id: string, points: number, text: RichText, extra: Extra = {}) => ({ id, points, text, images: [], grid: null, ...extra });

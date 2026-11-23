@@ -3,13 +3,12 @@
 /**
  * How the English blocks and questions look on paper. Labels come from the
  * dictionary — inside the printed sheets of an English test that's English
- * (see LanguageOverride in PrintView); Georgian is added when "bilingual".
+ * (see LanguageOverride in PrintView).
  * Black on white only.
  */
 import qrcode from "qrcode-generator";
 import { QuestionImageView } from "@/components/QuestionImageView";
 import { RichTextView } from "@/features/math/RichTextView";
-import { dictionaries } from "@/i18n/dictionaries";
 import { useT } from "@/i18n/language";
 import { optionLabel } from "@/lib/questions";
 import { buildCrossword, buildWordSearch } from "@/lib/puzzles";
@@ -28,32 +27,20 @@ import type {
 } from "@/lib/storage/types";
 import { findRef, tokenize } from "@/lib/words";
 
-/** The instruction in Georgian, under the English one (bilingual tests). */
-export function GeorgianInstruction({ text, show }: { text?: string; show: boolean }) {
-  if (!show || !text?.trim()) return null;
-  return <p className="print-text-ka">{text}</p>;
-}
-
 // ---------------------------------------------------------------------------
 // Section heading: "READING — 20 points"
 // ---------------------------------------------------------------------------
 
-export function SectionPrint({ question, points, bilingual, showPoints }: { question: SectionQuestion; points: number; bilingual: boolean; showPoints: boolean }) {
+export function SectionPrint({ question, points, showPoints }: { question: SectionQuestion; points: number; showPoints: boolean }) {
   const t = useT();
   const name = question.title.trim() || t(`section.${question.kind}`);
-  // The Georgian name alone ("კითხვა"), under English tests' bilingual headings.
-  const georgian = question.kind !== "custom" ? dictionaries.ka[`sectionKa.${question.kind}`] : "";
   return (
     <div className="print-section">
       <div className="print-section-bar">
-        <span>
-          {name}
-          {bilingual && georgian && georgian !== name && <span className="print-section-ka"> / {georgian}</span>}
-        </span>
+        <span>{name}</span>
         {showPoints && points > 0 && <span>{t(points === 1 ? "print.pointsOne" : "print.pointsMany", { points })}</span>}
       </div>
       {!isRichTextEmpty(question.text) && <RichTextView value={question.text} className="print-text mt-[1.5mm] block" />}
-      <GeorgianInstruction text={question.instructionKa} show={bilingual} />
     </div>
   );
 }
@@ -79,13 +66,12 @@ export function QrCode({ link }: { link: string }) {
   return svg ? <span className="print-qr" dangerouslySetInnerHTML={{ __html: svg }} /> : null;
 }
 
-export function ListeningPrint({ question, bilingual }: { question: ListeningQuestion; bilingual: boolean }) {
+export function ListeningPrint({ question }: { question: ListeningQuestion }) {
   const t = useT();
   return (
     <div className="print-listening">
       <div className="min-w-0 flex-1">
         {!isRichTextEmpty(question.text) && <RichTextView value={question.text} className="print-text block" />}
-        <GeorgianInstruction text={question.instructionKa} show={bilingual} />
         <p className="print-listening-plays">{t(`listening.plays${question.plays}`)}</p>
       </div>
       {question.showQr && question.link && (
@@ -306,6 +292,8 @@ export function CrosswordPrint({ question, answerKey }: { question: CrosswordQue
 
 export function WordSearchPrint({ question, answerKey }: { question: WordSearchQuestion; answerKey: boolean }) {
   const puzzle = buildWordSearch(question.words, question.size, question.allDirections, question.seed);
+  // No words yet: no grid (it would be only random letters).
+  if (puzzle.found.length === 0) return null;
   const hidden = new Set(answerKey ? puzzle.found.flatMap((f) => f.cells.map(([r, c]) => `${r}:${c}`)) : []);
   return (
     <div className="print-wordsearch">

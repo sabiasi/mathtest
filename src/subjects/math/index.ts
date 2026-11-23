@@ -16,6 +16,8 @@ export const mathToolkit: SubjectToolkit = {
   diagrams: ["geometry"],
   // The video guide (every math question type, with chapters): tutorials/math-all-types.spec.ts.
   guideVideo: "math-all-types",
+  // …also as a corner card in the editor, once per visit (picture: math-all-types.ka.jpg).
+  guideCard: true,
   // Open answers: blank room for the solution, not ruled lines.
   print: { className: "subject-math", openAnswerSpace: "blank" },
 };

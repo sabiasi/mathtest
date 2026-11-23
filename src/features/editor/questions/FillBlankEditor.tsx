@@ -22,7 +22,16 @@ const list = (value: string) =>
  *   bank   — a box of the words (plus extra wrong ones), shuffled
  *   choice — A/B/C/D options for each gap (the right word + 1–3 wrong ones)
  */
-export function FillBlankEditor({ question, onChange }: { question: FillBlankQuestion; onChange: (question: FillBlankQuestion) => void }) {
+export function FillBlankEditor({
+  question,
+  english = false,
+  onChange,
+}: {
+  question: FillBlankQuestion;
+  /** The text is in English (the example sentence is English too). */
+  english?: boolean;
+  onChange: (question: FillBlankQuestion) => void;
+}) {
   const t = useT();
   const tokens = tokenize(question.body);
   // Blanks whose word is no longer in the text (edited away) are dropped.
@@ -45,7 +54,7 @@ export function FillBlankEditor({ question, onChange }: { question: FillBlankQue
           rows={4}
           value={question.body}
           maxLength={LIMITS.shortTextChars}
-          placeholder={t("fill.textPlaceholder")}
+          placeholder={t(english ? "fill.textPlaceholderEn" : "fill.textPlaceholder")}
           onChange={(e) => onChange({ ...question, body: e.target.value, blanks })}
         />
       </Field>

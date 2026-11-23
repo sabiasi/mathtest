@@ -120,8 +120,6 @@ export interface SubjectToolkit {
   diagrams: readonly DiagramKind[];
   /** Show the CEFR level (A1–C1) in the test header and on the paper. */
   levels?: boolean;
-  /** Offer Georgian versions of the instructions (printed under the English ones when "bilingual" is on). */
-  bilingual?: boolean;
   /** The language the content is written in (for the browser's spellcheck), e.g. "en". */
   contentLanguage?: string;
   /** Answer letters for new tests (English: A, B, C, D). */
