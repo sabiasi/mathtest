@@ -7,7 +7,8 @@
  *    page sees an up-to-date sign-in cookie.
  * 2. Send people to the right place:
  *    - signed out + a page that needs an account (settings) → /signin?next=…
- *    - signed in + landing / sign-in / sign-up              → /tests
+ *    - signed in + sign-in / sign-up                        → /tests
+ *    The landing page "/" opens for everyone.
  *    Guests may use My tests, the editor and print (tests stay in their browser).
  *
  * This is about convenience. The real protection of the data is Row Level

@@ -10,8 +10,12 @@
  */
 export const PROTECTED_PREFIXES = ["/settings", "/school", "/admin"];
 
-/** Pages that make no sense once signed in (they send you to My tests). */
-export const SIGNED_OUT_ONLY = ["/", "/signin", "/signup"];
+/**
+ * Pages that make no sense once signed in (they send you to My tests).
+ * The landing page "/" is NOT here: it opens for everyone (signed in, its
+ * main button says "My tests").
+ */
+export const SIGNED_OUT_ONLY = ["/signin", "/signup"];
 
 export function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));

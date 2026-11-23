@@ -605,7 +605,7 @@ using unfamiliar APIs):
 ```
 src/
   app/                  Routes only, kept tiny (page.tsx renders a feature view)
-    page.tsx            /              → features/landing/LandingView (signed in → /tests via proxy)
+    page.tsx            /              → features/landing/LandingView (everyone, signed in too)
     tests/page.tsx      /tests         → features/home/HomeView ("My tests", guests too)
     about/page.tsx      /about         → features/landing/LandingView (always)
     editor/[id]/page.tsx /editor/:id   → features/editor/EditorView
